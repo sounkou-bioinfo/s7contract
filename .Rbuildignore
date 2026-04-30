@@ -1,0 +1,10 @@
+^s7contract\.Rcheck$
+^s7contract_[0-9].*\.tar\.gz$
+^[.]codex$
+^[.][.]Rcheck$
+^LICENSE$
+^LICENSE\.md$
+^Makefile$
+^README\.html$
+^README\.knit\.md$
+^README\.Rmd$

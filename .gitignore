@@ -1,0 +1,10 @@
+.Rcheck/
+..Rcheck/
+*.Rcheck/
+*.tar.gz
+README.html
+README.knit.md
+.codex
+.Rhistory
+.RData
+.Ruserdata
