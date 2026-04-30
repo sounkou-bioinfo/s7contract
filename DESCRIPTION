@@ -19,3 +19,5 @@ Suggests:
     knitr,
     rmarkdown,
     tinytest
+URL: https://github.com/sounkou-bioinfo/s7contract, https://sounkou-bioinfo.github.io/s7contract/
+BugReports: https://github.com/sounkou-bioinfo/s7contract/issues

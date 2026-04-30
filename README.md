@@ -3,6 +3,11 @@
 
 # s7contract
 
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
 `s7contract` explores two contract styles on top of
 [S7](https://rconsortium.github.io/S7/):
 
@@ -13,7 +18,15 @@
 The package keeps actual dispatch in ordinary S7 generics. It does not
 invent `x.method()` syntax or a second dispatch engine.
 
-## Install locally
+## Installation
+
+Install from GitHub:
+
+``` r
+remotes::install_github("sounkou-bioinfo/s7contract")
+```
+
+Install locally from a checkout:
 
 ``` bash
 R CMD INSTALL .
