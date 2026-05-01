@@ -323,11 +323,11 @@ trait_methods <- function(trait, inherited = TRUE) {
   for (name in names(required)) {
     spec <- required[[name]]
     if (name %in% names(provided)) {
-      out[[name]] <- provided[[name]]
+      out[name] <- list(provided[[name]])
     } else if (isTRUE(spec$required)) {
       .abort("Missing required associated item `%s` in `%s`.", name, what)
     } else {
-      out[[name]] <- spec$default
+      out[name] <- list(spec$default)
     }
   }
 
@@ -375,6 +375,14 @@ impl_trait <- function(
     }
   }
 
+  if (!replace && !is.null(.find_trait_impl(trait, cls))) {
+    .abort(
+      "%s is already implemented for %s. Pass replace = TRUE to replace it.",
+      .trait_label(trait),
+      .class_label(cls)
+    )
+  }
+
   trait_reqs <- trait_methods(trait, inherited = FALSE)
   provided_methods <- .normalise_impl_methods(methods)
   resolved_methods <- list()
@@ -417,8 +425,6 @@ impl_trait <- function(
     assoc_consts = resolved_assoc_consts
   )
 
-  .store_trait_impl(impl, replace = replace)
-
   for (name in names(trait_reqs)) {
     .register_s7_method(
       generic = trait_reqs[[name]]$generic,
@@ -427,6 +433,8 @@ impl_trait <- function(
       replace = replace
     )
   }
+
+  .store_trait_impl(impl, replace = replace)
 
   invisible(impl)
 }
@@ -503,6 +511,28 @@ trait_call <- function(trait, method, x, ...) {
   reqs[[method]]$generic(x, ...)
 }
 
+.assoc_value_from_impl <- function(trait, cls, field, name, impl = NULL) {
+  if (is.null(impl)) {
+    impl <- .find_trait_impl(trait, cls)
+  }
+
+  if (!is.null(impl)) {
+    values <- impl[[field]]
+    if (name %in% names(values)) {
+      return(list(ok = TRUE, value = values[[name]]))
+    }
+  }
+
+  for (parent in trait$parents) {
+    found <- .assoc_value_from_impl(parent, cls, field, name)
+    if (isTRUE(found$ok)) {
+      return(found)
+    }
+  }
+
+  list(ok = FALSE, value = NULL)
+}
+
 .assoc_from_impl <- function(trait, x, field, name) {
   cls <- .target_class_or_null(x, arg = "x")
   if (is.null(cls)) {
@@ -512,11 +542,12 @@ trait_call <- function(trait, method, x, ...) {
   if (is.null(impl)) {
     .abort("%s does not explicitly implement %s.", .class_label(cls), .trait_label(trait))
   }
-  values <- impl[[field]]
-  if (!name %in% names(values)) {
+
+  found <- .assoc_value_from_impl(trait, cls, field, name, impl = impl)
+  if (!isTRUE(found$ok)) {
     .abort("Trait %s has no associated item `%s`.", .trait_label(trait), name)
   }
-  values[[name]]
+  found$value
 }
 
 #' @param name Associated item name.
