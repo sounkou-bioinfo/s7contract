@@ -55,6 +55,10 @@
   .class_label(spec)
 }
 
+.value_error_label <- function(arg) {
+  if (identical(arg, ".return")) "Return value" else sprintf("`%s`", arg)
+}
+
 .check_value_conforms <- function(value, spec, arg) {
   if (.is_interface(spec)) {
     assert_implements(value, spec, arg = arg)
@@ -79,7 +83,7 @@
       if (length(value_line) > 0) {
         msg <- sub("^- @value ", "", value_line[[1L]])
       }
-      .abort("`%s` must satisfy %s: %s", arg, .spec_label(spec), msg)
+      .abort("%s %s", .value_error_label(arg), msg)
     }
   )
   invisible(value)

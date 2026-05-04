@@ -62,7 +62,7 @@ local({
   })
 
   expect_error(with(DrawableOnCanvas, draw_on(circle, canvas, position = "bad")), "position")
-  expect_error(with(DrawableOnCanvas, draw_on(square, canvas, position = 1L)), "return")
+  expect_error(with(DrawableOnCanvas, draw_on(square, canvas, position = 1L)), "Return value")
 
   draw_default <- new_generic(
     "draw_default_progressive_test",
