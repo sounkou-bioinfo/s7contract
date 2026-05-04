@@ -22,7 +22,7 @@ s7_interface <- S7::new_class(
     name = S7::class_character,
     package = S7::new_union(NULL, S7::class_character),
     parents = S7::class_list,
-    methods = S7::class_list
+    requirements = S7::class_list
   )
 )
 

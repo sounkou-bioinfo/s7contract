@@ -17,12 +17,39 @@ local({
   method(draw, Circle) <- function(x) sprintf("circle(%s)", x@r)
   method(area, Rect) <- function(x) x@w * x@h
 
-  Drawable <- new_interface("DrawableInterfaceTest", list(draw = draw))
-  Shape <- new_interface("ShapeInterfaceTest", list(area = area), parents = Drawable)
+  Drawable <- new_interface(
+    "DrawableInterfaceTest",
+    generics = list(draw = draw)
+  )
+  Shape <- new_interface(
+    "ShapeInterfaceTest",
+    generics = list(area = area),
+    parents = Drawable
+  )
+  DrawableAlias <- new_interface(
+    "DrawableAliasInterfaceTest",
+    methods = list(draw = draw)
+  )
 
-  expect_true(S7_inherits(Drawable, s7contract:::s7_interface))
-  expect_true(S7_inherits(interface_requirements(Drawable)[["draw"]], s7contract:::s7_interface_requirement))
-  expect_true(any(grepl("<S7 Go-like interface> DrawableInterfaceTest", capture.output(print(Drawable)), fixed = TRUE)))
+  expect_equal(names(interface_requirements(Drawable)), "draw")
+  expect_equal(names(interface_requirements(DrawableAlias)), "draw")
+  expect_error(
+    new_interface("BadInterfaceTest", generics = list(identity)),
+    "S7 generic"
+  )
+  expect_error(
+    new_interface(
+      "ConflictInterfaceTest",
+      generics = list(draw = draw),
+      methods = list(area = area)
+    ),
+    "either"
+  )
+  expect_true(any(grepl(
+    "<S7 Go-like interface> DrawableInterfaceTest",
+    capture.output(print(Drawable)),
+    fixed = TRUE
+  )))
   expect_true(implements(Circle, Shape))
   expect_true(implements(Circle(r = 2), Shape))
   expect_false(implements(Rect, Shape))

@@ -60,8 +60,8 @@ method(area, Circle) <- function(x) pi * x@r^2
 method(draw, Circle) <- function(x) sprintf("circle(r = %s)", x@r)
 method(area, Rect) <- function(x) x@w * x@h
 
-Drawable <- new_interface("Drawable", list(draw = draw))
-Shape <- new_interface("Shape", list(area = area), parents = Drawable)
+Drawable <- new_interface("Drawable", generics = list(draw = draw))
+Shape <- new_interface("Shape", generics = list(area = area), parents = Drawable)
 
 implements(Circle, Shape)
 implements(Rect, Shape)
@@ -127,7 +127,7 @@ method(draw_on, list(Circle, Canvas)) <- function(x, canvas, position, ...) {
 
 DrawableOnCanvas <- new_interface(
   "DrawableOnCanvas",
-  methods = list(
+  generics = list(
     draw_on = interface_requirement(
       draw_on,
       args = list(canvas = Canvas, position = class_integer),

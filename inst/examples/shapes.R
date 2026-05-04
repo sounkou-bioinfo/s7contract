@@ -16,8 +16,12 @@ method(draw, Circle) <- function(x) sprintf("circle(r = %s)", x@r)
 method(area, Rect) <- function(x) x@w * x@h
 
 # Go-like structural interface
-Drawable <- new_interface("Drawable", list(draw = draw))
-Shape <- new_interface("Shape", list(area = area), parents = Drawable)
+Drawable <- new_interface("Drawable", generics = list(draw = draw))
+Shape <- new_interface(
+  "Shape",
+  generics = list(area = area),
+  parents = Drawable
+)
 
 stopifnot(implements(Circle, Shape))
 stopifnot(!implements(Rect, Shape))

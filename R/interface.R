@@ -1,8 +1,9 @@
 #' Build a Go-like structural interface on top of S7
 #'
-#' `new_interface()` models the method-list part of Go interfaces using S7
-#' generics. An interface is just a named set of required generics, and a class
-#' or object satisfies it when S7 can find a method for every required generic.
+#' `new_interface()` models the method-list part of Go interfaces as a list of
+#' required S7 generics. An interface is just a named set of required generics,
+#' and a class or object satisfies it when S7 can find a method for every
+#' required generic.
 #'
 #' This deliberately mirrors Go's basic interfaces defined only by methods. The
 #' intended style is to define small interfaces at the point where consuming code
@@ -17,8 +18,10 @@
 #' @param name For `new_interface()`, the interface name. For
 #'   `interface_requirement()`, the requirement name; it defaults to the generic
 #'   name when omitted.
-#' @param methods For `new_interface()`, a named list of S7 generics or
-#'   `interface_requirement()` objects.
+#' @param generics For `new_interface()`, a named list of S7 generics or
+#'   `interface_requirement()` objects. These are generic functions because S7
+#'   methods are registered separately on generics.
+#' @param methods Compatibility alias for `generics`.
 #' @param parents Optional interface or list of interfaces to embed.
 #' @param package Optional package name used only for display.
 #' @return `new_interface()` returns an S7 object of class
@@ -42,14 +45,27 @@
 #'   S7::method(draw, Circle) <- function(x) sprintf("circle(r = %s)", x@r)
 #'   S7::method(area, Rect) <- function(x) x@w * x@h
 #'
-#'   Drawable <- new_interface("Drawable", methods = list(draw = draw))
-#'   Shape <- new_interface("Shape", methods = list(area = area), parents = Drawable)
+#'   Drawable <- new_interface("Drawable", generics = list(draw = draw))
+#'   Shape <- new_interface("Shape", generics = list(area = area), parents = Drawable)
 #'
 #'   implements(Circle, Shape)
 #'   missing_requirements(Rect, Shape)
 #' })
 #' @export
-new_interface <- function(name, methods = list(), parents = list(), package = NULL) {
+new_interface <- function(
+  name,
+  generics = list(),
+  parents = list(),
+  package = NULL,
+  methods = NULL
+) {
+  if (!is.null(methods)) {
+    if (!missing(generics)) {
+      .abort("Use either `generics` or `methods`, not both.")
+    }
+    generics <- methods
+  }
+
   if (!is.character(name) || length(name) != 1 || !nzchar(name)) {
     .abort("`name` must be a non-empty string.")
   }
@@ -61,7 +77,7 @@ new_interface <- function(name, methods = list(), parents = list(), package = NU
     name = name,
     package = package,
     parents = .normalise_interface_parents(parents),
-    methods = .normalise_interface_methods(methods)
+    requirements = .normalise_interface_generics(generics)
   )
 }
 
@@ -75,12 +91,13 @@ new_interface <- function(name, methods = list(), parents = list(), package = NU
 #'   checking with `with()` or `%::%`; defaults to `S7::class_any`.
 #' @rdname new_interface
 #' @export
-interface_requirement <- function(generic, name = NULL, args = list(), returns = S7::class_any) {
-  if (!is.function(generic)) {
-    .abort(
-      "`generic` must be a function, usually an S7 generic created with S7::new_generic()."
-    )
-  }
+interface_requirement <- function(
+  generic,
+  name = NULL,
+  args = list(),
+  returns = S7::class_any
+) {
+  .check_s7_generic(generic, "generic")
   if (is.null(name)) {
     name <- .generic_label(generic)
   }
@@ -106,29 +123,33 @@ interface_requirement <- function(generic, name = NULL, args = list(), returns =
   if (is.function(x)) {
     return(interface_requirement(x, name = name))
   }
-  .abort("Interface requirements must be S7 generics or interface_requirement() objects.")
+  .abort(
+    "Interface requirements must be S7 generics or interface_requirement() objects."
+  )
 }
 
-.normalise_interface_methods <- function(methods) {
-  if (is.null(methods)) {
-    methods <- list()
+.normalise_interface_generics <- function(generics) {
+  if (is.null(generics)) {
+    generics <- list()
   }
-  if (is.function(methods) || .is_interface_requirement(methods)) {
-    methods <- list(methods)
+  if (is.function(generics) || .is_interface_requirement(generics)) {
+    generics <- list(generics)
   }
-  if (!is.list(methods)) {
-    .abort("`methods` must be a list of S7 generics or interface_requirement() objects.")
+  if (!is.list(generics)) {
+    .abort(
+      "`generics` must be a list of S7 generics or interface_requirement() objects."
+    )
   }
 
-  nms <- names(methods)
+  nms <- names(generics)
   if (is.null(nms)) {
-    nms <- rep("", length(methods))
+    nms <- rep("", length(generics))
   }
 
-  out <- vector("list", length(methods))
-  for (i in seq_along(methods)) {
+  out <- vector("list", length(generics))
+  for (i in seq_along(generics)) {
     nm <- if (nzchar(nms[[i]])) nms[[i]] else NULL
-    req <- .as_interface_requirement(methods[[i]], name = nm)
+    req <- .as_interface_requirement(generics[[i]], name = nm)
     out[[i]] <- req
     nms[[i]] <- req@name
   }
@@ -184,7 +205,7 @@ interface_requirements <- function(interface, inherited = TRUE) {
       out <- c(out, interface_requirements(parent, inherited = TRUE))
     }
   }
-  out <- c(out, interface@methods)
+  out <- c(out, interface@requirements)
 
   if (length(out) > 0) {
     out <- out[!duplicated(names(out), fromLast = TRUE)]
@@ -274,7 +295,11 @@ as_interface <- function(x, interface) {
     cat("\n")
     for (req in reqs) {
       typed_args <- names(req@args)
-      typed_args <- if (length(typed_args) == 0) "" else sprintf(" args: %s", paste(typed_args, collapse = ", "))
+      typed_args <- if (length(typed_args) == 0) {
+        ""
+      } else {
+        sprintf(" args: %s", paste(typed_args, collapse = ", "))
+      }
       cat(sprintf("    - %s()%s\n", req@name, typed_args))
     }
   }

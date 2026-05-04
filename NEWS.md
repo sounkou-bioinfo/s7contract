@@ -1,5 +1,7 @@
 # s7contract 0.1.0
 
+* Renamed the primary `new_interface()` requirement argument to `generics`; `methods` remains a compatibility alias.
+* Tightened interface and trait requirements to require S7 generics created with `S7::new_generic()`.
 * Added optional progressive argument and return checks for interface requirements and trait methods, including `with()` and `%::%` evaluation syntax.
 * Reworked contract descriptor objects as internal S7 classes throughout.
 * Added a Haskell-style `Maybe`/monad dictionary example to the interface and trait vignette.

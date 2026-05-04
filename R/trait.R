@@ -97,12 +97,14 @@ new_trait <- function(
 #'   checking with `with()` or `%::%`; defaults to `S7::class_any`.
 #' @rdname new_trait
 #' @export
-trait_method <- function(generic, default = NULL, name = NULL, args = list(), returns = S7::class_any) {
-  if (!is.function(generic)) {
-    .abort(
-      "`generic` must be a function, usually an S7 generic created with S7::new_generic()."
-    )
-  }
+trait_method <- function(
+  generic,
+  default = NULL,
+  name = NULL,
+  args = list(),
+  returns = S7::class_any
+) {
+  .check_s7_generic(generic, "generic")
   if (!is.null(default) && !is.function(default)) {
     .abort("`default` must be NULL or a function.")
   }
@@ -268,7 +270,10 @@ trait_methods <- function(trait, inherited = TRUE) {
 .find_trait_impl <- function(trait, class) {
   impls <- .s7contract_registry$impls
   for (impl in impls) {
-    if (identical(impl@trait_id, trait@id) && .class_equal(impl@target_class, class)) {
+    if (
+      identical(impl@trait_id, trait@id) &&
+        .class_equal(impl@target_class, class)
+    ) {
       return(impl)
     }
   }
@@ -280,7 +285,10 @@ trait_methods <- function(trait, inherited = TRUE) {
   keep <- rep(TRUE, length(impls))
 
   for (i in seq_along(impls)) {
-    if (identical(impls[[i]]@trait_id, impl@trait_id) && .class_equal(impls[[i]]@target_class, impl@target_class)) {
+    if (
+      identical(impls[[i]]@trait_id, impl@trait_id) &&
+        .class_equal(impls[[i]]@target_class, impl@target_class)
+    ) {
       if (!replace) {
         .abort(
           "%s is already implemented for %s. Pass replace = TRUE to replace it.",
@@ -303,7 +311,10 @@ trait_methods <- function(trait, inherited = TRUE) {
   if (!is.list(methods)) {
     .abort("`methods` must be a named list of functions.")
   }
-  if (length(methods) > 0 && (is.null(names(methods)) || any(names(methods) == ""))) {
+  if (
+    length(methods) > 0 &&
+      (is.null(names(methods)) || any(names(methods) == ""))
+  ) {
     .abort("`methods` must be a named list of functions.")
   }
   for (name in names(methods)) {
@@ -321,7 +332,10 @@ trait_methods <- function(trait, inherited = TRUE) {
   if (!is.list(provided)) {
     .abort("`%s` must be a named list.", what)
   }
-  if (length(provided) > 0 && (is.null(names(provided)) || any(names(provided) == ""))) {
+  if (
+    length(provided) > 0 &&
+      (is.null(names(provided)) || any(names(provided) == ""))
+  ) {
     .abort("`%s` must be a named list.", what)
   }
 
@@ -339,7 +353,11 @@ trait_methods <- function(trait, inherited = TRUE) {
 
   extra <- setdiff(names(provided), names(required))
   if (length(extra) > 0) {
-    .abort("Unknown associated item(s) for `%s`: %s", what, paste(extra, collapse = ", "))
+    .abort(
+      "Unknown associated item(s) for `%s`: %s",
+      what,
+      paste(extra, collapse = ", ")
+    )
   }
   out
 }
@@ -367,7 +385,9 @@ impl_trait <- function(
 
   cls <- .as_class_or_null(class, arg = "class")
   if (is.null(cls)) {
-    .abort("`class` must be an S7 class, S7 union, S3 class wrapper, S4 class, or base class wrapper.")
+    .abort(
+      "`class` must be an S7 class, S7 union, S3 class wrapper, S4 class, or base class wrapper."
+    )
   }
 
   for (parent in trait@parents) {
@@ -400,7 +420,11 @@ impl_trait <- function(
       fun <- req@default
     }
     if (is.null(fun)) {
-      .abort("Missing required trait method `%s` for %s.", name, .trait_label(trait))
+      .abort(
+        "Missing required trait method `%s` for %s.",
+        name,
+        .trait_label(trait)
+      )
     }
     resolved_methods[[name]] <- fun
   }
@@ -546,7 +570,11 @@ trait_call <- function(trait, method, x, ...) {
   }
   impl <- .find_trait_impl(trait, cls)
   if (is.null(impl)) {
-    .abort("%s does not explicitly implement %s.", .class_label(cls), .trait_label(trait))
+    .abort(
+      "%s does not explicitly implement %s.",
+      .class_label(cls),
+      .trait_label(trait)
+    )
   }
 
   found <- .assoc_value_from_impl(trait, cls, field, name, impl = impl)
@@ -590,7 +618,11 @@ trait_assoc_const <- function(trait, x, name) {
     for (req in reqs) {
       suffix <- if (is.null(req@default)) "" else " [default]"
       typed_args <- names(req@args)
-      typed_args <- if (length(typed_args) == 0) "" else sprintf(" args: %s", paste(typed_args, collapse = ", "))
+      typed_args <- if (length(typed_args) == 0) {
+        ""
+      } else {
+        sprintf(" args: %s", paste(typed_args, collapse = ", "))
+      }
       cat(sprintf("    - %s()%s%s\n", req@name, suffix, typed_args))
     }
   }
@@ -598,7 +630,11 @@ trait_assoc_const <- function(trait, x, name) {
     cat("  associated types:", paste(names(assoc_types), collapse = ", "), "\n")
   }
   if (length(assoc_consts) > 0) {
-    cat("  associated consts:", paste(names(assoc_consts), collapse = ", "), "\n")
+    cat(
+      "  associated consts:",
+      paste(names(assoc_consts), collapse = ", "),
+      "\n"
+    )
   }
   invisible(x)
 }

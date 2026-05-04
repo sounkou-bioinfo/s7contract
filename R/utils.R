@@ -8,16 +8,19 @@
   warning(sprintf(...), call. = call.)
 }
 
-.compact <- function(x) {
-  x[!vapply(x, is.null, logical(1))]
-}
-
 .as_class_or_null <- function(x, arg = "x") {
   tryCatch(S7::as_class(x, arg = arg), error = function(e) NULL)
 }
 
-.is_class_spec <- function(x) {
-  !is.null(.as_class_or_null(x))
+.is_s7_generic <- function(x) {
+  is.function(x) && inherits(x, "S7_generic")
+}
+
+.check_s7_generic <- function(x, arg = "generic") {
+  if (!.is_s7_generic(x)) {
+    .abort("`%s` must be an S7 generic created with S7::new_generic().", arg)
+  }
+  invisible(x)
 }
 
 .class_key <- function(class) {
@@ -46,7 +49,8 @@
 }
 
 .base_class_of <- function(x) {
-  switch(typeof(x),
+  switch(
+    typeof(x),
     logical = S7::class_logical,
     integer = S7::class_integer,
     double = S7::class_double,
@@ -76,21 +80,6 @@
   .base_class_of(x)
 }
 
-.lookup_s7_method <- function(generic, target) {
-  cls <- .as_class_or_null(target, arg = "target")
-
-  tryCatch({
-    method <- if (is.null(cls)) {
-      S7::method(generic, object = target)
-    } else {
-      S7::method(generic, class = cls)
-    }
-    list(ok = TRUE, method = method, error = NULL)
-  }, error = function(e) {
-    list(ok = FALSE, method = NULL, error = e)
-  })
-}
-
 .generic_label <- function(generic, fallback = "method") {
   if (inherits(generic, "S7_generic")) {
     return(generic@name)
@@ -113,11 +102,15 @@
   }
 
   if (!replace) {
-    existing <- tryCatch(S7::method(generic, class = class), error = function(e) NULL)
+    existing <- tryCatch(
+      S7::method(generic, class = class),
+      error = function(e) NULL
+    )
     if (!is.null(existing)) {
       .warn(
         "An S7 method for %s and %s is already visible; registering anyway. Pass replace = TRUE to silence this warning.",
-        .generic_label(generic), .class_label(class)
+        .generic_label(generic),
+        .class_label(class)
       )
     }
   }

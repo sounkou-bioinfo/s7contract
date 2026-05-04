@@ -5,7 +5,13 @@
 \alias{interface_requirement}
 \title{Build a Go-like structural interface on top of S7}
 \usage{
-new_interface(name, methods = list(), parents = list(), package = NULL)
+new_interface(
+  name,
+  generics = list(),
+  parents = list(),
+  package = NULL,
+  methods = NULL
+)
 
 interface_requirement(
   generic,
@@ -19,12 +25,15 @@ interface_requirement(
 \code{interface_requirement()}, the requirement name; it defaults to the generic
 name when omitted.}
 
-\item{methods}{For \code{new_interface()}, a named list of S7 generics or
-\code{interface_requirement()} objects.}
+\item{generics}{For \code{new_interface()}, a named list of S7 generics or
+\code{interface_requirement()} objects. These are generic functions because S7
+methods are registered separately on generics.}
 
 \item{parents}{Optional interface or list of interfaces to embed.}
 
 \item{package}{Optional package name used only for display.}
+
+\item{methods}{Compatibility alias for \code{generics}.}
 
 \item{generic}{An S7 generic function.}
 
@@ -43,9 +52,10 @@ checking with \code{with()} or \verb{\%::\%}; defaults to \code{S7::class_any}.}
 \code{s7_interface_requirement}.
 }
 \description{
-\code{new_interface()} models the method-list part of Go interfaces using S7
-generics. An interface is just a named set of required generics, and a class
-or object satisfies it when S7 can find a method for every required generic.
+\code{new_interface()} models the method-list part of Go interfaces as a list of
+required S7 generics. An interface is just a named set of required generics,
+and a class or object satisfies it when S7 can find a method for every
+required generic.
 }
 \details{
 This deliberately mirrors Go's basic interfaces defined only by methods. The
@@ -76,8 +86,8 @@ local({
   S7::method(draw, Circle) <- function(x) sprintf("circle(r = \%s)", x@r)
   S7::method(area, Rect) <- function(x) x@w * x@h
 
-  Drawable <- new_interface("Drawable", methods = list(draw = draw))
-  Shape <- new_interface("Shape", methods = list(area = area), parents = Drawable)
+  Drawable <- new_interface("Drawable", generics = list(draw = draw))
+  Shape <- new_interface("Shape", generics = list(area = area), parents = Drawable)
 
   implements(Circle, Shape)
   missing_requirements(Rect, Shape)
