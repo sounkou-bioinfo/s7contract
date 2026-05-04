@@ -62,8 +62,8 @@ trait_method(generic, default = NULL, name = NULL)
 
 ## Value
 
-`new_trait()` returns an object of class `s7_trait`. `trait_method()`
-returns an object of class `s7_trait_method`.
+`new_trait()` returns an S7 object of class `s7_trait`. `trait_method()`
+returns an S7 object of class `s7_trait_method`.
 
 ## Details
 

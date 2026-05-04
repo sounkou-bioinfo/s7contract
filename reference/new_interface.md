@@ -40,8 +40,8 @@ interface_requirement(generic, name = NULL)
 
 ## Value
 
-`new_interface()` returns an object of class `s7_go_interface`.
-`interface_requirement()` returns an object of class
+`new_interface()` returns an S7 object of class `s7_interface`.
+`interface_requirement()` returns an S7 object of class
 `s7_interface_requirement`.
 
 ## Details
