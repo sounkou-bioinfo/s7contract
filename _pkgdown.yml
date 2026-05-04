@@ -3,8 +3,12 @@ template:
   bootstrap: 5
 
 articles:
-- title: Vignettes
-  contents:
-  - s7-interfaces-and-traits
-  - bioinformatics-interfaces
+  - title: Concepts
+    navbar: ~
+    contents:
+      - s7-interfaces-and-traits
+  - title: Use Cases
+    navbar: ~
+    contents:
+      - bioinformatics-interfaces
 
