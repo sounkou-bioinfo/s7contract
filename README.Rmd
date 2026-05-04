@@ -99,9 +99,9 @@ trait_assoc_const(Labelled, Circle, "KIND")
 
 ## Progressive argument and return checks
 
-Argument and return specifications are optional. When supplied, normal S7 calls
-can be evaluated under a contract with `with()` or the lambda.r-style `%::%`
-operator.
+Argument and return specifications are optional. When supplied, expressions can
+be evaluated in a contract mask with `with()` or the lambda.r-style `%::%`
+operator. Calls to required generics inside that expression are checked.
 
 ```{r progressive-example}
 Canvas <- new_class("Canvas")
@@ -130,6 +130,11 @@ DrawableOnCanvas <- new_interface(
 canvas <- Canvas()
 with(DrawableOnCanvas, draw_on(Circle(r = 2), canvas, position = 1L))
 draw_on(Circle(r = 2), canvas, position = 1L) %::% DrawableOnCanvas
+
+checked_draw <- with(DrawableOnCanvas, {
+  function(x) draw_on(x, canvas, position = 1L)
+})
+checked_draw(Circle(r = 2))
 
 BadCircle <- new_class("BadCircle", properties = list(r = class_double))
 method(draw_on, list(BadCircle, Canvas)) <- function(x, canvas, position, ...) {

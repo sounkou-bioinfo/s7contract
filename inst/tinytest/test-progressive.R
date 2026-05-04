@@ -58,8 +58,24 @@ local({
 
   local({
     draw_on <- function(...) "not the S7 generic"
-    expect_error(with(DrawableOnCanvas, draw_on(circle, canvas, position = 1L)), "no requirement")
+    expect_equal(with(DrawableOnCanvas, draw_on(circle, canvas, position = 1L)), "circle(2)@1")
   })
+
+  expect_equal(
+    with(DrawableOnCanvas, {
+      render <- function(x) draw_on(x, canvas, position = 1L)
+      render(circle)
+    }),
+    "circle(2)@1"
+  )
+
+  render_checked <- with(DrawableOnCanvas, function(x) draw_on(x, canvas, position = 1L))
+  expect_equal(render_checked(circle), "circle(2)@1")
+  expect_error(render_checked(square), "Return value")
+
+  render_checked2 <- (function(x) draw_on(x, canvas, position = 1L)) %::% DrawableOnCanvas
+  expect_equal(render_checked2(circle), "circle(2)@1")
+  expect_error(render_checked2(square), "Return value")
 
   expect_error(with(DrawableOnCanvas, draw_on(circle, canvas, position = "bad")), "position")
   expect_error(with(DrawableOnCanvas, draw_on(square, canvas, position = 1L)), "Return value")

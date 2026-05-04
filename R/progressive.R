@@ -146,33 +146,6 @@
   })
 }
 
-.call_head_name <- function(head) {
-  if (is.symbol(head)) {
-    return(as.character(head))
-  }
-  if (is.call(head) && as.character(head[[1L]]) %in% c("::", ":::")) {
-    return(as.character(head[[3L]]))
-  }
-  "<call>"
-}
-
-.find_contract_requirement <- function(contract, expr, env, trait = FALSE) {
-  if (!is.call(expr)) {
-    .abort("Contract expressions must be calls.")
-  }
-
-  generic <- tryCatch(eval(expr[[1L]], envir = env), error = function(e) NULL)
-  reqs <- if (trait) trait_methods(contract, inherited = TRUE) else interface_requirements(contract, inherited = TRUE)
-  call_name <- .call_head_name(expr[[1L]])
-
-  for (req in reqs) {
-    if (!is.null(generic) && identical(req@generic, generic)) {
-      return(req)
-    }
-  }
-
-  .abort("%s has no requirement for the generic used by call `%s()`.", if (trait) .trait_label(contract) else .interface_label(contract), call_name)
-}
 
 .bind_checked_arg <- function(call, arg, value, eval_env, prefix) {
   nm <- sprintf(".%s_%s", prefix, arg)
@@ -196,11 +169,14 @@
   .abort("Call is missing typed argument `%s` and no default could be evaluated.", arg)
 }
 
-.with_contract <- function(contract, expr, env, trait = FALSE) {
-  req <- .find_contract_requirement(contract, expr, env, trait = trait)
+.generic_bind_names <- function(req) {
+  unique(c(req@name, .generic_label(req@generic)))
+}
+
+.checked_generic_call <- function(contract, req, call, env, trait = FALSE) {
   generic <- req@generic
   matched <- tryCatch(
-    match.call(definition = generic, call = expr, expand.dots = FALSE),
+    match.call(definition = generic, call = call, expand.dots = FALSE),
     error = function(e) .abort("Could not match call to `%s()`: %s", req@name, conditionMessage(e))
   )
 
@@ -242,6 +218,29 @@
   out
 }
 
+.make_checked_generic <- function(contract, req, trait = FALSE) {
+  force(contract)
+  force(req)
+  force(trait)
+  function(...) {
+    .checked_generic_call(contract, req, sys.call(), parent.frame(), trait = trait)
+  }
+}
+
+.with_contract <- function(contract, expr, env, trait = FALSE) {
+  reqs <- if (trait) trait_methods(contract, inherited = TRUE) else interface_requirements(contract, inherited = TRUE)
+  mask <- new.env(parent = env)
+
+  for (req in reqs) {
+    wrapper <- .make_checked_generic(contract, req, trait = trait)
+    for (name in .generic_bind_names(req)) {
+      assign(name, wrapper, envir = mask)
+    }
+  }
+
+  eval(expr, envir = mask)
+}
+
 .with_s7_interface <- function(data, expr, ...) {
   .with_contract(data, substitute(expr), parent.frame(), trait = FALSE)
 }
@@ -252,20 +251,20 @@
 
 #' Evaluate an S7 call under an interface or trait contract
 #'
-#' `with(contract, expr)` and `expr %::% contract` evaluate an ordinary S7 call
-#' while checking the optional argument and return specifications stored in an
-#' interface requirement or trait method. The call itself still uses normal S7
-#' dispatch.
+#' `with(contract, expr)` and `expr %::% contract` evaluate `expr` in a
+#' contract mask. Required generics are shadowed by checking wrappers, so calls
+#' to those generics use normal S7 dispatch while checking the optional argument
+#' and return specifications stored in an interface requirement or trait method.
 #'
-#' @param expr An expression, usually a call to an S7 generic named in the
-#'   contract.
+#' @param expr An expression evaluated in a contract mask. Calls to generics
+#'   named in the contract are checked.
 #' @param contract An interface created by [new_interface()] or a trait created
 #'   by [new_trait()].
 #' @return The value of `expr`, after any optional return check.
 #' @aliases contract_syntax
 #' @examples
 #' local({
-#'   draw <- S7::new_generic("typed_draw", "x", function(x, color) {
+#'   draw <- S7::new_generic("draw", "x", function(x, color) {
 #'     S7::S7_dispatch()
 #'   })
 #'   Circle <- S7::new_class("TypedCircle", properties = list(r = S7::class_double))
@@ -279,6 +278,8 @@
 #'     ))
 #'   )
 #'   with(Drawable, draw(Circle(r = 2), color = "red"))
+#'   checked_draw <- with(Drawable, function(x) draw(x, color = "red"))
+#'   checked_draw(Circle(r = 2))
 #'   draw(Circle(r = 2), color = "red") %::% Drawable
 #' })
 #' @export

@@ -8,8 +8,8 @@
 expr \%::\% contract
 }
 \arguments{
-\item{expr}{An expression, usually a call to an S7 generic named in the
-contract.}
+\item{expr}{An expression evaluated in a contract mask. Calls to generics
+named in the contract are checked.}
 
 \item{contract}{An interface created by \code{\link[=new_interface]{new_interface()}} or a trait created
 by \code{\link[=new_trait]{new_trait()}}.}
@@ -18,14 +18,14 @@ by \code{\link[=new_trait]{new_trait()}}.}
 The value of \code{expr}, after any optional return check.
 }
 \description{
-\code{with(contract, expr)} and \code{expr \%::\% contract} evaluate an ordinary S7 call
-while checking the optional argument and return specifications stored in an
-interface requirement or trait method. The call itself still uses normal S7
-dispatch.
+\code{with(contract, expr)} and \code{expr \%::\% contract} evaluate \code{expr} in a
+contract mask. Required generics are shadowed by checking wrappers, so calls
+to those generics use normal S7 dispatch while checking the optional argument
+and return specifications stored in an interface requirement or trait method.
 }
 \examples{
 local({
-  draw <- S7::new_generic("typed_draw", "x", function(x, color) {
+  draw <- S7::new_generic("draw", "x", function(x, color) {
     S7::S7_dispatch()
   })
   Circle <- S7::new_class("TypedCircle", properties = list(r = S7::class_double))
@@ -39,6 +39,8 @@ local({
     ))
   )
   with(Drawable, draw(Circle(r = 2), color = "red"))
+  checked_draw <- with(Drawable, function(x) draw(x, color = "red"))
+  checked_draw(Circle(r = 2))
   draw(Circle(r = 2), color = "red") \%::\% Drawable
 })
 }
