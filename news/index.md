@@ -4,6 +4,8 @@
 
 - Reworked contract descriptor objects as internal S7 classes
   throughout.
+- Added a Haskell-style `Maybe`/monad dictionary example to the
+  interface and trait vignette.
 - Added CRAN-facing vignettes with number-like, vector-like, and
   bioinformatics container examples.
 - Added CRAN submission comments and metadata updates for vignette

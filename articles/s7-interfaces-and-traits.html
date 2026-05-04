@@ -298,6 +298,119 @@ layer can also store associated metadata such as <code>UNITS</code>,
 which is awkward in a purely structural interface.</p>
 </div>
 <div class="section level2">
+<h2 id="a-haskell-style-dictionary-object">A Haskell-style dictionary object<a class="anchor" aria-label="anchor" href="#a-haskell-style-dictionary-object"></a>
+</h2>
+<p>Haskell type classes are often explained as dictionaries: a
+<code>Monad m</code> constraint is operationally evidence that
+<code>m</code> has <code>pure</code> and <code>bind</code>. R can model
+that idea directly because functions are first-class values and S7 can
+validate function-valued properties.</p>
+<p>The example below defines a tiny <code>Maybe</code> algebraic data
+type, then stores its monad operations in an S7 dictionary object. The
+<code>s7contract</code> interface checks that the dictionary exposes the
+operations a consumer expects.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">Maybe</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"Maybe"</span>, abstract <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">Nothing</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"Nothing"</span>, parent <span class="op">=</span> <span class="va">Maybe</span><span class="op">)</span></span>
+<span><span class="va">Just</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"Just"</span>, parent <span class="op">=</span> <span class="va">Maybe</span>, properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>value <span class="op">=</span> <span class="va">class_any</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">MonadDict</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
+<span>  <span class="st">"MonadDict"</span>,</span>
+<span>  properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    name <span class="op">=</span> <span class="va">class_character</span>,</span>
+<span>    pure <span class="op">=</span> <span class="va">class_function</span>,</span>
+<span>    bind <span class="op">=</span> <span class="va">class_function</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dict_pure</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"dict_pure"</span>, <span class="st">"x"</span><span class="op">)</span></span>
+<span><span class="va">dict_bind</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"dict_bind"</span>, <span class="st">"x"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">MonadDictionary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span></span>
+<span>  <span class="st">"MonadDictionary"</span>,</span>
+<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    pure <span class="op">=</span> <span class="va">dict_pure</span>,</span>
+<span>    bind <span class="op">=</span> <span class="va">dict_bind</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">dict_pure</span>, <span class="va">MonadDict</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">value</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="op">(</span><span class="va">x</span><span class="op">@</span><span class="va">pure</span><span class="op">)</span><span class="op">(</span><span class="va">value</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">dict_bind</span>, <span class="va">MonadDict</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">mx</span>, <span class="va">f</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="op">(</span><span class="va">x</span><span class="op">@</span><span class="va">bind</span><span class="op">)</span><span class="op">(</span><span class="va">mx</span>, <span class="va">f</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">MaybeMonad</span> <span class="op">&lt;-</span> <span class="fu">MonadDict</span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"Maybe"</span>,</span>
+<span>  pure <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">value</span><span class="op">)</span> <span class="fu">Just</span><span class="op">(</span>value <span class="op">=</span> <span class="va">value</span><span class="op">)</span>,</span>
+<span>  bind <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">mx</span>, <span class="va">f</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_inherits.html" class="external-link">S7_inherits</a></span><span class="op">(</span><span class="va">mx</span>, <span class="va">Nothing</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="fu">Nothing</span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>      <span class="fu">f</span><span class="op">(</span><span class="va">mx</span><span class="op">@</span><span class="va">value</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/interface_requirements.html">implements</a></span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">MonadDictionary</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Now the dictionary can be passed around as an ordinary R object.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">dict_bind</span><span class="op">(</span></span>
+<span>  <span class="va">MaybeMonad</span>,</span>
+<span>  <span class="fu">Just</span><span class="op">(</span>value <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">dict_pure</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">x</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;Just&gt;</span></span>
+<span><span class="co">#&gt;  @ value: num 3</span></span>
+<span></span>
+<span><span class="fu">dict_bind</span><span class="op">(</span></span>
+<span>  <span class="va">MaybeMonad</span>,</span>
+<span>  <span class="fu">Nothing</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">dict_pure</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">x</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;Nothing&gt;</span></span></code></pre></div>
+<p>The interface checks operation availability. The monad laws are
+semantic properties, so they belong in tests. A small law check can
+still be written in plain R.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">maybe_equal</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_inherits.html" class="external-link">S7_inherits</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">Nothing</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_inherits.html" class="external-link">S7_inherits</a></span><span class="op">(</span><span class="va">y</span>, <span class="va">Nothing</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_inherits.html" class="external-link">S7_inherits</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">Just</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/S7_inherits.html" class="external-link">S7_inherits</a></span><span class="op">(</span><span class="va">y</span>, <span class="va">Just</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">x</span><span class="op">@</span><span class="va">value</span>, <span class="va">y</span><span class="op">@</span><span class="va">value</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="cn">FALSE</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">f</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">dict_pure</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">x</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">g</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">dict_pure</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">x</span> <span class="op">*</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">mx</span> <span class="op">&lt;-</span> <span class="fu">Just</span><span class="op">(</span>value <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  left_identity <span class="op">=</span> <span class="fu">maybe_equal</span><span class="op">(</span></span>
+<span>    <span class="fu">dict_bind</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="fu">dict_pure</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="fl">10</span><span class="op">)</span>, <span class="va">f</span><span class="op">)</span>,</span>
+<span>    <span class="fu">f</span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  right_identity <span class="op">=</span> <span class="fu">maybe_equal</span><span class="op">(</span></span>
+<span>    <span class="fu">dict_bind</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">mx</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">dict_pure</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">x</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="va">mx</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  associativity <span class="op">=</span> <span class="fu">maybe_equal</span><span class="op">(</span></span>
+<span>    <span class="fu">dict_bind</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="fu">dict_bind</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">mx</span>, <span class="va">f</span><span class="op">)</span>, <span class="va">g</span><span class="op">)</span>,</span>
+<span>    <span class="fu">dict_bind</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="va">mx</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu">dict_bind</span><span class="op">(</span><span class="va">MaybeMonad</span>, <span class="fu">f</span><span class="op">(</span><span class="va">x</span><span class="op">)</span>, <span class="va">g</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;  left_identity right_identity  associativity </span></span>
+<span><span class="co">#&gt;           TRUE           TRUE           TRUE</span></span></code></pre></div>
+<p>This is not Haskell’s static kind system. It is a concrete R/S7
+encoding of the same operational idea: a type-class instance can be
+represented as a runtime object containing functions, and an interface
+can state which functions must be available.</p>
+</div>
+<div class="section level2">
 <h2 id="which-feels-more-natural">Which feels more natural?<a class="anchor" aria-label="anchor" href="#which-feels-more-natural"></a>
 </h2>
 <p>For functional OOP in S7, Go-like structural interfaces are the
