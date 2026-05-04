@@ -168,7 +168,7 @@ tryCatch(
   with(DrawableOnCanvas, draw_on(BadCircle(r = 2), canvas, position = 1L)),
   error = function(e) conditionMessage(e)
 )
-#> [1] "`.return` must satisfy <character>: must be <character>, not <double>"
+#> [1] "Return value must be <character>, not <double>"
 ```
 
 The input checks use S7 classes and S7 multiple dispatch. In this
