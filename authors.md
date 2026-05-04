@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/sounkou-bioinfo/s7contract/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/sounkou-bioinfo/s7contract/blob/v0.1.0/DESCRIPTION)
 
 Toure S (2026). *s7contract: 'Go'-Like Interfaces and 'Rust'-Like Traits
 with 'S7'*. R package version 0.1.0,
