@@ -1,12 +1,12 @@
 Package: s7contract
-Title: Go-Like Interfaces and Rust-Like Traits for 'S7'
+Title: 'Go'-Like Interfaces and 'Rust'-Like Traits for 'S7'
 Version: 0.1.0
 Authors@R: c(
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
     )
-Description: Experimental contract helpers for 'S7'. The Go-like layer models
-    basic structural interfaces as sets of required generics. The Rust-like
+Description: Experimental contract helpers for 'S7'. The 'Go'-like layer models
+    basic structural interfaces as sets of required generics. The 'Rust'-like
     layer adds explicit trait declarations, default methods, and associated
     metadata on top of ordinary 'S7' dispatch.
 License: GPL (>= 3)
@@ -19,5 +19,6 @@ Suggests:
     knitr,
     rmarkdown,
     tinytest
+VignetteBuilder: knitr
 URL: https://github.com/sounkou-bioinfo/s7contract, https://sounkou-bioinfo.github.io/s7contract/
 BugReports: https://github.com/sounkou-bioinfo/s7contract/issues

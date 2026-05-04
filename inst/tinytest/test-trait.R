@@ -10,9 +10,6 @@ local({
     properties = list(r = class_double)
   )
 
-  method(area, Circle) <- function(x) pi * x@r^2
-  method(draw, Circle) <- function(x) sprintf("circle(%s)", x@r)
-
   Measurable <- new_trait(
     "MeasurableTraitTest",
     methods = list(

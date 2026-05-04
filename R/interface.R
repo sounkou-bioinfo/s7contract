@@ -6,7 +6,7 @@
 #'
 #' This deliberately mirrors Go's basic interfaces defined only by methods. It
 #' does not attempt to emulate Go's full post-1.18 type-set language such as
-#' `~T`, unions of concrete types, or pointer/value receiver rules.
+#' tilde type terms, unions of concrete types, or pointer/value receiver rules.
 #'
 #' @param name For `new_interface()`, the interface name. For
 #'   `interface_requirement()`, the requirement name; it defaults to the generic

@@ -17,6 +17,15 @@
 The package keeps actual method dispatch inside ordinary S7 generics and uses
 runtime checks to describe or assert conformance.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/sounkou-bioinfo/s7contract}
+  \item \url{https://sounkou-bioinfo.github.io/s7contract/}
+  \item Report bugs at \url{https://github.com/sounkou-bioinfo/s7contract/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Sounkou Mahamane Toure \email{sounkoutoure@gmail.com}
 

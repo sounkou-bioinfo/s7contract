@@ -36,7 +36,7 @@ or object satisfies it when S7 can find a method for every required generic.
 \details{
 This deliberately mirrors Go's basic interfaces defined only by methods. It
 does not attempt to emulate Go's full post-1.18 type-set language such as
-\code{~T}, unions of concrete types, or pointer/value receiver rules.
+tilde type terms, unions of concrete types, or pointer/value receiver rules.
 }
 \examples{
 local({

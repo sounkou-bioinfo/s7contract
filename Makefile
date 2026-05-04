@@ -2,7 +2,7 @@
 PKGNAME := $(shell sed -n 's/Package: *\([^ ]*\)/\1/p' DESCRIPTION)
 PKGVERS := $(shell sed -n 's/Version: *\([^ ]*\)/\1/p' DESCRIPTION)
 
-.PHONY: all rd test install build check rdm clean
+.PHONY: all rd test install build check check-fast rdm clean
 
 all: check
 
@@ -19,6 +19,9 @@ build:
 	R CMD build .
 
 check: build
+	R CMD check --as-cran $(PKGNAME)_$(PKGVERS).tar.gz
+
+check-fast: build
 	R CMD check --as-cran --no-manual $(PKGNAME)_$(PKGVERS).tar.gz
 
 rdm: install
