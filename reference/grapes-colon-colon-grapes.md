@@ -41,7 +41,7 @@ local({
   S7::method(draw, Circle) <- function(x, color) paste(color, x@r)
   Drawable <- new_interface(
     "TypedDrawable",
-    list(draw = interface_requirement(
+    generics = list(draw = interface_requirement(
       draw,
       args = list(color = S7::class_character),
       returns = S7::class_character

@@ -126,7 +126,7 @@ needs, not a concrete database or a giant package interface.
 
 LibrarySizeInput <- new_interface(
   "LibrarySizeInput",
-  methods = list(assay_matrix = assay_matrix)
+  generics = list(assay_matrix = assay_matrix)
 )
 
 library_size <- function(x, assay = "counts") {

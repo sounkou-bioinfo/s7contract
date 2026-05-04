@@ -142,8 +142,8 @@ necessarily in the package that defines <code>Circle</code>.</p>
 <span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">draw</span>, <span class="va">Circle</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"circle(r = %s)"</span>, <span class="va">x</span><span class="op">@</span><span class="va">r</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">area</span>, <span class="va">Rect</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">@</span><span class="va">w</span> <span class="op">*</span> <span class="va">x</span><span class="op">@</span><span class="va">h</span></span>
 <span></span>
-<span><span class="va">Drawable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"Drawable"</span>, methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draw <span class="op">=</span> <span class="va">draw</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">Shape</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"Shape"</span>, methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>area <span class="op">=</span> <span class="va">area</span><span class="op">)</span>, parents <span class="op">=</span> <span class="va">Drawable</span><span class="op">)</span></span>
+<span><span class="va">Drawable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"Drawable"</span>, generics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>draw <span class="op">=</span> <span class="va">draw</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">Shape</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"Shape"</span>, generics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>area <span class="op">=</span> <span class="va">area</span><span class="op">)</span>, parents <span class="op">=</span> <span class="va">Drawable</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/interface_requirements.html">implements</a></span><span class="op">(</span><span class="va">Circle</span>, <span class="va">Shape</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
@@ -201,7 +201,7 @@ generics inside that expression are checked.</p>
 <span></span>
 <span><span class="va">DrawableOnCanvas</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span></span>
 <span>  <span class="st">"DrawableOnCanvas"</span>,</span>
-<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  generics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    draw_on <span class="op">=</span> <span class="fu"><a href="../reference/new_interface.html">interface_requirement</a></span><span class="op">(</span></span>
 <span>      <span class="va">draw_on</span>,</span>
 <span>      args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>canvas <span class="op">=</span> <span class="va">Canvas</span>, position <span class="op">=</span> <span class="va">class_integer</span><span class="op">)</span>,</span>
@@ -268,7 +268,7 @@ consumer needs.</p>
 <span></span>
 <span><span class="va">NumberLike</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span></span>
 <span>  <span class="st">"NumberLike"</span>,</span>
-<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  generics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    zero <span class="op">=</span> <span class="va">num_zero</span>,</span>
 <span>    add <span class="op">=</span> <span class="va">num_add</span>,</span>
 <span>    scale <span class="op">=</span> <span class="va">num_scale</span></span>
@@ -302,7 +302,7 @@ need a length, a way to slice, and a way to expose values.</p>
 <span></span>
 <span><span class="va">VectorLike</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span></span>
 <span>  <span class="st">"VectorLike"</span>,</span>
-<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  generics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    length <span class="op">=</span> <span class="va">vec_length</span>,</span>
 <span>    slice <span class="op">=</span> <span class="va">vec_slice</span>,</span>
 <span>    values <span class="op">=</span> <span class="va">vec_values</span></span>
@@ -423,7 +423,7 @@ operations a consumer expects.</p>
 <span></span>
 <span><span class="va">MonadDictionary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span></span>
 <span>  <span class="st">"MonadDictionary"</span>,</span>
-<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  generics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    pure <span class="op">=</span> <span class="va">dict_pure</span>,</span>
 <span>    bind <span class="op">=</span> <span class="va">dict_bind</span></span>
 <span>  <span class="op">)</span></span>

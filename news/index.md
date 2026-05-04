@@ -2,6 +2,13 @@
 
 ## s7contract 0.1.0
 
+- Renamed the primary
+  [`new_interface()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_interface.md)
+  requirement argument to `generics`; `methods` remains a compatibility
+  alias.
+- Tightened interface and trait requirements to require S7 generics
+  created with
+  [`S7::new_generic()`](https://rconsortium.github.io/S7/reference/new_generic.html).
 - Added optional progressive argument and return checks for interface
   requirements and trait methods, including
   [`with()`](https://rdrr.io/r/base/with.html) and `%::%` evaluation

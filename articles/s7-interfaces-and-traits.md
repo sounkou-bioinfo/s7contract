@@ -84,8 +84,8 @@ method(area, Circle) <- function(x) pi * x@r^2
 method(draw, Circle) <- function(x) sprintf("circle(r = %s)", x@r)
 method(area, Rect) <- function(x) x@w * x@h
 
-Drawable <- new_interface("Drawable", methods = list(draw = draw))
-Shape <- new_interface("Shape", methods = list(area = area), parents = Drawable)
+Drawable <- new_interface("Drawable", generics = list(draw = draw))
+Shape <- new_interface("Shape", generics = list(area = area), parents = Drawable)
 
 implements(Circle, Shape)
 #> [1] TRUE
@@ -154,7 +154,7 @@ method(draw_on, list(Circle, Canvas)) <- function(x, canvas, position, ...) {
 
 DrawableOnCanvas <- new_interface(
   "DrawableOnCanvas",
-  methods = list(
+  generics = list(
     draw_on = interface_requirement(
       draw_on,
       args = list(canvas = Canvas, position = class_integer),
@@ -228,7 +228,7 @@ num_scale <- new_generic("num_scale", "x")
 
 NumberLike <- new_interface(
   "NumberLike",
-  methods = list(
+  generics = list(
     zero = num_zero,
     add = num_add,
     scale = num_scale
@@ -265,7 +265,7 @@ vec_values <- new_generic("vec_values", "x")
 
 VectorLike <- new_interface(
   "VectorLike",
-  methods = list(
+  generics = list(
     length = vec_length,
     slice = vec_slice,
     values = vec_values
@@ -397,7 +397,7 @@ dict_bind <- new_generic("dict_bind", "x")
 
 MonadDictionary <- new_interface(
   "MonadDictionary",
-  methods = list(
+  generics = list(
     pure = dict_pure,
     bind = dict_bind
   )

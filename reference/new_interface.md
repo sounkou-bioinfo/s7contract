@@ -1,14 +1,20 @@
 # Build a Go-like structural interface on top of S7
 
-`new_interface()` models the method-list part of Go interfaces using S7
-generics. An interface is just a named set of required generics, and a
-class or object satisfies it when S7 can find a method for every
-required generic.
+`new_interface()` models the method-list part of Go interfaces as a list
+of required S7 generics. An interface is just a named set of required
+generics, and a class or object satisfies it when S7 can find a method
+for every required generic.
 
 ## Usage
 
 ``` r
-new_interface(name, methods = list(), parents = list(), package = NULL)
+new_interface(
+  name,
+  generics = list(),
+  parents = list(),
+  package = NULL,
+  methods = NULL
+)
 
 interface_requirement(
   generic,
@@ -26,10 +32,11 @@ interface_requirement(
   `interface_requirement()`, the requirement name; it defaults to the
   generic name when omitted.
 
-- methods:
+- generics:
 
   For `new_interface()`, a named list of S7 generics or
-  `interface_requirement()` objects.
+  `interface_requirement()` objects. These are generic functions because
+  S7 methods are registered separately on generics.
 
 - parents:
 
@@ -38,6 +45,10 @@ interface_requirement(
 - package:
 
   Optional package name used only for display.
+
+- methods:
+
+  Compatibility alias for `generics`.
 
 - generic:
 
@@ -99,8 +110,8 @@ local({
   S7::method(draw, Circle) <- function(x) sprintf("circle(r = %s)", x@r)
   S7::method(area, Rect) <- function(x) x@w * x@h
 
-  Drawable <- new_interface("Drawable", methods = list(draw = draw))
-  Shape <- new_interface("Shape", methods = list(area = area), parents = Drawable)
+  Drawable <- new_interface("Drawable", generics = list(draw = draw))
+  Shape <- new_interface("Shape", generics = list(area = area), parents = Drawable)
 
   implements(Circle, Shape)
   missing_requirements(Rect, Shape)
