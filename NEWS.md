@@ -1,6 +1,7 @@
 # s7contract 0.1.0
 
 * Reworked contract descriptor objects as internal S7 classes throughout.
+* Added a Haskell-style `Maybe`/monad dictionary example to the interface and trait vignette.
 * Added CRAN-facing vignettes with number-like, vector-like, and bioinformatics container examples.
 * Added CRAN submission comments and metadata updates for vignette building.
 * Fixed `impl_trait()` so failed S7 method registration no longer leaves a stale trait implementation record.
