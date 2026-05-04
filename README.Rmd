@@ -42,7 +42,9 @@ R CMD INSTALL .
 ## Structural interfaces
 
 An interface is a named set of required S7 generics. A class or object satisfies
-it when S7 can find methods for every requirement.
+it when S7 can find methods for every requirement. The intended style follows Go:
+define concrete S7 classes and methods normally, then define a small interface at
+the point where consuming code needs a behavior.
 
 ```{r interface-example}
 library(S7)
@@ -64,6 +66,13 @@ Shape <- new_interface("Shape", list(area = area), parents = Drawable)
 implements(Circle, Shape)
 implements(Rect, Shape)
 missing_requirements(Rect, Shape)
+
+render <- function(x) {
+  assert_implements(x, Drawable)
+  draw(x)
+}
+
+render(Circle(r = 2))
 ```
 
 ## Explicit traits
