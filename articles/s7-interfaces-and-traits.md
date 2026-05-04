@@ -127,6 +127,66 @@ small runtime check around a dispatch model that S7 already has. The
 practical API shape is the Go maxim adapted to R: accept objects that
 satisfy a small protocol; return ordinary, concrete R or S7 values.
 
+## When the whole protocol is a class family
+
+Some R APIs intentionally define a large protocol up front. DBI is the
+useful example: it is not just one consumer-local interface, but a
+package-level standard built around nominal connection, driver, and
+result classes plus many generic functions. That fits the “abstract data
+type” exception to the point-of-use rule.
+
+In S7, the analogous design is a class family for identity and
+representation, plus generics for behavior. Consumers can still depend
+on a smaller interface when they only need part of the protocol.
+
+``` r
+
+DatabaseConnection <- new_class("DatabaseConnection", abstract = TRUE)
+MemoryConnection <- new_class(
+  "MemoryConnection",
+  parent = DatabaseConnection,
+  properties = list(tables = class_list)
+)
+
+db_tables <- new_generic("db_tables", "con")
+db_read_table <- new_generic(
+  "db_read_table",
+  "con",
+  function(con, name) S7_dispatch()
+)
+
+method(db_tables, MemoryConnection) <- function(con) names(con@tables)
+method(db_read_table, MemoryConnection) <- function(con, name) con@tables[[name]]
+
+TableReader <- new_interface(
+  "TableReader",
+  generics = list(
+    db_tables = interface_requirement(db_tables, returns = class_character),
+    db_read_table = interface_requirement(
+      db_read_table,
+      args = list(name = class_character),
+      returns = class_data.frame
+    )
+  )
+)
+
+first_table <- function(con) {
+  assert_implements(con, TableReader)
+  db_read_table(con, db_tables(con)[[1]])
+}
+
+con <- MemoryConnection(tables = list(iris = head(iris, 2)))
+first_table(con)
+#>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+#> 1          5.1         3.5          1.4         0.2  setosa
+#> 2          4.9         3.0          1.4         0.2  setosa
+```
+
+The class says “this object is a database connection”. The interface
+says “this consumer needs table-reading behavior”. A full DBI-like
+package may own the broad class family; ordinary downstream functions
+should still prefer the smallest protocol they use.
+
 ## Progressive argument and return checks
 
 Interface requirements can optionally carry argument and return
