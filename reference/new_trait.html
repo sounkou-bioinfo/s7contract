@@ -59,7 +59,13 @@ compatible S7 methods already exist.</p>
 <span>  package <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">trait_method</span><span class="op">(</span><span class="va">generic</span>, default <span class="op">=</span> <span class="cn">NULL</span>, name <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">trait_method</span><span class="op">(</span></span>
+<span>  <span class="va">generic</span>,</span>
+<span>  default <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  returns <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/class_any.html" class="external-link">class_any</a></span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -101,6 +107,18 @@ default constant values.</p></dd>
 <dt id="arg-default">default<a class="anchor" aria-label="anchor" href="#arg-default"></a></dt>
 <dd><p>Optional default implementation. If supplied, <code><a href="trait_methods.html">impl_trait()</a></code>
 uses it when a class does not provide an override for that method.</p></dd>
+
+
+<dt id="arg-args">args<a class="anchor" aria-label="anchor" href="#arg-args"></a></dt>
+<dd><p>Optional named list of S7 classes, interfaces, or traits for
+runtime argument checking with <code><a href="https://rdrr.io/r/base/with.html" class="external-link">with()</a></code> or <code>%::%</code>. Dispatch arguments other
+than the first can use S7 classes or unions to refine multiple-dispatch
+requirements.</p></dd>
+
+
+<dt id="arg-returns">returns<a class="anchor" aria-label="anchor" href="#arg-returns"></a></dt>
+<dd><p>Optional S7 class, interface, or trait for runtime return
+checking with <code><a href="https://rdrr.io/r/base/with.html" class="external-link">with()</a></code> or <code>%::%</code>; defaults to <code><a href="https://rconsortium.github.io/S7/reference/class_any.html" class="external-link">S7::class_any</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

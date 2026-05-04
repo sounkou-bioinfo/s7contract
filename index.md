@@ -97,10 +97,61 @@ trait_assoc_const(Labelled, Circle, "KIND")
 #> [1] "shape"
 ```
 
+## Progressive argument and return checks
+
+Argument and return specifications are optional. When supplied, normal
+S7 calls can be evaluated under a contract with
+[`with()`](https://rdrr.io/r/base/with.html) or the lambda.r-style
+`%::%` operator.
+
+``` r
+
+Canvas <- new_class("Canvas")
+
+draw_on <- new_generic(
+  "draw_on",
+  c("x", "canvas"),
+  function(x, canvas, position, ...) S7_dispatch()
+)
+
+method(draw_on, list(Circle, Canvas)) <- function(x, canvas, position, ...) {
+  sprintf("circle(r = %s) at %s", x@r, position)
+}
+
+DrawableOnCanvas <- new_interface(
+  "DrawableOnCanvas",
+  methods = list(
+    draw_on = interface_requirement(
+      draw_on,
+      args = list(canvas = Canvas, position = class_integer),
+      returns = class_character
+    )
+  )
+)
+
+canvas <- Canvas()
+with(DrawableOnCanvas, draw_on(Circle(r = 2), canvas, position = 1L))
+#> [1] "circle(r = 2) at 1"
+draw_on(Circle(r = 2), canvas, position = 1L) %::% DrawableOnCanvas
+#> [1] "circle(r = 2) at 1"
+
+BadCircle <- new_class("BadCircle", properties = list(r = class_double))
+method(draw_on, list(BadCircle, Canvas)) <- function(x, canvas, position, ...) {
+  x@r
+}
+
+tryCatch(
+  with(DrawableOnCanvas, draw_on(BadCircle(r = 2), canvas, position = 1L)),
+  error = function(e) conditionMessage(e)
+)
+#> [1] "`.return` must satisfy <character>: must be <character>, not <double>"
+```
+
 ## Limits
 
 - All checks happen at runtime.
-- Interfaces only check S7 method availability.
+- Interfaces check S7 method availability by default; optional argument
+  and return checks are progressive runtime checks.
 - Traits are a package-level registry on top of S7 dispatch.
 - This package does not model Go type sets or Rust compile-time trait
   rules.

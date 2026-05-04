@@ -52,7 +52,12 @@ or object satisfies it when S7 can find a method for every required generic.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">new_interface</span><span class="op">(</span><span class="va">name</span>, methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, parents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, package <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">interface_requirement</span><span class="op">(</span><span class="va">generic</span>, name <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">interface_requirement</span><span class="op">(</span></span>
+<span>  <span class="va">generic</span>,</span>
+<span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  returns <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/class_any.html" class="external-link">class_any</a></span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -80,6 +85,19 @@ name when omitted.</p></dd>
 
 <dt id="arg-generic">generic<a class="anchor" aria-label="anchor" href="#arg-generic"></a></dt>
 <dd><p>An S7 generic function.</p></dd>
+
+
+<dt id="arg-args">args<a class="anchor" aria-label="anchor" href="#arg-args"></a></dt>
+<dd><p>Optional named list of S7 classes, interfaces, or traits for
+runtime argument checking with <code><a href="https://rdrr.io/r/base/with.html" class="external-link">with()</a></code> or <code>%::%</code>. Arguments named in
+<code>args</code> are also checked against generic and method formals during
+conformance checks. Dispatch arguments other than the first can use S7
+classes or unions to refine multiple-dispatch requirements.</p></dd>
+
+
+<dt id="arg-returns">returns<a class="anchor" aria-label="anchor" href="#arg-returns"></a></dt>
+<dd><p>Optional S7 class, interface, or trait for runtime return
+checking with <code><a href="https://rdrr.io/r/base/with.html" class="external-link">with()</a></code> or <code>%::%</code>; defaults to <code><a href="https://rconsortium.github.io/S7/reference/class_any.html" class="external-link">S7::class_any</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

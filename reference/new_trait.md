@@ -17,7 +17,13 @@ new_trait(
   package = NULL
 )
 
-trait_method(generic, default = NULL, name = NULL)
+trait_method(
+  generic,
+  default = NULL,
+  name = NULL,
+  args = list(),
+  returns = S7::class_any
+)
 ```
 
 ## Arguments
@@ -59,6 +65,20 @@ trait_method(generic, default = NULL, name = NULL)
   Optional default implementation. If supplied,
   [`impl_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
   uses it when a class does not provide an override for that method.
+
+- args:
+
+  Optional named list of S7 classes, interfaces, or traits for runtime
+  argument checking with [`with()`](https://rdrr.io/r/base/with.html) or
+  `%::%`. Dispatch arguments other than the first can use S7 classes or
+  unions to refine multiple-dispatch requirements.
+
+- returns:
+
+  Optional S7 class, interface, or trait for runtime return checking
+  with [`with()`](https://rdrr.io/r/base/with.html) or `%::%`; defaults
+  to
+  [`S7::class_any`](https://rconsortium.github.io/S7/reference/class_any.html).
 
 ## Value
 

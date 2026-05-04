@@ -53,9 +53,11 @@ they answer different questions.
 Packages such as `lambda.r` explore a different functional-programming
 route in R, with pattern-matching-style function clauses, guards, and
 optional type constraints. `s7contract` stays closer to S7: it does not
-create a new function clause language, and it does not check return
-types. It checks whether S7 can find methods for required generics, or
-whether an explicit trait implementation has been registered.
+create a new function clause language. By default it checks whether S7
+can find methods for required generics, or whether an explicit trait
+implementation has been registered. Optional argument and return
+specifications can be checked when evaluating a call with
+[`with()`](https://rdrr.io/r/base/with.html) or `%::%`.
 
 ## A structural interface
 
@@ -103,6 +105,78 @@ render(Circle(r = 2))
 
 This is the main reason structural interfaces fit S7 well. They add a
 small runtime check around a dispatch model that S7 already has.
+
+## Progressive argument and return checks
+
+Interface requirements can optionally carry argument and return
+specifications. The default is permissive: unspecified arguments are not
+checked, and the return specification defaults to
+[`S7::class_any`](https://rconsortium.github.io/S7/reference/class_any.html).
+When specifications are present, ordinary S7 calls can be evaluated
+under a contract with either
+[`with()`](https://rdrr.io/r/base/with.html) or the lambda.r-style
+`%::%` operator.
+
+``` r
+
+Canvas <- new_class("Canvas")
+
+draw_on <- new_generic(
+  "draw_on",
+  c("x", "canvas"),
+  function(x, canvas, position, ...) S7_dispatch()
+)
+
+method(draw_on, list(Circle, Canvas)) <- function(x, canvas, position, ...) {
+  sprintf("circle(r = %s) at %s", x@r, position)
+}
+
+DrawableOnCanvas <- new_interface(
+  "DrawableOnCanvas",
+  methods = list(
+    draw_on = interface_requirement(
+      draw_on,
+      args = list(canvas = Canvas, position = class_integer),
+      returns = class_character
+    )
+  )
+)
+
+canvas <- Canvas()
+circle <- Circle(r = 2)
+
+implements(Circle, DrawableOnCanvas)
+#> [1] TRUE
+with(DrawableOnCanvas, draw_on(circle, canvas, position = 1L))
+#> [1] "circle(r = 2) at 1"
+draw_on(circle, canvas, position = 1L) %::% DrawableOnCanvas
+#> [1] "circle(r = 2) at 1"
+```
+
+A method can satisfy the S7 method shape but still return the wrong kind
+of value. The checked call catches that after ordinary S7 dispatch has
+run.
+
+``` r
+
+BadCircle <- new_class("BadCircle", properties = list(r = class_double))
+method(draw_on, list(BadCircle, Canvas)) <- function(x, canvas, position, ...) {
+  x@r
+}
+
+tryCatch(
+  with(DrawableOnCanvas, draw_on(BadCircle(r = 2), canvas, position = 1L)),
+  error = function(e) conditionMessage(e)
+)
+#> [1] "`.return` must satisfy <character>: must be <character>, not <double>"
+```
+
+The input checks use S7 classes and S7 multiple dispatch. In this
+example, `canvas` is also a dispatch argument, so
+`implements(Circle, DrawableOnCanvas)` asks S7 for a
+`draw_on(<Circle>, <Canvas>)` method. The return value can only be
+checked after the call has run, which is why
+[`with()`](https://rdrr.io/r/base/with.html) and `%::%` are useful.
 
 ## Number-like behavior
 
