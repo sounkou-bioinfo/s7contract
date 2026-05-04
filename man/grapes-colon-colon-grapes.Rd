@@ -2,6 +2,7 @@
 % Please edit documentation in R/progressive.R
 \name{\%::\%}
 \alias{\%::\%}
+\alias{contract_syntax}
 \title{Evaluate an S7 call under an interface or trait contract}
 \usage{
 expr \%::\% contract

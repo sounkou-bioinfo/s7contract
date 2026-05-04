@@ -2,6 +2,22 @@ url: https://sounkou-bioinfo.github.io/s7contract/
 template:
   bootstrap: 5
 
+reference:
+  - title: Package
+    contents:
+      - s7contract
+  - title: Interfaces
+    contents:
+      - new_interface
+      - interface_requirements
+  - title: Traits
+    contents:
+      - new_trait
+      - trait_methods
+  - title: Progressive checks
+    contents:
+      - contract_syntax
+
 articles:
   - title: Concepts
     navbar: ~

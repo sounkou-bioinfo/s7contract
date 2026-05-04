@@ -131,6 +131,17 @@ with(DrawableOnCanvas, draw_on(Circle(r = 2), canvas, position = 1L))
 #> [1] "circle(r = 2) at 1"
 draw_on(Circle(r = 2), canvas, position = 1L) %::% DrawableOnCanvas
 #> [1] "circle(r = 2) at 1"
+
+BadCircle <- new_class("BadCircle", properties = list(r = class_double))
+method(draw_on, list(BadCircle, Canvas)) <- function(x, canvas, position, ...) {
+  x@r
+}
+
+tryCatch(
+  with(DrawableOnCanvas, draw_on(BadCircle(r = 2), canvas, position = 1L)),
+  error = function(e) conditionMessage(e)
+)
+#> [1] "`.return` must satisfy <character>: must be <character>, not <double>"
 ```
 
 ## Limits

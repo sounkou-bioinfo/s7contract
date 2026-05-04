@@ -147,6 +147,21 @@ with(DrawableOnCanvas, draw_on(circle, canvas, position = 1L))
 draw_on(circle, canvas, position = 1L) %::% DrawableOnCanvas
 ```
 
+A method can satisfy the S7 method shape but still return the wrong kind of
+value.  The checked call catches that after ordinary S7 dispatch has run.
+
+```{r progressive-return-failure}
+BadCircle <- new_class("BadCircle", properties = list(r = class_double))
+method(draw_on, list(BadCircle, Canvas)) <- function(x, canvas, position, ...) {
+  x@r
+}
+
+tryCatch(
+  with(DrawableOnCanvas, draw_on(BadCircle(r = 2), canvas, position = 1L)),
+  error = function(e) conditionMessage(e)
+)
+```
+
 The input checks use S7 classes and S7 multiple dispatch.  In this example,
 `canvas` is also a dispatch argument, so `implements(Circle, DrawableOnCanvas)`
 asks S7 for a `draw_on(<Circle>, <Canvas>)` method.  The return value can only be

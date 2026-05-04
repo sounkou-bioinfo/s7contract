@@ -73,7 +73,13 @@
   tryCatch(
     checker(value = value),
     error = function(e) {
-      .abort("`%s` must satisfy %s: %s", arg, .spec_label(spec), conditionMessage(e))
+      msg <- conditionMessage(e)
+      lines <- strsplit(msg, "\n", fixed = TRUE)[[1L]]
+      value_line <- grep("^- @value ", lines, value = TRUE)
+      if (length(value_line) > 0) {
+        msg <- sub("^- @value ", "", value_line[[1L]])
+      }
+      .abort("`%s` must satisfy %s: %s", arg, .spec_label(spec), msg)
     }
   )
   invisible(value)
@@ -252,6 +258,7 @@
 #' @param contract An interface created by [new_interface()] or a trait created
 #'   by [new_trait()].
 #' @return The value of `expr`, after any optional return check.
+#' @aliases contract_syntax
 #' @examples
 #' local({
 #'   draw <- S7::new_generic("typed_draw", "x", function(x, color) {
