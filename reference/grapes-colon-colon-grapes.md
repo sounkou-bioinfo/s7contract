@@ -1,9 +1,10 @@
 # Evaluate an S7 call under an interface or trait contract
 
-`with(contract, expr)` and `expr %::% contract` evaluate an ordinary S7
-call while checking the optional argument and return specifications
-stored in an interface requirement or trait method. The call itself
-still uses normal S7 dispatch.
+`with(contract, expr)` and `expr %::% contract` evaluate `expr` in a
+contract mask. Required generics are shadowed by checking wrappers, so
+calls to those generics use normal S7 dispatch while checking the
+optional argument and return specifications stored in an interface
+requirement or trait method.
 
 ## Usage
 
@@ -15,7 +16,8 @@ expr %::% contract
 
 - expr:
 
-  An expression, usually a call to an S7 generic named in the contract.
+  An expression evaluated in a contract mask. Calls to generics named in
+  the contract are checked.
 
 - contract:
 
@@ -32,7 +34,7 @@ The value of `expr`, after any optional return check.
 
 ``` r
 local({
-  draw <- S7::new_generic("typed_draw", "x", function(x, color) {
+  draw <- S7::new_generic("draw", "x", function(x, color) {
     S7::S7_dispatch()
   })
   Circle <- S7::new_class("TypedCircle", properties = list(r = S7::class_double))
@@ -46,6 +48,8 @@ local({
     ))
   )
   with(Drawable, draw(Circle(r = 2), color = "red"))
+  checked_draw <- with(Drawable, function(x) draw(x, color = "red"))
+  checked_draw(Circle(r = 2))
   draw(Circle(r = 2), color = "red") %::% Drawable
 })
 #> [1] "red 2"

@@ -112,10 +112,10 @@ Interface requirements can optionally carry argument and return
 specifications. The default is permissive: unspecified arguments are not
 checked, and the return specification defaults to
 [`S7::class_any`](https://rconsortium.github.io/S7/reference/class_any.html).
-When specifications are present, ordinary S7 calls can be evaluated
-under a contract with either
-[`with()`](https://rdrr.io/r/base/with.html) or the lambda.r-style
-`%::%` operator.
+When specifications are present, expressions can be evaluated in a
+contract mask with either [`with()`](https://rdrr.io/r/base/with.html)
+or the lambda.r-style `%::%` operator. Calls to required generics inside
+that expression are checked.
 
 ``` r
 
@@ -151,11 +151,18 @@ with(DrawableOnCanvas, draw_on(circle, canvas, position = 1L))
 #> [1] "circle(r = 2) at 1"
 draw_on(circle, canvas, position = 1L) %::% DrawableOnCanvas
 #> [1] "circle(r = 2) at 1"
+
+checked_draw <- with(DrawableOnCanvas, {
+  function(x) draw_on(x, canvas, position = 1L)
+})
+checked_draw(circle)
+#> [1] "circle(r = 2) at 1"
 ```
 
 A method can satisfy the S7 method shape but still return the wrong kind
-of value. The checked call catches that after ordinary S7 dispatch has
-run.
+of value. The checked call, including a function returned from
+[`with()`](https://rdrr.io/r/base/with.html), catches that after
+ordinary S7 dispatch has run.
 
 ``` r
 
@@ -166,6 +173,12 @@ method(draw_on, list(BadCircle, Canvas)) <- function(x, canvas, position, ...) {
 
 tryCatch(
   with(DrawableOnCanvas, draw_on(BadCircle(r = 2), canvas, position = 1L)),
+  error = function(e) conditionMessage(e)
+)
+#> [1] "Return value must be <character>, not <double>"
+
+tryCatch(
+  checked_draw(BadCircle(r = 2)),
   error = function(e) conditionMessage(e)
 )
 #> [1] "Return value must be <character>, not <double>"
