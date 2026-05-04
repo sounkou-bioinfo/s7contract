@@ -1,5 +1,8 @@
 # s7contract
 
+[![R-CMD-check](https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml)
+[![R-universe](https://sounkou-bioinfo.r-universe.dev/badges/s7contract)](https://sounkou-bioinfo.r-universe.dev/s7contract)
+
 `s7contract` provides small experimental contract helpers for
 [S7](https://rconsortium.github.io/S7/). It keeps dispatch in ordinary
 S7 generics and methods. The words “interface” and “trait” are loose
