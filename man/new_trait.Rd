@@ -14,7 +14,13 @@ new_trait(
   package = NULL
 )
 
-trait_method(generic, default = NULL, name = NULL)
+trait_method(
+  generic,
+  default = NULL,
+  name = NULL,
+  args = list(),
+  returns = S7::class_any
+)
 }
 \arguments{
 \item{name}{For \code{new_trait()}, the trait name. For \code{trait_method()}, the
@@ -37,6 +43,14 @@ default constant values.}
 
 \item{default}{Optional default implementation. If supplied, \code{impl_trait()}
 uses it when a class does not provide an override for that method.}
+
+\item{args}{Optional named list of S7 classes, interfaces, or traits for
+runtime argument checking with \code{with()} or \verb{\%::\%}. Dispatch arguments other
+than the first can use S7 classes or unions to refine multiple-dispatch
+requirements.}
+
+\item{returns}{Optional S7 class, interface, or trait for runtime return
+checking with \code{with()} or \verb{\%::\%}; defaults to \code{S7::class_any}.}
 }
 \value{
 \code{new_trait()} returns an S7 object of class \code{s7_trait}.

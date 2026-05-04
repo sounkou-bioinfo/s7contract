@@ -89,9 +89,15 @@ new_trait <- function(
 #' @param generic An S7 generic function.
 #' @param default Optional default implementation. If supplied, `impl_trait()`
 #'   uses it when a class does not provide an override for that method.
+#' @param args Optional named list of S7 classes, interfaces, or traits for
+#'   runtime argument checking with `with()` or `%::%`. Dispatch arguments other
+#'   than the first can use S7 classes or unions to refine multiple-dispatch
+#'   requirements.
+#' @param returns Optional S7 class, interface, or trait for runtime return
+#'   checking with `with()` or `%::%`; defaults to `S7::class_any`.
 #' @rdname new_trait
 #' @export
-trait_method <- function(generic, default = NULL, name = NULL) {
+trait_method <- function(generic, default = NULL, name = NULL, args = list(), returns = S7::class_any) {
   if (!is.function(generic)) {
     .abort(
       "`generic` must be a function, usually an S7 generic created with S7::new_generic()."
@@ -107,7 +113,13 @@ trait_method <- function(generic, default = NULL, name = NULL) {
     .abort("`name` must be a non-empty string.")
   }
 
-  s7_trait_method(name = name, generic = generic, default = default)
+  s7_trait_method(
+    name = name,
+    generic = generic,
+    default = default,
+    args = .normalise_type_specs(args, "args"),
+    returns = .normalise_return_spec(returns)
+  )
 }
 
 .as_trait_method <- function(x, name = NULL) {
@@ -422,7 +434,7 @@ impl_trait <- function(
   for (name in names(trait_reqs)) {
     .register_s7_method(
       generic = trait_reqs[[name]]@generic,
-      class = cls,
+      class = .requirement_signature(trait_reqs[[name]], cls),
       fun = resolved_methods[[name]],
       replace = replace
     )
@@ -577,7 +589,9 @@ trait_assoc_const <- function(trait, x, name) {
     cat("\n")
     for (req in reqs) {
       suffix <- if (is.null(req@default)) "" else " [default]"
-      cat(sprintf("    - %s()%s\n", req@name, suffix))
+      typed_args <- names(req@args)
+      typed_args <- if (length(typed_args) == 0) "" else sprintf(" args: %s", paste(typed_args, collapse = ", "))
+      cat(sprintf("    - %s()%s%s\n", req@name, suffix, typed_args))
     }
   }
   if (length(assoc_types) > 0) {

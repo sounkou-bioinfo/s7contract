@@ -1,5 +1,6 @@
 # s7contract 0.1.0
 
+* Added optional progressive argument and return checks for interface requirements and trait methods, including `with()` and `%::%` evaluation syntax.
 * Reworked contract descriptor objects as internal S7 classes throughout.
 * Added a Haskell-style `Maybe`/monad dictionary example to the interface and trait vignette.
 * Added CRAN-facing vignettes with number-like, vector-like, and bioinformatics container examples.

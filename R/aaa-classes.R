@@ -9,7 +9,9 @@ s7_interface_requirement <- S7::new_class(
   package = "s7contract",
   properties = list(
     name = S7::class_character,
-    generic = S7::class_function
+    generic = S7::class_function,
+    args = S7::class_list,
+    returns = S7::class_any
   )
 )
 
@@ -30,7 +32,9 @@ s7_trait_method <- S7::new_class(
   properties = list(
     name = S7::class_character,
     generic = S7::class_function,
-    default = S7::new_union(NULL, S7::class_function)
+    default = S7::new_union(NULL, S7::class_function),
+    args = S7::class_list,
+    returns = S7::class_any
   )
 )
 

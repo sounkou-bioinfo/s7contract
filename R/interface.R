@@ -60,9 +60,16 @@ new_interface <- function(name, methods = list(), parents = list(), package = NU
 }
 
 #' @param generic An S7 generic function.
+#' @param args Optional named list of S7 classes, interfaces, or traits for
+#'   runtime argument checking with `with()` or `%::%`. Arguments named in
+#'   `args` are also checked against generic and method formals during
+#'   conformance checks. Dispatch arguments other than the first can use S7
+#'   classes or unions to refine multiple-dispatch requirements.
+#' @param returns Optional S7 class, interface, or trait for runtime return
+#'   checking with `with()` or `%::%`; defaults to `S7::class_any`.
 #' @rdname new_interface
 #' @export
-interface_requirement <- function(generic, name = NULL) {
+interface_requirement <- function(generic, name = NULL, args = list(), returns = S7::class_any) {
   if (!is.function(generic)) {
     .abort(
       "`generic` must be a function, usually an S7 generic created with S7::new_generic()."
@@ -75,7 +82,12 @@ interface_requirement <- function(generic, name = NULL) {
     .abort("`name` must be a non-empty string.")
   }
 
-  s7_interface_requirement(name = name, generic = generic)
+  s7_interface_requirement(
+    name = name,
+    generic = generic,
+    args = .normalise_type_specs(args, "args"),
+    returns = .normalise_return_spec(returns)
+  )
 }
 
 .as_interface_requirement <- function(x, name = NULL) {
@@ -181,7 +193,7 @@ interface_report <- function(x, interface) {
   reqs <- interface_requirements(interface, inherited = TRUE)
 
   rows <- lapply(reqs, function(req) {
-    found <- .lookup_s7_method(req@generic, x)
+    found <- .lookup_requirement_method(req, x)
     data.frame(
       interface = .interface_label(interface),
       requirement = req@name,
@@ -255,7 +267,9 @@ as_interface <- function(x, interface) {
   } else {
     cat("\n")
     for (req in reqs) {
-      cat(sprintf("    - %s()\n", req@name))
+      typed_args <- names(req@args)
+      typed_args <- if (length(typed_args) == 0) "" else sprintf(" args: %s", paste(typed_args, collapse = ", "))
+      cat(sprintf("    - %s()%s\n", req@name, typed_args))
     }
   }
   invisible(x)
