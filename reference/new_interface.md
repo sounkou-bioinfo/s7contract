@@ -48,7 +48,8 @@ interface_requirement(generic, name = NULL)
 
 This deliberately mirrors Go's basic interfaces defined only by methods.
 It does not attempt to emulate Go's full post-1.18 type-set language
-such as `~T`, unions of concrete types, or pointer/value receiver rules.
+such as tilde type terms, unions of concrete types, or pointer/value
+receiver rules.
 
 ## Examples
 

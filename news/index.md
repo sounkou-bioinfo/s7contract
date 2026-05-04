@@ -2,6 +2,10 @@
 
 ## s7contract 0.1.0
 
+- Added CRAN-facing vignettes with number-like, vector-like, and
+  bioinformatics container examples.
+- Added CRAN submission comments and metadata updates for vignette
+  building.
 - Fixed
   [`impl_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
   so failed S7 method registration no longer leaves a stale trait

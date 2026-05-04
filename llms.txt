@@ -125,3 +125,11 @@ trait_assoc_const(Labelled, Circle, "KIND")
   [`trait_assoc_const()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
   : Inspect or use a Rust-like explicit trait
 
+# Articles
+
+### All vignettes
+
+- [Interfaces for Bioinformatics
+  Containers](https://sounkou-bioinfo.github.io/s7contract/articles/bioinformatics-interfaces.md):
+- [Contracts Beyond
+  Drawing](https://sounkou-bioinfo.github.io/s7contract/articles/contracts-beyond-shapes.md):
