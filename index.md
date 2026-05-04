@@ -12,7 +12,14 @@ analogies, not Go or Rust compatibility claims.
 
 ``` r
 
-remotes::install_github("sounkou-bioinfo/s7contract")
+# Install 's7contract' in R:
+install.packages(
+  "s7contract",
+  repos = c(
+    "https://sounkou-bioinfo.r-universe.dev",
+    "https://cloud.r-project.org"
+  )
+)
 ```
 
 From a local checkout:
