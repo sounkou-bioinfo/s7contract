@@ -33,9 +33,14 @@ defined by behavior.
 
 Go interfaces are structural: a basic interface describes required
 methods, and a type satisfies the interface when it has those methods.
-Rust traits are nominal and explicit: an implementation is declared for
-a type, and traits may also contain defaults and associated items.
-`s7contract` maps these ideas to S7 as follows.
+Go style also favors small interfaces defined at the point of use: do
+not define an interface beside a single implementation merely to make
+that implementation conform. In S7 terms, define classes, generics, and
+methods where the behavior lives, then let the consumer define the
+protocol it accepts. Rust traits are nominal and explicit: an
+implementation is declared for a type, and traits may also contain
+defaults and associated items. `s7contract` maps these ideas to S7 as
+follows.
 
 ``` text
 S7 generic       operation, e.g. area(x)
@@ -63,7 +68,9 @@ specifications can be checked when evaluating a call with
 
 The classic drawing example remains useful because the behavior is
 visible. A `Drawable` object is anything for which S7 can find a
-`draw()` method.
+`draw()` method. In real packages, this interface would usually live
+near the consumer that needs to draw things, not necessarily in the
+package that defines `Circle`.
 
 ``` r
 
@@ -103,8 +110,22 @@ render(Circle(r = 2))
 #> [1] "circle(r = 2)"
 ```
 
+The same boundary is convenient in tests. A mock only needs the behavior
+the consumer asks for.
+
+``` r
+
+MockDrawable <- new_class("MockDrawable")
+method(draw, MockDrawable) <- function(x) "mock drawing"
+
+render(MockDrawable())
+#> [1] "mock drawing"
+```
+
 This is the main reason structural interfaces fit S7 well. They add a
-small runtime check around a dispatch model that S7 already has.
+small runtime check around a dispatch model that S7 already has. The
+practical API shape is the Go maxim adapted to R: accept objects that
+satisfy a small protocol; return ordinary, concrete R or S7 values.
 
 ## Progressive argument and return checks
 
@@ -488,6 +509,8 @@ carries meaning.
 - The S7 package documentation: <https://rconsortium.github.io/S7/>.
 - The Go specification, especially interface types:
   <https://go.dev/ref/spec#Interface_types>.
+- Chewxy, “How To Use Go Interfaces”:
+  <https://blog.chewxy.com/2018/03/18/golang-interfaces/>.
 - The Rust book chapter on traits:
   <https://doc.rust-lang.org/book/ch10-02-traits.html>.
 - The Rust reference chapter on traits:

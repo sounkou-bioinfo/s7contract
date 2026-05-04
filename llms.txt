@@ -31,7 +31,10 @@ R CMD INSTALL .
 ## Structural interfaces
 
 An interface is a named set of required S7 generics. A class or object
-satisfies it when S7 can find methods for every requirement.
+satisfies it when S7 can find methods for every requirement. The
+intended style follows Go: define concrete S7 classes and methods
+normally, then define a small interface at the point where consuming
+code needs a behavior.
 
 ``` r
 
@@ -58,6 +61,14 @@ implements(Rect, Shape)
 missing_requirements(Rect, Shape)
 #>      interface requirement    ok                               message
 #> draw     Shape        draw FALSE Can't find method for `draw(<Rect>)`.
+
+render <- function(x) {
+  assert_implements(x, Drawable)
+  draw(x)
+}
+
+render(Circle(r = 2))
+#> [1] "circle(r = 2)"
 ```
 
 ## Explicit traits

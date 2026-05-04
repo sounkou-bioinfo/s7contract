@@ -79,9 +79,10 @@ validity rules synchronized. This vignette does not try to rebuild that
 class. It uses a small toy container to show what an interface can and
 cannot express.</p>
 <p>The useful idea is an adapter boundary. A downstream function might
-not need a specific container class. It might only need to list assay
-names, retrieve one assay matrix, and know feature and sample names.
-That small behavior can be written as an S7 interface.</p>
+not need a specific container class. It might only need to retrieve one
+assay matrix, or it might need assay names plus feature and sample
+names. That small behavior can be written as an S7 interface at the
+point where the downstream function consumes it.</p>
 </div>
 <div class="section level2">
 <h2 id="background">Background<a class="anchor" aria-label="anchor" href="#background"></a>
@@ -148,26 +149,17 @@ metadata. The validator only checks the dimensions needed below.</p>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="a-small-assay-interface">A small assay interface<a class="anchor" aria-label="anchor" href="#a-small-assay-interface"></a>
+<h2 id="operations-and-a-consumer-owned-interface">Operations and a consumer-owned interface<a class="anchor" aria-label="anchor" href="#operations-and-a-consumer-owned-interface"></a>
 </h2>
-<p>The interface below describes the behavior needed by a simple
-consumer. It is not a replacement for <code>SummarizedExperiment</code>;
-it is only a view over an object that has assay-like behavior.</p>
+<p>Adapters expose behavior through ordinary S7 generics. The toy
+container below supports assay names, feature names, sample names, and
+assay lookup, but a consumer should only require the operations it
+actually uses.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">assay_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"assay_names"</span>, <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="va">feature_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"feature_names"</span>, <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="va">sample_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"sample_names"</span>, <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="va">assay_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"assay_matrix"</span>, <span class="st">"x"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">AssayContainer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span></span>
-<span>  <span class="st">"AssayContainer"</span>,</span>
-<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    assay_names <span class="op">=</span> <span class="va">assay_names</span>,</span>
-<span>    feature_names <span class="op">=</span> <span class="va">feature_names</span>,</span>
-<span>    sample_names <span class="op">=</span> <span class="va">sample_names</span>,</span>
-<span>    assay_matrix <span class="op">=</span> <span class="va">assay_matrix</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">assay_names</span>, <span class="va">MiniSummarizedExperiment</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">x</span><span class="op">@</span><span class="va">assays</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">feature_names</span>, <span class="va">MiniSummarizedExperiment</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">x</span><span class="op">@</span><span class="va">assays</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
@@ -176,8 +168,6 @@ it is only a view over an object that has assay-like behavior.</p>
 <span>  <span class="va">x</span><span class="op">@</span><span class="va">assays</span><span class="op">[[</span><span class="va">name</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/interface_requirements.html">implements</a></span><span class="op">(</span><span class="va">mini</span>, <span class="va">AssayContainer</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu">assay_names</span><span class="op">(</span><span class="va">mini</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "counts"    "logcounts"</span></span>
 <span><span class="fu">sample_names</span><span class="op">(</span><span class="va">mini</span><span class="op">)</span></span>
@@ -185,21 +175,55 @@ it is only a view over an object that has assay-like behavior.</p>
 <span><span class="fu">assay_matrix</span><span class="op">(</span><span class="va">mini</span>, <span class="st">"counts"</span><span class="op">)</span><span class="op">[</span>, <span class="st">"sample1"</span><span class="op">]</span></span>
 <span><span class="co">#&gt; geneA geneB geneC </span></span>
 <span><span class="co">#&gt;    10     0     3</span></span></code></pre></div>
-<p>A consumer can assert this behavior and then stay independent of the
-concrete class.</p>
+<p>The interface belongs at the point of use. A library-size calculation
+does not need feature metadata or sample metadata; it only needs to
+retrieve one assay matrix. This mirrors the Go pattern
+<code>func Takes(db Database) error</code>: accept the small protocol
+the function needs, not a concrete database or a giant package
+interface.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">library_size</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">assay</span> <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="../reference/interface_requirements.html">assert_implements</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">AssayContainer</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">LibrarySizeInput</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span></span>
+<span>  <span class="st">"LibrarySizeInput"</span>,</span>
+<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>assay_matrix <span class="op">=</span> <span class="va">assay_matrix</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">library_size</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">assay</span> <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/interface_requirements.html">assert_implements</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">LibrarySizeInput</span><span class="op">)</span></span>
 <span>  <span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu">assay_matrix</span><span class="op">(</span><span class="va">x</span>, <span class="va">assay</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">mat</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
+<span><span class="fu"><a href="../reference/interface_requirements.html">implements</a></span><span class="op">(</span><span class="va">mini</span>, <span class="va">LibrarySizeInput</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu">library_size</span><span class="op">(</span><span class="va">mini</span><span class="op">)</span></span>
 <span><span class="co">#&gt; sample1 sample2 </span></span>
 <span><span class="co">#&gt;      13      24</span></span></code></pre></div>
+<p>The payoff is testing. A unit test does not need to construct a
+realistic <code>MiniSummarizedExperiment</code> or a full Bioconductor
+object. It can provide a tiny mock that implements exactly the
+consumer-owned protocol.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">MockAssays</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"MockAssays"</span>, properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>assays <span class="op">=</span> <span class="va">class_list</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">assay_matrix</span>, <span class="va">MockAssays</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">name</span> <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">x</span><span class="op">@</span><span class="va">assays</span><span class="op">[[</span><span class="va">name</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">mock_counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  nrow <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"geneA"</span>, <span class="st">"geneB"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sampleA"</span>, <span class="st">"sampleB"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">mock</span> <span class="op">&lt;-</span> <span class="fu">MockAssays</span><span class="op">(</span>assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counts <span class="op">=</span> <span class="va">mock_counts</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/interface_requirements.html">implements</a></span><span class="op">(</span><span class="va">mock</span>, <span class="va">LibrarySizeInput</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu">library_size</span><span class="op">(</span><span class="va">mock</span><span class="op">)</span></span>
+<span><span class="co">#&gt; sampleA sampleB </span></span>
+<span><span class="co">#&gt;       3       7</span></span></code></pre></div>
 <p>This is the productive use case. A package can write against a small
-protocol, while separate adapters provide methods for concrete
-containers.</p>
+protocol, return an ordinary vector, and let separate adapters provide
+methods for concrete containers.</p>
 </div>
 <div class="section level2">
 <h2 id="when-an-explicit-trait-helps">When an explicit trait helps<a class="anchor" aria-label="anchor" href="#when-an-explicit-trait-helps"></a>
@@ -207,7 +231,7 @@ containers.</p>
 <p>A trait is useful when structural compatibility is not enough. Here
 the trait records an explicit implementation and stores an associated
 constant describing assay orientation.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ExperimentLike</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_trait.html">new_trait</a></span><span class="op">(</span></span>
 <span>  <span class="st">"ExperimentLike"</span>,</span>
 <span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -240,11 +264,13 @@ constant describing assay orientation.</p>
 <div class="section level2">
 <h2 id="design-cautions">Design cautions<a class="anchor" aria-label="anchor" href="#design-cautions"></a>
 </h2>
-<p>It would be a mistake to define one large trait that tries to cover
-every bioinformatics object. Assay matrices, genomic ranges, variant
-calls, and single-cell objects have different invariants and different
-performance needs. Small interfaces are easier to satisfy correctly and
-easier to test.</p>
+<p>It would be a mistake to define one large interface or trait that
+tries to cover every bioinformatics object. Assay matrices, genomic
+ranges, variant calls, and single-cell objects have different invariants
+and different performance needs. If a consumer only needs
+<code>assay_matrix()</code>, do not make it depend on feature metadata,
+sample metadata, genome ranges, and delayed computation as well. Small
+interfaces are easier to satisfy correctly and easier to test.</p>
 <p>It would also be a mistake to claim that an interface proves
 biological correctness. Method availability does not prove that samples
 are comparable, that row ranges use the same genome build, or that an
@@ -262,6 +288,7 @@ but they should not replace the class or its ecosystem.</p>
 <li>Morgan et al. (2023), “Orchestrating high-throughput genomic
 analysis with Bioconductor”: <a href="https://bioconductor.org/help/publications/" class="external-link uri">https://bioconductor.org/help/publications/</a>.</li>
 <li>The S7 package documentation: <a href="https://rconsortium.github.io/S7/" class="external-link uri">https://rconsortium.github.io/S7/</a>.</li>
+<li>Chewxy, “How To Use Go Interfaces”: <a href="https://blog.chewxy.com/2018/03/18/golang-interfaces/" class="external-link uri">https://blog.chewxy.com/2018/03/18/golang-interfaces/</a>.</li>
 <li>The <code>s7contract</code> interface and trait vignette in this
 package.</li>
 </ul>

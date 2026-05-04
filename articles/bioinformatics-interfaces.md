@@ -15,9 +15,10 @@ synchronized. This vignette does not try to rebuild that class. It uses
 a small toy container to show what an interface can and cannot express.
 
 The useful idea is an adapter boundary. A downstream function might not
-need a specific container class. It might only need to list assay names,
-retrieve one assay matrix, and know feature and sample names. That small
-behavior can be written as an S7 interface.
+need a specific container class. It might only need to retrieve one
+assay matrix, or it might need assay names plus feature and sample
+names. That small behavior can be written as an S7 interface at the
+point where the downstream function consumes it.
 
 ## Background
 
@@ -85,11 +86,12 @@ mini <- MiniSummarizedExperiment(
 )
 ```
 
-## A small assay interface
+## Operations and a consumer-owned interface
 
-The interface below describes the behavior needed by a simple consumer.
-It is not a replacement for `SummarizedExperiment`; it is only a view
-over an object that has assay-like behavior.
+Adapters expose behavior through ordinary S7 generics. The toy container
+below supports assay names, feature names, sample names, and assay
+lookup, but a consumer should only require the operations it actually
+uses.
 
 ``` r
 
@@ -98,16 +100,6 @@ feature_names <- new_generic("feature_names", "x")
 sample_names <- new_generic("sample_names", "x")
 assay_matrix <- new_generic("assay_matrix", "x")
 
-AssayContainer <- new_interface(
-  "AssayContainer",
-  methods = list(
-    assay_names = assay_names,
-    feature_names = feature_names,
-    sample_names = sample_names,
-    assay_matrix = assay_matrix
-  )
-)
-
 method(assay_names, MiniSummarizedExperiment) <- function(x) names(x@assays)
 method(feature_names, MiniSummarizedExperiment) <- function(x) rownames(x@assays[[1]])
 method(sample_names, MiniSummarizedExperiment) <- function(x) colnames(x@assays[[1]])
@@ -115,8 +107,6 @@ method(assay_matrix, MiniSummarizedExperiment) <- function(x, name = assay_names
   x@assays[[name]]
 }
 
-implements(mini, AssayContainer)
-#> [1] TRUE
 assay_names(mini)
 #> [1] "counts"    "logcounts"
 sample_names(mini)
@@ -126,25 +116,62 @@ assay_matrix(mini, "counts")[, "sample1"]
 #>    10     0     3
 ```
 
-A consumer can assert this behavior and then stay independent of the
-concrete class.
+The interface belongs at the point of use. A library-size calculation
+does not need feature metadata or sample metadata; it only needs to
+retrieve one assay matrix. This mirrors the Go pattern
+`func Takes(db Database) error`: accept the small protocol the function
+needs, not a concrete database or a giant package interface.
 
 ``` r
 
+LibrarySizeInput <- new_interface(
+  "LibrarySizeInput",
+  methods = list(assay_matrix = assay_matrix)
+)
+
 library_size <- function(x, assay = "counts") {
-  assert_implements(x, AssayContainer)
+  assert_implements(x, LibrarySizeInput)
   mat <- assay_matrix(x, assay)
   colSums(mat)
 }
 
+implements(mini, LibrarySizeInput)
+#> [1] TRUE
 library_size(mini)
 #> sample1 sample2 
 #>      13      24
 ```
 
+The payoff is testing. A unit test does not need to construct a
+realistic `MiniSummarizedExperiment` or a full Bioconductor object. It
+can provide a tiny mock that implements exactly the consumer-owned
+protocol.
+
+``` r
+
+MockAssays <- new_class("MockAssays", properties = list(assays = class_list))
+
+method(assay_matrix, MockAssays) <- function(x, name = "counts") {
+  x@assays[[name]]
+}
+
+mock_counts <- matrix(
+  c(1, 2, 3, 4),
+  nrow = 2,
+  dimnames = list(c("geneA", "geneB"), c("sampleA", "sampleB"))
+)
+mock <- MockAssays(assays = list(counts = mock_counts))
+
+implements(mock, LibrarySizeInput)
+#> [1] TRUE
+library_size(mock)
+#> sampleA sampleB 
+#>       3       7
+```
+
 This is the productive use case. A package can write against a small
-protocol, while separate adapters provide methods for concrete
-containers.
+protocol, return an ordinary vector, and let separate adapters provide
+methods for concrete containers.
 
 ## When an explicit trait helps
 
@@ -186,11 +213,13 @@ trait_assoc_const(ExperimentLike, mini, "ASSAY_ORIENTATION")
 
 ## Design cautions
 
-It would be a mistake to define one large trait that tries to cover
-every bioinformatics object. Assay matrices, genomic ranges, variant
-calls, and single-cell objects have different invariants and different
-performance needs. Small interfaces are easier to satisfy correctly and
-easier to test.
+It would be a mistake to define one large interface or trait that tries
+to cover every bioinformatics object. Assay matrices, genomic ranges,
+variant calls, and single-cell objects have different invariants and
+different performance needs. If a consumer only needs `assay_matrix()`,
+do not make it depend on feature metadata, sample metadata, genome
+ranges, and delayed computation as well. Small interfaces are easier to
+satisfy correctly and easier to test.
 
 It would also be a mistake to claim that an interface proves biological
 correctness. Method availability does not prove that samples are
@@ -209,4 +238,6 @@ should not replace the class or its ecosystem.
 - Morgan et al. (2023), “Orchestrating high-throughput genomic analysis
   with Bioconductor”: <https://bioconductor.org/help/publications/>.
 - The S7 package documentation: <https://rconsortium.github.io/S7/>.
+- Chewxy, “How To Use Go Interfaces”:
+  <https://blog.chewxy.com/2018/03/18/golang-interfaces/>.
 - The `s7contract` interface and trait vignette in this package.
