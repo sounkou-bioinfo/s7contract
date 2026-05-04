@@ -24,8 +24,8 @@ name when omitted.}
 \item{generic}{An S7 generic function.}
 }
 \value{
-\code{new_interface()} returns an object of class \code{s7_go_interface}.
-\code{interface_requirement()} returns an object of class
+\code{new_interface()} returns an S7 object of class
+\code{s7_interface}. \code{interface_requirement()} returns an S7 object of class
 \code{s7_interface_requirement}.
 }
 \description{

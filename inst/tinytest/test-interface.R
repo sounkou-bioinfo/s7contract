@@ -20,6 +20,9 @@ local({
   Drawable <- new_interface("DrawableInterfaceTest", list(draw = draw))
   Shape <- new_interface("ShapeInterfaceTest", list(area = area), parents = Drawable)
 
+  expect_true(S7_inherits(Drawable, s7contract:::s7_interface))
+  expect_true(S7_inherits(interface_requirements(Drawable)[["draw"]], s7contract:::s7_interface_requirement))
+  expect_true(any(grepl("<S7 Go-like interface> DrawableInterfaceTest", capture.output(print(Drawable)), fixed = TRUE)))
   expect_true(implements(Circle, Shape))
   expect_true(implements(Circle(r = 2), Shape))
   expect_false(implements(Rect, Shape))

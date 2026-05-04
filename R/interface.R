@@ -15,8 +15,8 @@
 #'   `interface_requirement()` objects.
 #' @param parents Optional interface or list of interfaces to embed.
 #' @param package Optional package name used only for display.
-#' @return `new_interface()` returns an object of class `s7_go_interface`.
-#'   `interface_requirement()` returns an object of class
+#' @return `new_interface()` returns an S7 object of class
+#'   `s7_interface`. `interface_requirement()` returns an S7 object of class
 #'   `s7_interface_requirement`.
 #' @examples
 #' local({
@@ -51,14 +51,11 @@ new_interface <- function(name, methods = list(), parents = list(), package = NU
     .abort("`package` must be NULL or a single string.")
   }
 
-  structure(
-    list(
-      name = name,
-      package = package,
-      parents = .normalise_interface_parents(parents),
-      methods = .normalise_interface_methods(methods)
-    ),
-    class = "s7_go_interface"
+  s7_interface(
+    name = name,
+    package = package,
+    parents = .normalise_interface_parents(parents),
+    methods = .normalise_interface_methods(methods)
   )
 }
 
@@ -78,16 +75,13 @@ interface_requirement <- function(generic, name = NULL) {
     .abort("`name` must be a non-empty string.")
   }
 
-  structure(
-    list(name = name, generic = generic),
-    class = "s7_interface_requirement"
-  )
+  s7_interface_requirement(name = name, generic = generic)
 }
 
 .as_interface_requirement <- function(x, name = NULL) {
-  if (inherits(x, "s7_interface_requirement")) {
+  if (.is_interface_requirement(x)) {
     if (!is.null(name)) {
-      x$name <- name
+      x@name <- name
     }
     return(x)
   }
@@ -101,7 +95,7 @@ interface_requirement <- function(generic, name = NULL) {
   if (is.null(methods)) {
     methods <- list()
   }
-  if (is.function(methods) || inherits(methods, "s7_interface_requirement")) {
+  if (is.function(methods) || .is_interface_requirement(methods)) {
     methods <- list(methods)
   }
   if (!is.list(methods)) {
@@ -118,7 +112,7 @@ interface_requirement <- function(generic, name = NULL) {
     nm <- if (nzchar(nms[[i]])) nms[[i]] else NULL
     req <- .as_interface_requirement(methods[[i]], name = nm)
     out[[i]] <- req
-    nms[[i]] <- req$name
+    nms[[i]] <- req@name
   }
   names(out) <- nms
   out
@@ -128,14 +122,14 @@ interface_requirement <- function(generic, name = NULL) {
   if (is.null(parents)) {
     return(list())
   }
-  if (inherits(parents, "s7_go_interface")) {
+  if (.is_interface(parents)) {
     parents <- list(parents)
   }
   if (!is.list(parents)) {
     .abort("`parents` must be an interface or a list of interfaces.")
   }
   for (parent in parents) {
-    if (!inherits(parent, "s7_go_interface")) {
+    if (!.is_interface(parent)) {
       .abort("Every parent must be created with new_interface().")
     }
   }
@@ -143,10 +137,10 @@ interface_requirement <- function(generic, name = NULL) {
 }
 
 .interface_label <- function(interface) {
-  if (!is.null(interface$package)) {
-    sprintf("%s::%s", interface$package, interface$name)
+  if (!is.null(interface@package)) {
+    sprintf("%s::%s", interface@package, interface@name)
   } else {
-    interface$name
+    interface@name
   }
 }
 
@@ -162,17 +156,17 @@ interface_requirement <- function(generic, name = NULL) {
 #' @rdname interface_requirements
 #' @export
 interface_requirements <- function(interface, inherited = TRUE) {
-  if (!inherits(interface, "s7_go_interface")) {
+  if (!.is_interface(interface)) {
     .abort("`interface` must be created with new_interface().")
   }
 
   out <- list()
   if (isTRUE(inherited)) {
-    for (parent in interface$parents) {
+    for (parent in interface@parents) {
       out <- c(out, interface_requirements(parent, inherited = TRUE))
     }
   }
-  out <- c(out, interface$methods)
+  out <- c(out, interface@methods)
 
   if (length(out) > 0) {
     out <- out[!duplicated(names(out), fromLast = TRUE)]
@@ -187,10 +181,10 @@ interface_report <- function(x, interface) {
   reqs <- interface_requirements(interface, inherited = TRUE)
 
   rows <- lapply(reqs, function(req) {
-    found <- .lookup_s7_method(req$generic, x)
+    found <- .lookup_s7_method(req@generic, x)
     data.frame(
       interface = .interface_label(interface),
-      requirement = req$name,
+      requirement = req@name,
       ok = found$ok,
       message = if (found$ok) "" else conditionMessage(found$error),
       stringsAsFactors = FALSE
@@ -245,16 +239,13 @@ as_interface <- function(x, interface) {
   assert_implements(x, interface)
 }
 
-#' @method print s7_go_interface
-#' @export
-#' @noRd
-print.s7_go_interface <- function(x, ...) {
+.print_s7_interface <- function(x, ...) {
   reqs <- interface_requirements(x, inherited = TRUE)
   cat(sprintf("<S7 Go-like interface> %s\n", .interface_label(x)))
-  if (length(x$parents) > 0) {
+  if (length(x@parents) > 0) {
     cat(
       "  embeds:",
-      paste(vapply(x$parents, .interface_label, character(1)), collapse = ", "),
+      paste(vapply(x@parents, .interface_label, character(1)), collapse = ", "),
       "\n"
     )
   }
@@ -264,7 +255,7 @@ print.s7_go_interface <- function(x, ...) {
   } else {
     cat("\n")
     for (req in reqs) {
-      cat(sprintf("    - %s()\n", req$name))
+      cat(sprintf("    - %s()\n", req@name))
     }
   }
   invisible(x)

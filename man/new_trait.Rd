@@ -39,8 +39,8 @@ default constant values.}
 uses it when a class does not provide an override for that method.}
 }
 \value{
-\code{new_trait()} returns an object of class \code{s7_trait}.
-\code{trait_method()} returns an object of class \code{s7_trait_method}.
+\code{new_trait()} returns an S7 object of class \code{s7_trait}.
+\code{trait_method()} returns an S7 object of class \code{s7_trait_method}.
 }
 \description{
 \code{new_trait()} adds a nominal contract registry on top of S7 dispatch. A class

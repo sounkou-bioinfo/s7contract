@@ -19,9 +19,12 @@ local({
     assoc_consts = c("UNITS")
   )
 
+  expect_true(S7_inherits(Measurable, s7contract:::s7_trait))
+  expect_true(S7_inherits(trait_methods(Measurable)[["area"]], s7contract:::s7_trait_method))
+  expect_true(any(grepl("<S7 Rust-like trait> MeasurableTraitTest", capture.output(print(Measurable)), fixed = TRUE)))
   expect_false(has_trait(Circle, Measurable))
 
-  impl_trait(
+  impl <- impl_trait(
     Measurable,
     Circle,
     methods = list(area = function(x) pi * x@r^2),
@@ -29,6 +32,7 @@ local({
     replace = TRUE
   )
 
+  expect_true(S7_inherits(impl, s7contract:::s7_trait_impl))
   expect_true(has_trait(Circle, Measurable))
   expect_equal(trait_call(Measurable, "area", Circle(r = 2)), pi * 4)
   expect_true(is.na(trait_call(Measurable, "perimeter", Circle(r = 2))))

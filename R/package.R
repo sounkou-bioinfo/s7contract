@@ -11,3 +11,9 @@
 #' @docType package
 #' @name s7contract
 "_PACKAGE"
+
+.onLoad <- function(...) {
+  S7::method(print, s7_interface) <- .print_s7_interface
+  S7::method(print, s7_trait) <- .print_s7_trait
+  S7::methods_register()
+}

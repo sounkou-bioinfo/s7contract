@@ -27,8 +27,8 @@
 #' @param assoc_consts Required associated constant names, or a named list of
 #'   default constant values.
 #' @param package Optional package name used only for display.
-#' @return `new_trait()` returns an object of class `s7_trait`.
-#'   `trait_method()` returns an object of class `s7_trait_method`.
+#' @return `new_trait()` returns an S7 object of class `s7_trait`.
+#'   `trait_method()` returns an S7 object of class `s7_trait_method`.
 #' @examples
 #' local({
 #'   area <- S7::new_generic("area", "x")
@@ -75,17 +75,14 @@ new_trait <- function(
     .abort("`package` must be NULL or a single string.")
   }
 
-  structure(
-    list(
-      id = .next_trait_id(),
-      name = name,
-      package = package,
-      parents = .normalise_trait_parents(parents),
-      methods = .normalise_trait_methods(methods),
-      assoc_types = .normalise_assoc(assoc_types, "assoc_types"),
-      assoc_consts = .normalise_assoc(assoc_consts, "assoc_consts")
-    ),
-    class = "s7_trait"
+  s7_trait(
+    id = .next_trait_id(),
+    name = name,
+    package = package,
+    parents = .normalise_trait_parents(parents),
+    methods = .normalise_trait_methods(methods),
+    assoc_types = .normalise_assoc(assoc_types, "assoc_types"),
+    assoc_consts = .normalise_assoc(assoc_consts, "assoc_consts")
   )
 }
 
@@ -110,16 +107,13 @@ trait_method <- function(generic, default = NULL, name = NULL) {
     .abort("`name` must be a non-empty string.")
   }
 
-  structure(
-    list(name = name, generic = generic, default = default),
-    class = "s7_trait_method"
-  )
+  s7_trait_method(name = name, generic = generic, default = default)
 }
 
 .as_trait_method <- function(x, name = NULL) {
-  if (inherits(x, "s7_trait_method")) {
+  if (.is_trait_method(x)) {
     if (!is.null(name)) {
-      x$name <- name
+      x@name <- name
     }
     return(x)
   }
@@ -133,7 +127,7 @@ trait_method <- function(generic, default = NULL, name = NULL) {
   if (is.null(methods)) {
     methods <- list()
   }
-  if (is.function(methods) || inherits(methods, "s7_trait_method")) {
+  if (is.function(methods) || .is_trait_method(methods)) {
     methods <- list(methods)
   }
   if (!is.list(methods)) {
@@ -150,7 +144,7 @@ trait_method <- function(generic, default = NULL, name = NULL) {
     nm <- if (nzchar(nms[[i]])) nms[[i]] else NULL
     method <- .as_trait_method(methods[[i]], name = nm)
     out[[i]] <- method
-    nms[[i]] <- method$name
+    nms[[i]] <- method@name
   }
   names(out) <- nms
   out
@@ -160,14 +154,14 @@ trait_method <- function(generic, default = NULL, name = NULL) {
   if (is.null(parents)) {
     return(list())
   }
-  if (inherits(parents, "s7_trait")) {
+  if (.is_trait(parents)) {
     parents <- list(parents)
   }
   if (!is.list(parents)) {
     .abort("`parents` must be a trait or a list of traits.")
   }
   for (parent in parents) {
-    if (!inherits(parent, "s7_trait")) {
+    if (!.is_trait(parent)) {
       .abort("Every parent must be created with new_trait().")
     }
   }
@@ -180,7 +174,7 @@ trait_method <- function(generic, default = NULL, name = NULL) {
   }
   if (is.character(x)) {
     out <- lapply(x, function(name) {
-      list(required = TRUE, default = NULL)
+      s7_assoc_item(required = TRUE, default = NULL)
     })
     names(out) <- x
     return(out)
@@ -190,7 +184,7 @@ trait_method <- function(generic, default = NULL, name = NULL) {
       .abort("`%s` must be a named list or a character vector.", what)
     }
     out <- lapply(x, function(value) {
-      list(required = FALSE, default = value)
+      s7_assoc_item(required = FALSE, default = value)
     })
     return(out)
   }
@@ -198,10 +192,10 @@ trait_method <- function(generic, default = NULL, name = NULL) {
 }
 
 .trait_label <- function(trait) {
-  if (!is.null(trait$package)) {
-    sprintf("%s::%s", trait$package, trait$name)
+  if (!is.null(trait@package)) {
+    sprintf("%s::%s", trait@package, trait@name)
   } else {
-    trait$name
+    trait@name
   }
 }
 
@@ -219,17 +213,17 @@ trait_method <- function(generic, default = NULL, name = NULL) {
 #' @rdname trait_methods
 #' @export
 trait_methods <- function(trait, inherited = TRUE) {
-  if (!inherits(trait, "s7_trait")) {
+  if (!.is_trait(trait)) {
     .abort("`trait` must be created with new_trait().")
   }
 
   out <- list()
   if (isTRUE(inherited)) {
-    for (parent in trait$parents) {
+    for (parent in trait@parents) {
       out <- c(out, trait_methods(parent, inherited = TRUE))
     }
   }
-  out <- c(out, trait$methods)
+  out <- c(out, trait@methods)
 
   if (length(out) > 0) {
     out <- out[!duplicated(names(out), fromLast = TRUE)]
@@ -240,29 +234,29 @@ trait_methods <- function(trait, inherited = TRUE) {
 .trait_assoc_types <- function(trait, inherited = TRUE) {
   out <- list()
   if (isTRUE(inherited)) {
-    for (parent in trait$parents) {
+    for (parent in trait@parents) {
       out <- c(out, .trait_assoc_types(parent, inherited = TRUE))
     }
   }
-  out <- c(out, trait$assoc_types)
+  out <- c(out, trait@assoc_types)
   if (length(out) > 0) out[!duplicated(names(out), fromLast = TRUE)] else out
 }
 
 .trait_assoc_consts <- function(trait, inherited = TRUE) {
   out <- list()
   if (isTRUE(inherited)) {
-    for (parent in trait$parents) {
+    for (parent in trait@parents) {
       out <- c(out, .trait_assoc_consts(parent, inherited = TRUE))
     }
   }
-  out <- c(out, trait$assoc_consts)
+  out <- c(out, trait@assoc_consts)
   if (length(out) > 0) out[!duplicated(names(out), fromLast = TRUE)] else out
 }
 
 .find_trait_impl <- function(trait, class) {
   impls <- .s7contract_registry$impls
   for (impl in impls) {
-    if (identical(impl$trait_id, trait$id) && .class_equal(impl$class, class)) {
+    if (identical(impl@trait_id, trait@id) && .class_equal(impl@target_class, class)) {
       return(impl)
     }
   }
@@ -274,12 +268,12 @@ trait_methods <- function(trait, inherited = TRUE) {
   keep <- rep(TRUE, length(impls))
 
   for (i in seq_along(impls)) {
-    if (identical(impls[[i]]$trait_id, impl$trait_id) && .class_equal(impls[[i]]$class, impl$class)) {
+    if (identical(impls[[i]]@trait_id, impl@trait_id) && .class_equal(impls[[i]]@target_class, impl@target_class)) {
       if (!replace) {
         .abort(
           "%s is already implemented for %s. Pass replace = TRUE to replace it.",
-          impl$trait_label,
-          .class_label(impl$class)
+          impl@trait_label,
+          .class_label(impl@target_class)
         )
       }
       keep[[i]] <- FALSE
@@ -324,10 +318,10 @@ trait_methods <- function(trait, inherited = TRUE) {
     spec <- required[[name]]
     if (name %in% names(provided)) {
       out[name] <- list(provided[[name]])
-    } else if (isTRUE(spec$required)) {
+    } else if (isTRUE(spec@required)) {
       .abort("Missing required associated item `%s` in `%s`.", name, what)
     } else {
-      out[name] <- list(spec$default)
+      out[name] <- list(spec@default)
     }
   }
 
@@ -355,7 +349,7 @@ impl_trait <- function(
   assoc_consts = list(),
   replace = FALSE
 ) {
-  if (!inherits(trait, "s7_trait")) {
+  if (!.is_trait(trait)) {
     .abort("`trait` must be created with new_trait().")
   }
 
@@ -364,7 +358,7 @@ impl_trait <- function(
     .abort("`class` must be an S7 class, S7 union, S3 class wrapper, S4 class, or base class wrapper.")
   }
 
-  for (parent in trait$parents) {
+  for (parent in trait@parents) {
     if (is.null(.find_trait_impl(parent, cls))) {
       .abort(
         "Cannot implement %s for %s until its supertrait %s is implemented.",
@@ -391,7 +385,7 @@ impl_trait <- function(
     req <- trait_reqs[[name]]
     fun <- provided_methods[[name]]
     if (is.null(fun)) {
-      fun <- req$default
+      fun <- req@default
     }
     if (is.null(fun)) {
       .abort("Missing required trait method `%s` for %s.", name, .trait_label(trait))
@@ -415,11 +409,11 @@ impl_trait <- function(
     "assoc_consts"
   )
 
-  impl <- list(
+  impl <- s7_trait_impl(
     trait = trait,
-    trait_id = trait$id,
+    trait_id = trait@id,
     trait_label = .trait_label(trait),
-    class = cls,
+    target_class = cls,
     methods = resolved_methods,
     assoc_types = resolved_assoc_types,
     assoc_consts = resolved_assoc_consts
@@ -427,7 +421,7 @@ impl_trait <- function(
 
   for (name in names(trait_reqs)) {
     .register_s7_method(
-      generic = trait_reqs[[name]]$generic,
+      generic = trait_reqs[[name]]@generic,
       class = cls,
       fun = resolved_methods[[name]],
       replace = replace
@@ -443,7 +437,7 @@ impl_trait <- function(
 #' @rdname trait_methods
 #' @export
 trait_report <- function(x, trait) {
-  if (!inherits(trait, "s7_trait")) {
+  if (!.is_trait(trait)) {
     .abort("`trait` must be created with new_trait().")
   }
 
@@ -496,7 +490,7 @@ assert_trait <- function(x, trait, arg = deparse(substitute(x))) {
 #' @rdname trait_methods
 #' @export
 trait_call <- function(trait, method, x, ...) {
-  if (!inherits(trait, "s7_trait")) {
+  if (!.is_trait(trait)) {
     .abort("`trait` must be created with new_trait().")
   }
   if (!is.character(method) || length(method) != 1 || !nzchar(method)) {
@@ -508,7 +502,7 @@ trait_call <- function(trait, method, x, ...) {
   if (!method %in% names(reqs)) {
     .abort("Trait %s has no method `%s`.", .trait_label(trait), method)
   }
-  reqs[[method]]$generic(x, ...)
+  reqs[[method]]@generic(x, ...)
 }
 
 .assoc_value_from_impl <- function(trait, cls, field, name, impl = NULL) {
@@ -517,13 +511,13 @@ trait_call <- function(trait, method, x, ...) {
   }
 
   if (!is.null(impl)) {
-    values <- impl[[field]]
+    values <- S7::prop(impl, field)
     if (name %in% names(values)) {
       return(list(ok = TRUE, value = values[[name]]))
     }
   }
 
-  for (parent in trait$parents) {
+  for (parent in trait@parents) {
     found <- .assoc_value_from_impl(parent, cls, field, name)
     if (isTRUE(found$ok)) {
       return(found)
@@ -563,19 +557,16 @@ trait_assoc_const <- function(trait, x, name) {
   .assoc_from_impl(trait, x, "assoc_consts", name)
 }
 
-#' @method print s7_trait
-#' @export
-#' @noRd
-print.s7_trait <- function(x, ...) {
+.print_s7_trait <- function(x, ...) {
   reqs <- trait_methods(x, inherited = TRUE)
   assoc_types <- .trait_assoc_types(x, inherited = TRUE)
   assoc_consts <- .trait_assoc_consts(x, inherited = TRUE)
 
   cat(sprintf("<S7 Rust-like trait> %s\n", .trait_label(x)))
-  if (length(x$parents) > 0) {
+  if (length(x@parents) > 0) {
     cat(
       "  supertraits:",
-      paste(vapply(x$parents, .trait_label, character(1)), collapse = ", "),
+      paste(vapply(x@parents, .trait_label, character(1)), collapse = ", "),
       "\n"
     )
   }
@@ -585,8 +576,8 @@ print.s7_trait <- function(x, ...) {
   } else {
     cat("\n")
     for (req in reqs) {
-      suffix <- if (is.null(req$default)) "" else " [default]"
-      cat(sprintf("    - %s()%s\n", req$name, suffix))
+      suffix <- if (is.null(req@default)) "" else " [default]"
+      cat(sprintf("    - %s()%s\n", req@name, suffix))
     }
   }
   if (length(assoc_types) > 0) {
