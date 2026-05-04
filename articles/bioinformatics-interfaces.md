@@ -1,4 +1,4 @@
-# Interfaces for Bioinformatics Containers
+# Bioinformatics Containers as Interfaces
 
 ``` r
 
@@ -6,19 +6,37 @@ library(S7)
 library(s7contract)
 ```
 
+## Introduction
+
 Bioinformatics packages often exchange rich containers rather than plain
-matrices. Bioconductor’s `SummarizedExperiment` class, for example,
-coordinates assays, feature metadata, sample metadata, names, validity
-rules, and many specialized methods. This vignette does **not**
-reimplement that class. It asks a narrower design question: can
-interfaces describe a small slice of such a container so downstream code
-can depend on behavior rather than one concrete class?
+matrices. Bioconductor’s `SummarizedExperiment`, for example, keeps
+assays, feature metadata, sample metadata, names, and validity rules
+synchronized. This vignette does not try to rebuild that class. It uses
+a small toy container to show what an interface can and cannot express.
+
+The useful idea is an adapter boundary. A downstream function might not
+need a specific container class. It might only need to list assay names,
+retrieve one assay matrix, and know feature and sample names. That small
+behavior can be written as an S7 interface.
+
+## Background
+
+A class and an interface answer different design questions. A class
+describes representation and invariants: where the assays live, how
+metadata is stored, and what must be true after construction or
+subsetting. An interface describes behavior: which operations a consumer
+may call.
+
+This distinction matters for bioinformatics. A behavioral interface can
+make small examples, tests, and adapters easier to write, but it does
+not replace a well-established interoperability class. It cannot enforce
+genome builds, biological interpretation, delayed computation, or the
+full set of conventions used by Bioconductor containers.
 
 ## A toy assay container
 
-We make a tiny S7 class with assays, row metadata, and column metadata.
-The validator enforces the minimum shape invariant needed by the
-examples.
+The example class stores a named list of assays plus row and column
+metadata. The validator only checks the dimensions needed below.
 
 ``` r
 
@@ -67,11 +85,11 @@ mini <- MiniSummarizedExperiment(
 )
 ```
 
-## An interface for the behavior a consumer needs
+## A small assay interface
 
-A differential-expression helper might not care about the concrete
-class. It might only need assay names, feature names, sample names, and
-a way to retrieve an assay matrix.
+The interface below describes the behavior needed by a simple consumer.
+It is not a replacement for `SummarizedExperiment`; it is only a view
+over an object that has assay-like behavior.
 
 ``` r
 
@@ -108,8 +126,8 @@ assay_matrix(mini, "counts")[, "sample1"]
 #>    10     0     3
 ```
 
-A consumer can now assert the behavior rather than a concrete class
-name.
+A consumer can assert this behavior and then stay independent of the
+concrete class.
 
 ``` r
 
@@ -124,16 +142,15 @@ library_size(mini)
 #>      13      24
 ```
 
-This is the useful part of the idea: an interface can describe a *small
-view* of an object. Another package could satisfy the same interface
-with an HDF5-backed matrix container, a remote query result, or a test
-double, as long as the same runtime methods exist.
+This is the productive use case. A package can write against a small
+protocol, while separate adapters provide methods for concrete
+containers.
 
-## A nominal trait for explicit adapters
+## When an explicit trait helps
 
-The trait layer is useful when structural compatibility is not enough.
-Here the implementation records extra metadata about the orientation of
-the assay.
+A trait is useful when structural compatibility is not enough. Here the
+trait records an explicit implementation and stores an associated
+constant describing assay orientation.
 
 ``` r
 
@@ -167,29 +184,29 @@ trait_assoc_const(ExperimentLike, mini, "ASSAY_ORIENTATION")
 #> [1] "features_by_samples"
 ```
 
-## Where the mimicry breaks
+## Design cautions
 
-Interfaces are not a substitute for `SummarizedExperiment` itself.
+It would be a mistake to define one large trait that tries to cover
+every bioinformatics object. Assay matrices, genomic ranges, variant
+calls, and single-cell objects have different invariants and different
+performance needs. Small interfaces are easier to satisfy correctly and
+easier to test.
 
-- They do not reproduce Bioconductor’s S4 method ecosystem, validity
-  contracts, delayed operations, genomic ranges integration, or metadata
-  conventions.
-- They do not enforce semantic laws such as row metadata staying
-  synchronized after subsetting unless the class and its methods
-  implement those laws.
-- They do not make assay data fast. Performance still belongs in the
-  concrete matrix/container implementation.
-- They cannot prove at compile time that a downstream analysis is safe.
+It would also be a mistake to claim that an interface proves biological
+correctness. Method availability does not prove that samples are
+comparable, that row ranges use the same genome build, or that an assay
+transform is appropriate for a downstream model. Those checks should
+remain explicit and domain-specific.
 
-## Nonsense ideas and sharper alternatives
+The narrow conclusion is useful enough: interfaces can mimic a small
+behavioral slice of a class such as `SummarizedExperiment`, but they
+should not replace the class or its ecosystem.
 
-| Nonsense idea | Critique | Sharper alternative |
-|----|----|----|
-| “Let’s rebuild `SummarizedExperiment` with interfaces.” | The existing class is a mature interoperability standard. Rebuilding it would fragment users and lose a large method ecosystem. | Use interfaces for small adapters or tests while respecting established container classes. |
-| “An interface should guarantee biological correctness.” | A method list cannot prove that batches, features, genome builds, and assay transforms are meaningful. | Keep biological checks explicit and domain-specific. |
-| “One trait can cover matrices, genomic ranges, variant calls, and single-cell objects.” | A huge trait becomes vague and hard to satisfy correctly. | Split contracts by behavior: assay access, interval overlap, variant alleles, sample metadata, and so on. |
-| “Runtime traits remove the need for tests.” | Runtime conformance only checks method availability or explicit registration. | Use traits as assertions plus ordinary unit tests and validation fixtures. |
+## References
 
-A good bioinformatics interface should be boring: small, named after
-behavior, well-tested on toy data, and honest about what it leaves to
-the concrete class.
+- The Bioconductor `SummarizedExperiment` package:
+  <https://bioconductor.org/packages/SummarizedExperiment/>.
+- Morgan et al. (2023), “Orchestrating high-throughput genomic analysis
+  with Bioconductor”: <https://bioconductor.org/help/publications/>.
+- The S7 package documentation: <https://rconsortium.github.io/S7/>.
+- The `s7contract` interface and trait vignette in this package.

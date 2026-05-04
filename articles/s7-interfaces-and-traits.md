@@ -1,0 +1,285 @@
+# Go-Like Interfaces and Rust-Like Traits on S7
+
+``` r
+
+library(S7)
+library(s7contract)
+```
+
+## Introduction
+
+`s7contract` is a small experiment: can interface and trait ideas be
+expressed on top of S7 without replacing S7’s method system? The package
+answers yes, but with an important constraint. S7 still owns dispatch.
+`s7contract` only records and checks contracts around ordinary S7
+generics.
+
+The most natural layer is a Go-like structural interface. In S7,
+operations are already ordinary functions such as `draw(x)` or
+`area(x)`, and methods are registered for classes. A structural
+interface can therefore be just a named set of required generics.
+
+A Rust-like trait is also possible, but it needs an explicit registry.
+That extra machinery is useful for default methods and associated
+metadata, but it is less native to S7 because R does not have Rust’s
+compile-time trait bounds, coherence rules, or associated type checker.
+
+## Background
+
+S7 is a functional object-oriented system: methods belong to generic
+functions, not to objects. The call is `generic(object, ...)`, not
+`object$generic(...)`. That makes S7 close in spirit to protocols
+defined by behavior.
+
+Go interfaces are structural: a basic interface describes required
+methods, and a type satisfies the interface when it has those methods.
+Rust traits are nominal and explicit: an implementation is declared for
+a type, and traits may also contain defaults and associated items.
+`s7contract` maps these ideas to S7 as follows.
+
+``` text
+S7 generic       operation, e.g. area(x)
+S7 method        implementation for a class
+Go-like interface set of required S7 generics
+Rust-like trait  explicit implementation record plus S7 methods
+```
+
+This also clarifies what kind of “type” an interface defines. An S7
+class is a nominal representation type: it says how an object is
+constructed and validated. An interface is a behavioral or protocol
+type: it says what operations must be available. Both are useful, but
+they answer different questions.
+
+Packages such as `lambda.r` explore a different functional-programming
+route in R, with pattern-matching-style function clauses, guards, and
+optional type constraints. `s7contract` stays closer to S7: it does not
+create a new function clause language, and it does not check return
+types. It checks whether S7 can find methods for required generics, or
+whether an explicit trait implementation has been registered.
+
+## A structural interface
+
+The classic drawing example remains useful because the behavior is
+visible. A `Drawable` object is anything for which S7 can find a
+`draw()` method.
+
+``` r
+
+area <- new_generic("area", "x")
+draw <- new_generic("draw", "x")
+
+Circle <- new_class("Circle", properties = list(r = class_double))
+Rect <- new_class("Rect", properties = list(w = class_double, h = class_double))
+
+method(area, Circle) <- function(x) pi * x@r^2
+method(draw, Circle) <- function(x) sprintf("circle(r = %s)", x@r)
+method(area, Rect) <- function(x) x@w * x@h
+
+Drawable <- new_interface("Drawable", methods = list(draw = draw))
+Shape <- new_interface("Shape", methods = list(area = area), parents = Drawable)
+
+implements(Circle, Shape)
+#> [1] TRUE
+implements(Rect, Shape)
+#> [1] FALSE
+missing_requirements(Rect, Shape)
+#>      interface requirement    ok                               message
+#> draw     Shape        draw FALSE Can't find method for `draw(<Rect>)`.
+```
+
+A consumer keeps ordinary S7 style. The assertion documents the expected
+behavior; the actual call is still normal dispatch through `draw(x)`.
+
+``` r
+
+render <- function(x) {
+  assert_implements(x, Drawable)
+  draw(x)
+}
+
+render(Circle(r = 2))
+#> [1] "circle(r = 2)"
+```
+
+This is the main reason structural interfaces fit S7 well. They add a
+small runtime check around a dispatch model that S7 already has.
+
+## Number-like behavior
+
+A general `Number` interface is tempting, but it should be treated
+carefully. Base R arithmetic includes vectorization, recycling, missing
+values, attributes, and binary operations. A small number-like protocol
+is more honest: it says only which operations a particular consumer
+needs.
+
+``` r
+
+num_zero <- new_generic("num_zero", "x")
+num_add <- new_generic("num_add", "x")
+num_scale <- new_generic("num_scale", "x")
+
+NumberLike <- new_interface(
+  "NumberLike",
+  methods = list(
+    zero = num_zero,
+    add = num_add,
+    scale = num_scale
+  )
+)
+
+method(num_zero, class_double) <- function(x) 0
+method(num_add, class_double) <- function(x, y) x + y
+method(num_scale, class_double) <- function(x, k) x * k
+
+implements(class_double, NumberLike)
+#> [1] TRUE
+num_add(10, 5)
+#> [1] 15
+num_scale(10, 0.5)
+#> [1] 5
+```
+
+This interface does not prove mathematical laws such as associativity or
+an identity element. It only says that these operations are present. If
+those laws matter, they should be described in the documentation and
+tested with examples that are specific to the domain.
+
+## Vector-like behavior
+
+A vector-like contract is often more practical. Many algorithms only
+need a length, a way to slice, and a way to expose values.
+
+``` r
+
+vec_length <- new_generic("vec_length", "x")
+vec_slice <- new_generic("vec_slice", "x")
+vec_values <- new_generic("vec_values", "x")
+
+VectorLike <- new_interface(
+  "VectorLike",
+  methods = list(
+    length = vec_length,
+    slice = vec_slice,
+    values = vec_values
+  )
+)
+
+ReadDepth <- new_class(
+  "ReadDepth",
+  properties = list(
+    position = class_integer,
+    depth = class_double
+  ),
+  validator = function(self) {
+    if (length(self@position) != length(self@depth)) {
+      "@position and @depth must have the same length"
+    }
+  }
+)
+
+method(vec_length, ReadDepth) <- function(x) length(x@depth)
+method(vec_slice, ReadDepth) <- function(x, i) {
+  ReadDepth(position = x@position[i], depth = x@depth[i])
+}
+method(vec_values, ReadDepth) <- function(x) x@depth
+
+coverage <- ReadDepth(
+  position = 1:5,
+  depth = c(12, 15, 9, 20, 17)
+)
+
+implements(coverage, VectorLike)
+#> [1] TRUE
+vec_values(vec_slice(coverage, 2:4))
+#> [1] 15  9 20
+```
+
+A function can depend on this small protocol without knowing how the
+object is represented internally.
+
+``` r
+
+window_mean <- function(x, i) {
+  assert_implements(x, VectorLike)
+  mean(vec_values(vec_slice(x, i)))
+}
+
+window_mean(coverage, 2:4)
+#> [1] 14.66667
+```
+
+This kind of interface is best used at package boundaries. It is not
+meant to replace base vectors, S7 classes, or mature vector frameworks;
+it names the small piece of behavior a consumer needs.
+
+## An explicit trait
+
+A Rust-like trait adds nominal intent. A class may have the right
+methods structurally, but it does not have the trait until
+[`impl_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
+records that implementation.
+
+``` r
+
+perimeter <- new_generic("perimeter", "x")
+
+Measurable <- new_trait(
+  "Measurable",
+  methods = list(
+    area = trait_method(area),
+    perimeter = trait_method(perimeter, default = function(x) NA_real_)
+  ),
+  assoc_consts = c("UNITS")
+)
+
+impl_trait(
+  Measurable,
+  Circle,
+  methods = list(area = function(x) pi * x@r^2),
+  assoc_consts = list(UNITS = "unitless"),
+  replace = TRUE
+)
+#> Overwriting method area(<Circle>)
+
+has_trait(Circle, Measurable)
+#> [1] TRUE
+trait_call(Measurable, "area", Circle(r = 2))
+#> [1] 12.56637
+trait_call(Measurable, "perimeter", Circle(r = 2))
+#> [1] NA
+trait_assoc_const(Measurable, Circle, "UNITS")
+#> [1] "unitless"
+```
+
+The useful distinction is intent. A structural interface asks whether
+operations are available. An explicit trait asks whether a package
+author has declared a class to implement a named contract. The trait
+layer can also store associated metadata such as `UNITS`, which is
+awkward in a purely structural interface.
+
+## Which feels more natural?
+
+For functional OOP in S7, Go-like structural interfaces are the default
+fit. S7 already makes generic functions the center of dispatch, so an
+interface as a set of required generics is small and idiomatic.
+
+Rust-like traits are heavier but useful when accidental compatibility
+would be a problem. They make sense for plugin systems, adapters, or
+domain protocols where a package should explicitly claim conformance and
+provide metadata or defaults.
+
+The practical rule is simple: start with a structural interface when the
+consumer only needs behavior; use a trait when the declaration itself
+carries meaning.
+
+## References
+
+- The S7 package documentation: <https://rconsortium.github.io/S7/>.
+- The Go specification, especially interface types:
+  <https://go.dev/ref/spec#Interface_types>.
+- The Rust book chapter on traits:
+  <https://doc.rust-lang.org/book/ch10-02-traits.html>.
+- The Rust reference chapter on traits:
+  <https://doc.rust-lang.org/reference/items/traits.html>.
+- The `lambda.r` package on CRAN:
+  <https://cran.r-project.org/package=lambda.r>.
