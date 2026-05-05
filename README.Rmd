@@ -163,3 +163,8 @@ tryCatch(
   return checks are progressive runtime checks.
 - Traits are a package-level registry on top of S7 dispatch.
 - This package does not model Go type sets or Rust compile-time trait rules.
+
+## References
+
+- The S7 package documentation: <https://rconsortium.github.io/S7/>.
+- S7 issue #34, "Traits": <https://github.com/RConsortium/S7/issues/34>.
