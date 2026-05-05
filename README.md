@@ -176,3 +176,13 @@ tryCatch(
 - The S7 package documentation: <https://rconsortium.github.io/S7/>.
 - S7 issue \#34, “Traits”:
   <https://github.com/RConsortium/S7/issues/34>.
+- The Go specification, especially interface types:
+  <https://go.dev/ref/spec#Interface_types>.
+- Chewxy, “How To Use Go Interfaces”:
+  <https://blog.chewxy.com/2018/03/18/golang-interfaces/>.
+- The Rust book chapter on traits:
+  <https://doc.rust-lang.org/book/ch10-02-traits.html>.
+- The Rust reference chapter on traits:
+  <https://doc.rust-lang.org/reference/items/traits.html>.
+- The `lambda.r` package on CRAN:
+  <https://cran.r-project.org/package=lambda.r>.
