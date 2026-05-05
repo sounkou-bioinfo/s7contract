@@ -1,5 +1,9 @@
 # Changelog
 
+## s7contract 0.1.0.9000
+
+- Added references to the S7 traits discussion in RConsortium/S7#34.
+
 ## s7contract 0.1.0
 
 - Renamed the primary

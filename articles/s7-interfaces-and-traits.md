@@ -567,6 +567,8 @@ carries meaning.
 ## References
 
 - The S7 package documentation: <https://rconsortium.github.io/S7/>.
+- S7 issue \#34, “Traits”:
+  <https://github.com/RConsortium/S7/issues/34>.
 - The Go specification, especially interface types:
   <https://go.dev/ref/spec#Interface_types>.
 - Chewxy, “How To Use Go Interfaces”:
