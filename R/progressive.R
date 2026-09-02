@@ -176,14 +176,13 @@
   call
 }
 
-.is_missing_default <- function(x) {
-  identical(x, quote(expr = ))
-}
-
 .default_typed_arg <- function(generic, method, arg, eval_env) {
   for (fun in list(method, generic)) {
     fml <- formals(fun)
-    if (arg %in% names(fml) && !.is_missing_default(fml[[arg]])) {
+    if (
+      arg %in% names(fml) &&
+        !identical(fml[[arg]], quote(expr = ))
+    ) {
       return(eval(fml[[arg]], envir = eval_env))
     }
   }
@@ -191,10 +190,6 @@
     "Call is missing typed argument `%s` and no default could be evaluated.",
     arg
   )
-}
-
-.generic_bind_names <- function(req) {
-  unique(c(req@name, .generic_label(req@generic)))
 }
 
 .checked_generic_call <- function(contract, req, call, env, trait = FALSE) {
@@ -291,7 +286,8 @@
 
   for (req in reqs) {
     wrapper <- .make_checked_generic(contract, req, trait = trait)
-    for (name in .generic_bind_names(req)) {
+    bind_names <- unique(c(req@name, .generic_label(req@generic)))
+    for (name in bind_names) {
       assign(name, wrapper, envir = mask)
     }
   }

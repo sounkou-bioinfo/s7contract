@@ -10,7 +10,8 @@ Description: Contract helpers built with 'S7' for expressing runtime protocols
     required 'S7' generics, while explicit traits record registered
     implementations with optional default methods and associated metadata.
     Optional runtime checks can validate argument and return specifications in
-    contract-scoped evaluation.
+    contract-scoped evaluation. Generative laws combine composable generators,
+    deterministic shrinking, and one-result 'tinytest' expectations.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

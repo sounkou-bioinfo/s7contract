@@ -4,20 +4,12 @@
   stop(sprintf(...), call. = call.)
 }
 
-.warn <- function(..., call. = FALSE) {
-  warning(sprintf(...), call. = call.)
-}
-
 .as_class_or_null <- function(x, arg = "x") {
   tryCatch(S7::as_class(x, arg = arg), error = function(e) NULL)
 }
 
-.is_s7_generic <- function(x) {
-  is.function(x) && inherits(x, "S7_generic")
-}
-
 .check_s7_generic <- function(x, arg = "generic") {
-  if (!.is_s7_generic(x)) {
+  if (!is.function(x) || !inherits(x, "S7_generic")) {
     .abort("`%s` must be an S7 generic created with S7::new_generic().", arg)
   }
   invisible(x)
@@ -30,7 +22,7 @@
   }
 
   nm <- tryCatch(nameOfClass(cls), error = function(e) NULL)
-  if (!is.null(nm) && length(nm) == 1 && !is.na(nm) && nzchar(nm)) {
+  if (length(nm) == 1L && isTRUE(nzchar(nm, keepNA = TRUE))) {
     return(nm)
   }
 
@@ -107,10 +99,13 @@
       error = function(e) NULL
     )
     if (!is.null(existing)) {
-      .warn(
-        "An S7 method for %s and %s is already visible; registering anyway. Pass replace = TRUE to silence this warning.",
-        .generic_label(generic),
-        .class_label(class)
+      warning(
+        sprintf(
+          "An S7 method for %s and %s is already visible; registering anyway. Pass replace = TRUE to silence this warning.",
+          .generic_label(generic),
+          .class_label(class)
+        ),
+        call. = FALSE
       )
     }
   }

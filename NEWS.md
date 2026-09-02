@@ -1,5 +1,15 @@
 # s7contract 0.1.0.9000
 
+* Added S7-backed generative laws with composable generators, integrated
+  shrinking, deterministic framework-neutral checks, bounded precondition
+  discards, counterexample diagnostics, and one-result tinytest integration.
+
+* Discarded cases now advance generator size, accepted shrinks are retained at
+  the evaluation budget boundary, and `gen_vector()` preserves element-count
+  bounds by treating nonscalar draws as list elements and validating atomic
+  element prototypes. Zero shrink budgets no longer expand shrink trees, and
+  integer bounds and seeds reject R's reserved missing-integer sentinel.
+
 * Added references to the S7 traits discussion in RConsortium/S7#34.
 
 # s7contract 0.1.0
