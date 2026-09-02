@@ -1,0 +1,108 @@
+---
+title: "Generative Laws with tinytest"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Generative Laws with tinytest}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(S7)
+library(s7contract)
+tinytest::using(s7contract)
+```
+
+Generative laws separate three concerns: generators construct examples, laws
+state behavior over those examples, and a runner searches for a minimized
+counterexample. One call to `expect_law()` becomes one tinytest result even
+though the law is evaluated many times.
+
+## A tinytest property
+
+The generator below produces integer vectors and carries an integrated shrink
+tree. The law checks that reversing a vector twice returns the original value.
+This chunk executes while the vignette is built.
+
+```{r reverse-law}
+reverse_law <- new_law(
+  "reverse is involutive",
+  generators = list(
+    x = gen_vector(gen_integer(-100L, 100L), max = 20L)
+  ),
+  holds = function(x) identical(rev(rev(x)), x)
+)
+
+expect_law(reverse_law, tests = 100L, seed = 20260902L)
+```
+
+## Laws over an S7 interface
+
+A law can exercise an existing `s7contract` interface. The generator constructs
+valid `Circle` objects rather than attempting to invert the class validator.
+Calls inside the law retain the interface's return contract.
+
+```{r interface-law}
+Circle <- new_class(
+  "CirclePropertyVignette",
+  properties = list(radius = class_double),
+  validator = function(self) {
+    if (self@radius < 0) "`radius` must be non-negative."
+  }
+)
+area <- new_generic(
+  "area_property_vignette",
+  "x",
+  function(x) S7_dispatch()
+)
+method(area, Circle) <- function(x) pi * x@radius^2
+
+HasArea <- new_interface(
+  "HasAreaPropertyVignette",
+  generics = list(
+    area = interface_requirement(area, returns = class_double)
+  )
+)
+circles <- gen_map(
+  gen_integer(0L, 1000L),
+  function(radius) Circle(radius = as.double(radius))
+)
+area_law <- new_law(
+  "non-negative radii have non-negative area",
+  generators = list(x = circles),
+  holds = function(x) with(HasArea, area(x)) >= 0
+)
+
+expect_law(area_law, tests = 100L, seed = 20260902L)
+```
+
+## Inspecting a minimized failure
+
+Use `check_law()` when the structured result is needed independently of a test
+framework. This deliberately false law starts at ten and shrinks to zero.
+
+```{r counterexample}
+ten <- new_generator(
+  draw = function(size) 10L,
+  shrink = function(value) {
+    if (value == 0L) list() else list(0L, value %/% 2L)
+  },
+  label = "ten",
+  prototype = integer()
+)
+negative_law <- new_law(
+  "generated values are negative",
+  generators = list(x = ten),
+  holds = function(x) x < 0L
+)
+
+check_law(negative_law, tests = 10L, seed = 20260902L)
+```
+
+The result records the seed, original input, minimized counterexample, and
+shrink counts. Seed replay remains deterministic for an unchanged generator;
+the stored minimized value remains useful if generator code later changes.

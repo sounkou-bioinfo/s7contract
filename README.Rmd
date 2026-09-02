@@ -156,12 +156,38 @@ tryCatch(
 )
 ```
 
+## Generative laws with tinytest
+
+A law combines named generators with behavior that must hold for every sampled
+case. `expect_law()` executes the cases, shrinks the first counterexample, and
+returns one ordinary tinytest result.
+
+```{r}
+tinytest::using(s7contract)
+
+reverse_law <- new_law(
+  "reverse is involutive",
+  generators = list(
+    x = gen_vector(gen_integer(-100L, 100L), max = 20L)
+  ),
+  holds = function(x) identical(rev(rev(x)), x)
+)
+
+expect_law(reverse_law, tests = 100L, seed = 20260902L)
+```
+
+Generators construct valid examples explicitly; arbitrary S7 validators are
+not treated as invertible generator definitions. See
+`vignette("property-laws")` for executed interface and counterexample examples.
+
 ## Limits
 
 - All checks happen at runtime.
 - Interfaces check S7 method availability by default; optional argument and
   return checks are progressive runtime checks.
 - Traits are a package-level registry on top of S7 dispatch.
+- Generative laws sample configured domains; they are evidence, not proofs, and
+  in-process checks cannot recover from a hard R session crash.
 - This package does not model Go type sets or Rust compile-time trait rules.
 
 ## References

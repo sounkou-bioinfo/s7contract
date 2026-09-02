@@ -12,10 +12,18 @@
 #' @name s7contract
 "_PACKAGE"
 
-.onLoad <- function(...) {
+.onLoad <- function(libname, pkgname) {
   S7::method(print, s7_interface) <- .print_s7_interface
   S7::method(print, s7_trait) <- .print_s7_trait
+  S7::method(print, s7_check_result) <- .print_s7_check_result
   S7::method(with, s7_interface) <- .with_s7_interface
   S7::method(with, s7_trait) <- .with_s7_trait
   S7::methods_register()
+
+  if (requireNamespace("tinytest", quietly = TRUE)) {
+    tinytest::register_tinytest_extension(
+      pkg = pkgname,
+      functions = "expect_law"
+    )
+  }
 }

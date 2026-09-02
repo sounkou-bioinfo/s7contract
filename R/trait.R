@@ -280,7 +280,34 @@ trait_methods <- function(trait, inherited = TRUE) {
   NULL
 }
 
+.check_trait_impl_admissible <- function(trait, class, replace) {
+  for (parent in trait@parents) {
+    if (is.null(.find_trait_impl(parent, class))) {
+      .abort(
+        "Cannot implement %s for %s until its supertrait %s is implemented.",
+        .trait_label(trait),
+        .class_label(class),
+        .trait_label(parent)
+      )
+    }
+  }
+
+  if (!replace && !is.null(.find_trait_impl(trait, class))) {
+    .abort(
+      "%s is already implemented for %s. Pass replace = TRUE to replace it.",
+      .trait_label(trait),
+      .class_label(class)
+    )
+  }
+  invisible(NULL)
+}
+
 .store_trait_impl <- function(impl, replace = FALSE) {
+  .check_trait_impl_admissible(
+    impl@trait,
+    impl@target_class,
+    replace = replace
+  )
   impls <- .s7contract_registry$impls
   keep <- rep(TRUE, length(impls))
 
@@ -289,13 +316,6 @@ trait_methods <- function(trait, inherited = TRUE) {
       identical(impls[[i]]@trait_id, impl@trait_id) &&
         .class_equal(impls[[i]]@target_class, impl@target_class)
     ) {
-      if (!replace) {
-        .abort(
-          "%s is already implemented for %s. Pass replace = TRUE to replace it.",
-          impl@trait_label,
-          .class_label(impl@target_class)
-        )
-      }
       keep[[i]] <- FALSE
     }
   }
@@ -390,24 +410,7 @@ impl_trait <- function(
     )
   }
 
-  for (parent in trait@parents) {
-    if (is.null(.find_trait_impl(parent, cls))) {
-      .abort(
-        "Cannot implement %s for %s until its supertrait %s is implemented.",
-        .trait_label(trait),
-        .class_label(cls),
-        .trait_label(parent)
-      )
-    }
-  }
-
-  if (!replace && !is.null(.find_trait_impl(trait, cls))) {
-    .abort(
-      "%s is already implemented for %s. Pass replace = TRUE to replace it.",
-      .trait_label(trait),
-      .class_label(cls)
-    )
-  }
+  .check_trait_impl_admissible(trait, cls, replace = replace)
 
   trait_reqs <- trait_methods(trait, inherited = FALSE)
   provided_methods <- .normalise_impl_methods(methods)

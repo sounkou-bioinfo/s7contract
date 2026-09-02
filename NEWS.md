@@ -1,5 +1,9 @@
 # s7contract 0.1.0.9000
 
+* Added S7-backed generative laws with composable generators, integrated
+  shrinking, deterministic framework-neutral checks, bounded precondition
+  discards, counterexample diagnostics, and one-result tinytest integration.
+
 * Added references to the S7 traits discussion in RConsortium/S7#34.
 
 # s7contract 0.1.0
