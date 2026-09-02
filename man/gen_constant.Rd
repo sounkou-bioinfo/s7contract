@@ -39,7 +39,10 @@ An S7 generator object.
 These generators carry their own deterministic shrink trees. Integer ranges
 and vector lengths expand with the runner's size. Integer values shrink
 toward zero when zero is within bounds, or toward the nearest bound. Product
-generators shrink one component at a time in argument order.
+generators shrink one component at a time in argument order. Vector
+generators return an atomic vector only when the element prototype is atomic;
+those element draws must be scalar and match the prototype's storage type.
+Otherwise, vector generators return a list with one entry per element draw.
 }
 \examples{
 pairs <- gen_product(x = gen_integer(), y = gen_integer())

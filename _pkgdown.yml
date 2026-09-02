@@ -17,6 +17,11 @@ reference:
   - title: Progressive checks
     contents:
       - contract_syntax
+  - title: Property laws
+    contents:
+      - new_generator
+      - gen_constant
+      - new_law
 
 articles:
   - title: Concepts
@@ -27,4 +32,5 @@ articles:
     navbar: ~
     contents:
       - bioinformatics-interfaces
+      - property-laws
 

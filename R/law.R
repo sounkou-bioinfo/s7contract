@@ -112,10 +112,13 @@
         break
       }
     }
-    if (is.null(replacement) || attempts >= limit) {
+    if (is.null(replacement)) {
       break
     }
     current <- replacement
+    if (attempts >= limit) {
+      break
+    }
   }
 
   list(
@@ -238,7 +241,7 @@ check_law <- function(
 
     while (passed < tests) {
       attempts <- attempts + 1L
-      size <- min(passed, max_size)
+      size <- min(attempts - 1L, max_size)
       tree <- tryCatch(
         {
           trees <- lapply(

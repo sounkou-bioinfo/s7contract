@@ -66,6 +66,17 @@ expect_identical(falsified@counterexample@minimal$x, 0L)
 expect_identical(falsified@shrinks, 1L)
 expect_true(grepl("Minimal counterexample", format_check_result(falsified)))
 
+# An accepted final-budget shrink remains the reported counterexample.
+one_shrink <- check_law(
+  falsifiable,
+  tests = 1L,
+  seed = 7L,
+  shrinks = 1L
+)
+expect_identical(one_shrink@counterexample@minimal$x, 0L)
+expect_identical(one_shrink@shrinks, 1L)
+expect_identical(one_shrink@shrink_attempts, 1L)
+
 # Mapping and products preserve the underlying shrink tree.
 mapped <- gen_map(
   shrinking_gen,
@@ -100,6 +111,38 @@ expect_identical(
   "passed"
 )
 
+# Nonscalar draws are list elements, so bounds count generated elements.
+constant_vector_law <- new_law(
+  "vector bounds count nonscalar elements",
+  generators = list(
+    x = gen_vector(gen_constant(1:2), min = 1L, max = 1L)
+  ),
+  holds = function(x) length(x) == 1L && identical(x[[1L]], 1:2)
+)
+expect_identical(
+  check_law(constant_vector_law, tests = 1L, seed = 1L)@status,
+  "passed"
+)
+
+bad_atomic_element <- new_generator(
+  draw = function(size) 1:2,
+  prototype = integer()
+)
+bad_atomic_vector <- new_law(
+  "atomic vector elements must be scalar",
+  generators = list(
+    x = gen_vector(bad_atomic_element, min = 1L, max = 1L)
+  ),
+  holds = function(x) TRUE
+)
+bad_atomic_result <- check_law(bad_atomic_vector, tests = 1L, seed = 1L)
+expect_identical(bad_atomic_result@status, "error")
+expect_true(grepl(
+  "must draw scalar values",
+  conditionMessage(bad_atomic_result@condition),
+  fixed = TRUE
+))
+
 # Preconditions are bounded and cannot produce a vacuous pass.
 never_applicable <- new_law(
   "never applicable",
@@ -118,6 +161,30 @@ exhausted <- check_law(
 expect_identical(exhausted@status, "exhausted")
 expect_identical(exhausted@tests, 0L)
 expect_identical(exhausted@discards, 3L)
+
+# Discards still advance generator size, allowing later values to qualify.
+size_gen <- new_generator(
+  draw = function(size) as.integer(size),
+  prototype = integer()
+)
+eventually_applicable <- new_law(
+  "positive sizes are applicable",
+  generators = list(x = size_gen),
+  holds = function(x) {
+    assume(x > 0L)
+    TRUE
+  }
+)
+applicable <- check_law(
+  eventually_applicable,
+  tests = 1L,
+  seed = 1L,
+  discards = 1L,
+  max_size = 1L
+)
+expect_identical(applicable@status, "passed")
+expect_identical(applicable@attempts, 2L)
+expect_identical(applicable@discards, 1L)
 
 # Errors and warnings are failures and are shrunk without changing outcome type.
 error_law <- new_law(
@@ -191,6 +258,11 @@ expect_true(grepl(
 expect_error(
   gen_integer(2L, 1L),
   pattern = "ordered integer bounds",
+  fixed = TRUE
+)
+expect_error(
+  new_generator(function(size) 1L, prototype = 1L),
+  pattern = "must have length zero",
   fixed = TRUE
 )
 expect_error(

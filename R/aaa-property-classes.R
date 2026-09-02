@@ -10,7 +10,10 @@ s7_generator <- S7::new_class(
   ),
   validator = function(self) {
     if (length(self@label) != 1L || is.na(self@label) || !nzchar(self@label)) {
-      "`label` must be one non-empty string."
+      return("`label` must be one non-empty string.")
+    }
+    if (length(self@prototype) != 0L) {
+      return("`prototype` must have length zero.")
     }
   }
 )

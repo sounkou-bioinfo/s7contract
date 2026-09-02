@@ -86,6 +86,20 @@
 .vector_rose <- function(trees, prototype, min_length) {
   values <- lapply(trees, `[[`, "value")
   value <- if (is.atomic(prototype)) {
+    valid_elements <- vapply(
+      values,
+      function(value) {
+        is.atomic(value) && length(value) == 1L &&
+          identical(typeof(value), typeof(prototype))
+      },
+      logical(1)
+    )
+    if (!all(valid_elements)) {
+      .abort(paste(
+        "An element generator with an atomic prototype must draw",
+        "scalar values of the prototype's type."
+      ))
+    }
     do.call(c, c(list(prototype), values))
   } else {
     values
@@ -157,7 +171,10 @@ new_generator <- function(
 #' These generators carry their own deterministic shrink trees. Integer ranges
 #' and vector lengths expand with the runner's size. Integer values shrink
 #' toward zero when zero is within bounds, or toward the nearest bound. Product
-#' generators shrink one component at a time in argument order.
+#' generators shrink one component at a time in argument order. Vector
+#' generators return an atomic vector only when the element prototype is atomic;
+#' those element draws must be scalar and match the prototype's storage type.
+#' Otherwise, vector generators return a list with one entry per element draw.
 #'
 #' @param value Constant value to generate.
 #' @param min,max Inclusive integer bounds. For `gen_vector()`, bounds on vector
@@ -172,7 +189,7 @@ new_generator <- function(
 #' vectors <- gen_vector(gen_integer(), min = 0L, max = 8L)
 #' @export
 gen_constant <- function(value) {
-  prototype <- if (is.atomic(value)) value[0] else list()
+  prototype <- if (is.atomic(value) && length(value) == 1L) value[0] else list()
   s7_generator(
     draw = function(size) .new_rose(value),
     label = "constant",
