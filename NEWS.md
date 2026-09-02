@@ -4,6 +4,11 @@
   shrinking, deterministic framework-neutral checks, bounded precondition
   discards, counterexample diagnostics, and one-result tinytest integration.
 
+* Discarded cases now advance generator size, accepted shrinks are retained at
+  the evaluation budget boundary, and `gen_vector()` preserves element-count
+  bounds by treating nonscalar draws as list elements and validating atomic
+  element prototypes.
+
 * Added references to the S7 traits discussion in RConsortium/S7#34.
 
 # s7contract 0.1.0
