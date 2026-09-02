@@ -77,6 +77,27 @@ expect_identical(one_shrink@counterexample@minimal$x, 0L)
 expect_identical(one_shrink@shrinks, 1L)
 expect_identical(one_shrink@shrink_attempts, 1L)
 
+# A zero shrink budget does not expand the lazy shrink tree.
+unexpanded_gen <- new_generator(
+  draw = function(size) 1L,
+  shrink = function(value) stop("shrink tree was expanded"),
+  prototype = integer()
+)
+unexpanded_law <- new_law(
+  "zero means no shrinking",
+  generators = list(x = unexpanded_gen),
+  holds = function(x) FALSE
+)
+unexpanded <- check_law(
+  unexpanded_law,
+  tests = 1L,
+  seed = 1L,
+  shrinks = 0L
+)
+expect_identical(unexpanded@status, "falsified")
+expect_identical(unexpanded@counterexample@minimal$x, 1L)
+expect_identical(unexpanded@shrink_attempts, 0L)
+
 # Mapping and products preserve the underlying shrink tree.
 mapped <- gen_map(
   shrinking_gen,
@@ -258,6 +279,16 @@ expect_true(grepl(
 expect_error(
   gen_integer(2L, 1L),
   pattern = "ordered integer bounds",
+  fixed = TRUE
+)
+expect_error(
+  gen_integer(-2147483648, 0L),
+  pattern = "ordered integer bounds",
+  fixed = TRUE
+)
+expect_error(
+  check_law(commutative, tests = 1L, seed = -2147483648),
+  pattern = "`seed` must be one integer",
   fixed = TRUE
 )
 expect_error(

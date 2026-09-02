@@ -2,7 +2,7 @@
 
 .count_arg <- function(x, arg, positive = FALSE, signed = FALSE) {
   lower <- if (signed) {
-    -.Machine$integer.max - 1
+    -.Machine$integer.max
   } else if (positive) {
     1L
   } else {
@@ -86,7 +86,7 @@
   attempts <- 0L
   accepted <- 0L
 
-  repeat {
+  while (attempts < limit) {
     replacement <- NULL
     for (child in .rose_children(current)) {
       if (attempts >= limit) {
@@ -116,9 +116,6 @@
       break
     }
     current <- replacement
-    if (attempts >= limit) {
-      break
-    }
   }
 
   list(

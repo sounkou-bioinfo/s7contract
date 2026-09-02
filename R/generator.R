@@ -204,7 +204,7 @@ gen_integer <- function(min = -100L, max = 100L) {
   valid_bounds <- is.numeric(bounds) && length(bounds) == 2L &&
     !anyNA(bounds) && all(is.finite(bounds)) &&
     all(bounds == trunc(bounds)) &&
-    min >= -.Machine$integer.max - 1 && max <= .Machine$integer.max &&
+    min >= -.Machine$integer.max && max <= .Machine$integer.max &&
     min <= max
   if (!valid_bounds) {
     .abort("`min` and `max` must be ordered integer bounds.")
