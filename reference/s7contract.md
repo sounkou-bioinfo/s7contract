@@ -25,3 +25,7 @@ Useful links:
 ## Author
 
 **Maintainer**: Sounkou Mahamane Toure <sounkoutoure@gmail.com>
+
+Authors:
+
+- Sounkou Mahamane Toure <sounkoutoure@gmail.com>

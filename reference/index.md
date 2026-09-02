@@ -38,3 +38,20 @@
 
 - [`` `%::%` ``](https://sounkou-bioinfo.github.io/s7contract/reference/grapes-colon-colon-grapes.md)
   : Evaluate an S7 call under an interface or trait contract
+
+## Property laws
+
+- [`new_generator()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_generator.md)
+  : Construct a property-based test generator
+- [`gen_constant()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
+  [`gen_integer()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
+  [`gen_map()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
+  [`gen_product()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
+  [`gen_vector()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
+  : Basic property-based test generators
+- [`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+  [`assume()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+  [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+  [`format_check_result()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+  [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+  : Define and check a generative law

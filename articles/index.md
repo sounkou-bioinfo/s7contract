@@ -9,3 +9,5 @@
 
 - [Bioinformatics Containers as
   Interfaces](https://sounkou-bioinfo.github.io/s7contract/articles/bioinformatics-interfaces.md):
+- [Generative Laws with
+  tinytest](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.md):
