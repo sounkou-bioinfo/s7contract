@@ -8,32 +8,42 @@
   } else {
     0L
   }
-  valid <- is.numeric(x) && length(x) == 1L && !is.na(x) &&
-    is.finite(x) && x == trunc(x) && x >= lower &&
-    x <= .Machine$integer.max
-  if (!valid) {
-    qualifier <- if (signed) "" else if (positive) "positive " else "non-negative "
-    .abort(sprintf("`%s` must be one %sinteger.", arg, qualifier))
+  if (!is.numeric(x) || length(x) != 1L) {
+    .abort("`%s` must be one integer.", arg)
   }
-  as.integer(x)
+  # R's integer conversion owns representability, including the NA sentinel.
+  value <- suppressWarnings(as.integer(x))
+  if (is.na(value) || value != x || value < lower) {
+    qualifier <- if (signed) "" else if (positive) "positive " else "non-negative "
+    .abort("`%s` must be one %sinteger.", arg, qualifier)
+  }
+  value
 }
 
 # Owns the save/set/restore transaction so every exit path restores global RNG.
-.with_seed <- function(seed, code) {
+.with_seed <- function(seed, rng_kind, code) {
   old_kind <- RNGkind()
+  if (identical(old_kind[[2L]], "Box-Muller")) {
+    .abort(paste(
+      "check_law() cannot restore the cached Box-Muller normal draw.",
+      "Select another normal RNG kind before running laws."
+    ))
+  }
   had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   if (had_seed) {
     old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   }
   on.exit({
-    do.call(RNGkind, as.list(old_kind))
+    # Re-selecting the caller's legacy Rounding sampler emits a warning in R.
+    suppressWarnings(do.call(RNGkind, as.list(old_kind)))
     if (had_seed) {
       assign(".Random.seed", old_seed, envir = .GlobalEnv)
     } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
       rm(".Random.seed", envir = .GlobalEnv)
     }
   })
-  set.seed(seed)
+  set.seed(seed, kind = rng_kind[[1L]], normal.kind = rng_kind[[2L]],
+           sample.kind = rng_kind[[3L]])
   force(code)
 }
 
@@ -86,10 +96,17 @@
   attempts <- 0L
   accepted <- 0L
 
-  while (attempts < limit) {
-    replacement <- NULL
-    for (child in .rose_children(current)) {
-      if (attempts >= limit) {
+  complete <- FALSE
+  next_child <- NULL
+
+  problem <- tryCatch({
+    while (attempts < limit) {
+      if (is.null(next_child)) {
+        next_child <- .rose_children(current)
+      }
+      child <- next_child()
+      if (is.null(child)) {
+        complete <- TRUE
         break
       }
       attempts <- attempts + 1L
@@ -106,23 +123,22 @@
         )
       }
       if (same_outcome && same_condition) {
-        replacement <- child
+        current <- child
         current_evaluation <- candidate
         accepted <- accepted + 1L
-        break
+        next_child <- NULL
       }
     }
-    if (is.null(replacement)) {
-      break
-    }
-    current <- replacement
-  }
+    NULL
+  }, error = identity, warning = identity)
 
   list(
     tree = current,
     evaluation = current_evaluation,
     shrinks = accepted,
-    attempts = attempts
+    attempts = attempts,
+    status = if (!is.null(problem)) "error" else if (complete) "complete" else "budget",
+    condition = problem
   )
 }
 
@@ -134,10 +150,13 @@
   discards,
   seed,
   rng_kind,
+  parameters,
   counterexample = NULL,
   condition = NULL,
   shrinks = 0L,
-  shrink_attempts = 0L
+  shrink_attempts = 0L,
+  shrink_status = "not_needed",
+  shrink_condition = NULL
 ) {
   s7_check_result(
     law = law,
@@ -149,8 +168,11 @@
     shrink_attempts = as.integer(shrink_attempts),
     seed = seed,
     rng_kind = rng_kind,
+    parameters = parameters,
     counterexample = counterexample,
-    condition = condition
+    condition = condition,
+    shrink_status = shrink_status,
+    shrink_condition = shrink_condition
   )
 }
 
@@ -160,6 +182,24 @@
 #' supplied generators. `check_law()` is test-framework neutral and returns a
 #' structured S7 result. `expect_law()` adapts that result to one tinytest
 #' expectation, regardless of how many generated cases were checked.
+#'
+#' Runs use Mersenne-Twister, Inversion normals, and Rejection sampling,
+#' independently of the caller's RNG kind. Box-Muller callers are rejected before
+#' any RNG state is changed because R does not expose their cached normal draw.
+#' Replay requires unchanged generator/law code, run parameters, and compatible
+#' R/package versions; generators and laws must not depend on external mutable
+#' state or change the RNG configuration. The result's `parameters` list records
+#' all run arguments except `law`, for use with `do.call(check_law, ...)`.
+#'
+#' Shrinking is an ordered search, not a guarantee of a global minimum. The
+#' counterexample's `minimal` field holds the smallest example found. A result's
+#' `shrink_status` is `"complete"` when no immediate child preserves the
+#' failure, `"budget"` when the evaluation limit stopped the search (including
+#' zero), `"error"` if constructing candidates failed, or `"not_needed"` when no
+#' counterexample was found. A shrinking error or warning is stored separately
+#' in `shrink_condition`; the original and last failing examples are retained.
+#' Generator warnings and errors terminate the run with status `"error"`.
+#' Warnings or errors from `holds` are counterexamples.
 #'
 #' In a tinytest file, call `tinytest::using(s7contract)` before calling
 #' `expect_law()`. This activates tinytest's supported extension capture so the
@@ -229,9 +269,13 @@ check_law <- function(
   shrinks <- .count_arg(shrinks, "shrinks")
   discards <- .count_arg(discards, "discards")
   max_size <- .count_arg(max_size, "max_size")
-  rng_kind <- RNGkind()
+  rng_kind <- c("Mersenne-Twister", "Inversion", "Rejection")
+  parameters <- list(
+    tests = tests, seed = seed, shrinks = shrinks,
+    discards = discards, max_size = max_size
+  )
 
-  .with_seed(seed, {
+  .with_seed(seed, rng_kind, {
     passed <- 0L
     attempts <- 0L
     discarded <- 0L
@@ -248,9 +292,10 @@ check_law <- function(
           names(trees) <- names(law@generators)
           .product_rose(trees)
         },
-        error = identity
+        error = identity,
+        warning = identity
       )
-      if (inherits(tree, "error")) {
+      if (inherits(tree, "condition")) {
         return(.new_check_result(
           law,
           "error",
@@ -259,6 +304,7 @@ check_law <- function(
           discarded,
           seed,
           rng_kind,
+          parameters,
           condition = tree
         ))
       }
@@ -279,28 +325,14 @@ check_law <- function(
             discarded,
             seed,
             rng_kind,
+            parameters,
             condition = evaluation$condition
           ))
         }
         next
       }
 
-      reduced <- tryCatch(
-        .shrink_law(law, tree, evaluation, shrinks),
-        error = identity
-      )
-      if (inherits(reduced, "error")) {
-        return(.new_check_result(
-          law,
-          "error",
-          passed,
-          attempts,
-          discarded,
-          seed,
-          rng_kind,
-          condition = reduced
-        ))
-      }
+      reduced <- .shrink_law(law, tree, evaluation, shrinks)
       counterexample <- s7_counterexample(
         original = tree$value,
         minimal = reduced$tree$value,
@@ -320,10 +352,13 @@ check_law <- function(
         discarded,
         seed,
         rng_kind,
+        parameters,
         counterexample = counterexample,
         condition = reduced$evaluation$condition,
         shrinks = reduced$shrinks,
-        shrink_attempts = reduced$attempts
+        shrink_attempts = reduced$attempts,
+        shrink_status = reduced$status,
+        shrink_condition = reduced$condition
       ))
     }
 
@@ -334,7 +369,8 @@ check_law <- function(
       attempts,
       discarded,
       seed,
-      rng_kind
+      rng_kind,
+      parameters
     )
   })
 }
@@ -394,10 +430,17 @@ format_check_result <- function(x) {
     )),
     collapse = "\n"
   )
+  shrinking <- switch(
+    x@shrink_status,
+    complete = "Shrinking stopped: no child of this counterexample preserves the failure.",
+    budget = sprintf("Shrinking stopped at the evaluation budget (%d).", x@shrink_attempts),
+    error = paste("Shrinking stopped:", conditionMessage(x@shrink_condition))
+  )
   paste(
     header,
     detail,
-    "Minimal counterexample:",
+    shrinking,
+    "Smallest counterexample found:",
     arguments,
     sep = "\n"
   )

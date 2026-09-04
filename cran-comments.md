@@ -1,11 +1,16 @@
 ## R CMD check results
 
-Checked locally with `R CMD check --as-cran` on R 4.6.0.
+Checked s7contract 0.2.0 locally with `R CMD check --as-cran` on
+R 4.6.0, x86_64 Linux, Ubuntu 24.04.3 LTS.
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
-* This is a new submission.
+The source-package check includes examples, tinytest tests, rebuilt vignettes,
+and the PDF and HTML manuals.
 
-## Notes
+## Additional validation
 
-The CRAN incoming feasibility NOTE is expected for a new submission.
+* Verified the framework-neutral law runner in an isolated library without the
+  suggested tinytest package, including the adapter's missing-dependency error.
+* Ran the Tree-sitter anti-slop audit on all tracked R sources with every native
+  rule enabled. Only private-helper usage review prompts remain.

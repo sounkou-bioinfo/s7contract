@@ -1,9 +1,10 @@
 #' s7contract: Contract Helpers for S7
 #'
-#' `s7contract` provides two experimental contract layers on top of S7:
+#' `s7contract` provides experimental runtime contracts and generative laws:
 #'
 #' - Go-like structural interfaces defined by required generics.
 #' - Rust-like explicit traits with default methods and associated metadata.
+#' - Property-based laws with integrated shrinking and tinytest expectations.
 #'
 #' The package keeps actual method dispatch inside ordinary S7 generics and uses
 #' runtime checks to describe or assert conformance.

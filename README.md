@@ -188,7 +188,14 @@ expect_law(reverse_law, tests = 100L, seed = 20260902L)
 Generators construct valid examples explicitly; arbitrary S7 validators
 are not treated as invertible generator definitions. See
 `vignette("property-laws")` for executed interface and counterexample
-examples.
+examples, replay, and the scope relative to R and Haskell Hedgehog.
+
+Shrinking reports the smallest counterexample found and whether the
+search completed, reached its evaluation budget, or encountered a
+shrinking error. Runs use a fixed RNG configuration and record their
+parameters for replay. Callers using Box-Muller normals must select
+another normal RNG kind first, because R does not expose the cached
+normal draw needed to restore their state.
 
 ## Limits
 
@@ -217,3 +224,5 @@ examples.
   <https://doc.rust-lang.org/reference/items/traits.html>.
 - The `lambda.r` package on CRAN:
   <https://cran.r-project.org/package=lambda.r>.
+- R Hedgehog: <https://hedgehogqa.r-universe.dev/hedgehog>.
+- Haskell Hedgehog: <https://hackage.haskell.org/package/hedgehog>.

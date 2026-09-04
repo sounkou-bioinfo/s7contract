@@ -1,6 +1,6 @@
 # Integrated generation and shrinking.
 
-.new_rose <- function(value, children = function() list()) {
+.new_rose <- function(value, children = function() function() NULL) {
   structure(
     list(value = value, children = children),
     class = "s7contract_rose"
@@ -11,16 +11,17 @@
   if (!inherits(tree, "s7contract_rose")) {
     .abort("A generator returned an invalid shrink tree.")
   }
-  children <- tree$children()
-  if (!is.list(children) || !all(vapply(
-    children,
-    inherits,
-    logical(1),
-    what = "s7contract_rose"
-  ))) {
-    .abort("A generator returned invalid shrink children.")
+  next_child <- tree$children()
+  if (!is.function(next_child)) {
+    .abort("A generator returned an invalid shrink iterator.")
   }
-  children
+  function() {
+    child <- next_child()
+    if (!is.null(child) && !inherits(child, "s7contract_rose")) {
+      .abort("A generator returned an invalid shrink child.")
+    }
+    child
+  }
 }
 
 .unfold_rose <- function(value, shrink) {
@@ -31,7 +32,14 @@
       if (!is.list(candidates)) {
         .abort("A custom `shrink` function must return a list of values.")
       }
-      lapply(candidates, .unfold_rose, shrink = shrink)
+      i <- 0L
+      function() {
+        if (i >= length(candidates)) {
+          return(NULL)
+        }
+        i <<- i + 1L
+        .unfold_rose(candidates[[i]], shrink)
+      }
     }
   )
 }
@@ -39,24 +47,45 @@
 .map_rose <- function(tree, transform) {
   .new_rose(
     transform(tree$value),
-    function() lapply(.rose_children(tree), .map_rose, transform = transform)
+    function() {
+      next_child <- .rose_children(tree)
+      function() {
+        child <- next_child()
+        if (is.null(child)) {
+          return(NULL)
+        }
+        .map_rose(child, transform)
+      }
+    }
   )
+}
+
+# Products and vectors share ordered, lazy replacement of one component.
+.component_children <- function(trees, assemble) {
+  i <- 1L
+  next_child <- NULL
+  function() {
+    while (i <= length(trees)) {
+      if (is.null(next_child)) {
+        next_child <<- .rose_children(trees[[i]])
+      }
+      child <- next_child()
+      if (!is.null(child)) {
+        candidate <- trees
+        candidate[[i]] <- child
+        return(assemble(candidate))
+      }
+      i <<- i + 1L
+      next_child <<- NULL
+    }
+    NULL
+  }
 }
 
 .product_rose <- function(trees) {
   .new_rose(
     lapply(trees, `[[`, "value"),
-    function() {
-      out <- list()
-      for (i in seq_along(trees)) {
-        for (child in .rose_children(trees[[i]])) {
-          candidate <- trees
-          candidate[[i]] <- child
-          out[[length(out) + 1L]] <- .product_rose(candidate)
-        }
-      }
-      out
-    }
+    function() .component_children(trees, .product_rose)
   )
 }
 
@@ -68,19 +97,6 @@
   offsets <- floor(abs(distance) / 2^(0:floor(log2(abs(distance)))))
   candidates <- as.double(value) - sign(distance) * unique(offsets)
   as.integer(unique(candidates[candidates != value]))
-}
-
-.integer_rose <- function(value, target) {
-  .new_rose(
-    value,
-    function() {
-      lapply(
-        .shrink_integer_values(value, target),
-        .integer_rose,
-        target = target
-      )
-    }
-  )
 }
 
 .vector_rose <- function(trees, prototype, min_length) {
@@ -107,28 +123,27 @@
   .new_rose(
     value,
     function() {
-      out <- list()
-      smaller_lengths <- .shrink_integer_values(length(trees), min_length)
-      for (n in smaller_lengths) {
-        kept <- if (n == 0L) list() else trees[seq_len(n)]
-        out[[length(out) + 1L]] <- .vector_rose(
-          kept,
-          prototype,
-          min_length
-        )
-      }
-      for (i in seq_along(trees)) {
-        for (child in .rose_children(trees[[i]])) {
-          candidate <- trees
-          candidate[[i]] <- child
-          out[[length(out) + 1L]] <- .vector_rose(
-            candidate,
-            prototype,
-            min_length
+      width <- length(trees) - min_length
+      start <- 1L
+      elements <- NULL
+      function() {
+        while (width > 0L) {
+          if (start + width - 1L <= length(trees)) {
+            kept <- trees[-seq.int(start, length.out = width)]
+            start <<- start + width
+            return(.vector_rose(kept, prototype, min_length))
+          }
+          width <<- width %/% 2L
+          start <<- 1L
+        }
+        if (is.null(elements)) {
+          elements <<- .component_children(
+            trees,
+            function(candidate) .vector_rose(candidate, prototype, min_length)
           )
         }
+        elements()
       }
-      out
     }
   )
 }
@@ -139,6 +154,8 @@
 #' `new_generator()` is the extension point for custom generators. Its `draw`
 #' function receives a non-negative integer size and returns one value. Its
 #' deterministic `shrink` function returns a list of strictly smaller values.
+#' The custom shrinker constructs that list itself; the framework constructs
+#' and transforms the corresponding tree nodes only as they are visited.
 #'
 #' @param draw Function of one `size` argument that returns a value.
 #' @param shrink Function of one generated value that returns a list of smaller
@@ -175,6 +192,9 @@ new_generator <- function(
 #' generators return an atomic vector only when the element prototype is atomic;
 #' those element draws must be scalar and match the prototype's storage type.
 #' Otherwise, vector generators return a list with one entry per element draw.
+#' Nested vector generators therefore return lists of vectors. Vector shrinking
+#' removes contiguous chunks, then shrinks individual elements, preserving the
+#' minimum length.
 #'
 #' @param value Constant value to generate.
 #' @param min,max Inclusive integer bounds. For `gen_vector()`, bounds on vector
@@ -200,27 +220,22 @@ gen_constant <- function(value) {
 #' @rdname gen_constant
 #' @export
 gen_integer <- function(min = -100L, max = 100L) {
-  bounds <- c(min, max)
-  valid_bounds <- is.numeric(bounds) && length(bounds) == 2L &&
-    !anyNA(bounds) && all(is.finite(bounds)) &&
-    all(bounds == trunc(bounds)) &&
-    min >= -.Machine$integer.max && max <= .Machine$integer.max &&
-    min <= max
-  if (!valid_bounds) {
+  min <- .count_arg(min, "min", signed = TRUE)
+  max <- .count_arg(max, "max", signed = TRUE)
+  if (min > max) {
     .abort("`min` and `max` must be ordered integer bounds.")
   }
-  min <- as.integer(min)
-  max <- as.integer(max)
   target <- if (min > 0L) min else if (max < 0L) max else 0L
 
-  s7_generator(
+  new_generator(
     draw = function(size) {
       lower <- base::max(as.double(min), as.double(target) - size)
       upper <- base::min(as.double(max), as.double(target) + size)
       span <- upper - lower + 1
       value <- lower + sample.int(span, 1L) - 1
-      .integer_rose(as.integer(value), target)
+      as.integer(value)
     },
+    shrink = function(value) as.list(.shrink_integer_values(value, target)),
     label = sprintf("integer[%d,%d]", min, max),
     prototype = integer()
   )
@@ -246,16 +261,11 @@ gen_map <- function(generator, transform, prototype = list()) {
 #' @export
 gen_product <- function(...) {
   generators <- list(...)
+  problem <- .generator_list_error(generators)
+  if (!is.null(problem)) {
+    .abort("`...`: %s", problem)
+  }
   generator_names <- names(generators)
-  valid_names <- length(generators) > 0L && !is.null(generator_names) &&
-    !anyNA(generator_names) && all(nzchar(generator_names)) &&
-    !anyDuplicated(generator_names)
-  if (!valid_names) {
-    .abort("`...` must contain one or more uniquely named generators.")
-  }
-  if (!all(vapply(generators, .is_generator, logical(1)))) {
-    .abort("Every element of `...` must be a generator.")
-  }
   s7_generator(
     draw = function(size) {
       trees <- lapply(generators, function(generator) generator@draw(size))
@@ -273,16 +283,11 @@ gen_vector <- function(element, min = 0L, max = 10L) {
   if (!.is_generator(element)) {
     .abort("`element` must be a generator.")
   }
-  lengths <- c(min, max)
-  valid_lengths <- is.numeric(lengths) && length(lengths) == 2L &&
-    !anyNA(lengths) && all(is.finite(lengths)) &&
-    all(lengths == trunc(lengths)) && min >= 0 &&
-    max <= .Machine$integer.max && min <= max
-  if (!valid_lengths) {
+  min <- .count_arg(min, "min")
+  max <- .count_arg(max, "max")
+  if (min > max) {
     .abort("`min` and `max` must be ordered non-negative integer lengths.")
   }
-  min <- as.integer(min)
-  max <- as.integer(max)
 
   s7_generator(
     draw = function(size) {
@@ -293,6 +298,6 @@ gen_vector <- function(element, min = 0L, max = 10L) {
       .vector_rose(trees, element@prototype, min)
     },
     label = sprintf("vector(%s)[%d,%d]", element@label, min, max),
-    prototype = element@prototype
+    prototype = list()
   )
 }

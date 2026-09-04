@@ -29,4 +29,6 @@ A generator draws a value together with an integrated tree of smaller values.
 \code{new_generator()} is the extension point for custom generators. Its \code{draw}
 function receives a non-negative integer size and returns one value. Its
 deterministic \code{shrink} function returns a list of strictly smaller values.
+The custom shrinker constructs that list itself; the framework constructs
+and transforms the corresponding tree nodes only as they are visited.
 }

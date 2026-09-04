@@ -43,6 +43,9 @@ generators shrink one component at a time in argument order. Vector
 generators return an atomic vector only when the element prototype is atomic;
 those element draws must be scalar and match the prototype's storage type.
 Otherwise, vector generators return a list with one entry per element draw.
+Nested vector generators therefore return lists of vectors. Vector shrinking
+removes contiguous chunks, then shrinks individual elements, preserving the
+minimum length.
 }
 \examples{
 pairs <- gen_product(x = gen_integer(), y = gen_integer())

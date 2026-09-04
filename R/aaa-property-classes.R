@@ -30,16 +30,11 @@ s7_law <- S7::new_class(
     if (length(self@name) != 1L || is.na(self@name) || !nzchar(self@name)) {
       return("`name` must be one non-empty string.")
     }
+    problem <- .generator_list_error(self@generators)
+    if (!is.null(problem)) {
+      return(paste("`generators`:", problem))
+    }
     generator_names <- names(self@generators)
-    valid_names <- length(self@generators) > 0L &&
-      !is.null(generator_names) && !anyNA(generator_names) &&
-      all(nzchar(generator_names)) && !anyDuplicated(generator_names)
-    if (!valid_names) {
-      return("`generators` must be a non-empty list with unique names.")
-    }
-    if (!all(vapply(self@generators, .is_generator, logical(1)))) {
-      return("Every element of `generators` must be a generator.")
-    }
     law_formals <- names(formals(self@holds))
     if (!"..." %in% law_formals && !all(generator_names %in% law_formals)) {
       return("`holds` must accept every named generator argument or `...`.")
@@ -72,8 +67,11 @@ s7_check_result <- S7::new_class(
     shrink_attempts = S7::class_integer,
     seed = S7::class_integer,
     rng_kind = S7::class_character,
+    parameters = S7::class_list,
     counterexample = S7::class_any,
-    condition = S7::class_any
+    condition = S7::class_any,
+    shrink_status = S7::class_character,
+    shrink_condition = S7::class_any
   ),
   validator = function(self) {
     if (
@@ -89,3 +87,17 @@ s7_check_result <- S7::new_class(
   S7::S7_inherits(x, s7_generator)
 }
 
+# Shared admission invariant for laws and product generators.
+.generator_list_error <- function(generators) {
+  nms <- names(generators)
+  if (length(generators) == 0L || is.null(nms)) {
+    return("A non-empty list of named generators is required.")
+  }
+  if (anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms)) {
+    return("Generator names must be non-missing, non-empty and unique.")
+  }
+  if (!all(vapply(generators, .is_generator, logical(1)))) {
+    return("Every element must be a generator.")
+  }
+  NULL
+}

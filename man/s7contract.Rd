@@ -6,12 +6,13 @@
 \alias{s7contract}
 \title{s7contract: Contract Helpers for S7}
 \description{
-\code{s7contract} provides two experimental contract layers on top of S7:
+\code{s7contract} provides experimental runtime contracts and generative laws:
 }
 \details{
 \itemize{
 \item Go-like structural interfaces defined by required generics.
 \item Rust-like explicit traits with default methods and associated metadata.
+\item Property-based laws with integrated shrinking and tinytest expectations.
 }
 
 The package keeps actual method dispatch inside ordinary S7 generics and uses
@@ -28,10 +29,5 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Sounkou Mahamane Toure \email{sounkoutoure@gmail.com}
-
-Authors:
-\itemize{
-  \item Sounkou Mahamane Toure \email{sounkoutoure@gmail.com}
-}
 
 }
