@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">s7contract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -214,7 +214,8 @@
 <span><span class="co">#&gt; ----- PASSED      : &lt;--&gt;</span></span>
 <span><span class="co">#&gt;  call| expect_law(reverse_law, tests = 100, seed = 20260902)</span></span>
 <span><span class="co">#&gt;  info| Law 'reverse is involutive' passed 100 tests (seed 20260902).</span></span></code></pre></div>
-<p>Generators construct valid examples explicitly; arbitrary S7 validators are not treated as invertible generator definitions. See <code><a href="articles/property-laws.html">vignette("property-laws")</a></code> for executed interface and counterexample examples.</p>
+<p>Generators construct valid examples explicitly; arbitrary S7 validators are not treated as invertible generator definitions. See <code><a href="articles/property-laws.html">vignette("property-laws")</a></code> for executed interface and counterexample examples, replay, and the scope relative to R and Haskell Hedgehog.</p>
+<p>Shrinking reports the smallest counterexample found and whether the search completed, reached its evaluation budget, or encountered a shrinking error. Runs use a fixed RNG configuration and record their parameters for replay. Callers using Box-Muller normals must select another normal RNG kind first, because R does not expose the cached normal draw needed to restore their state.</p>
 </div>
 <div class="section level2">
 <h2 id="limits">Limits<a class="anchor" aria-label="anchor" href="#limits"></a>
@@ -238,6 +239,8 @@
 <li>The Rust book chapter on traits: <a href="https://doc.rust-lang.org/book/ch10-02-traits.html" class="external-link uri">https://doc.rust-lang.org/book/ch10-02-traits.html</a>.</li>
 <li>The Rust reference chapter on traits: <a href="https://doc.rust-lang.org/reference/items/traits.html" class="external-link uri">https://doc.rust-lang.org/reference/items/traits.html</a>.</li>
 <li>The <code>lambda.r</code> package on CRAN: <a href="https://cran.r-project.org/package=lambda.r" class="external-link uri">https://cran.r-project.org/package=lambda.r</a>.</li>
+<li>R Hedgehog: <a href="https://hedgehogqa.r-universe.dev/hedgehog" class="external-link uri">https://hedgehogqa.r-universe.dev/hedgehog</a>.</li>
+<li>Haskell Hedgehog: <a href="https://hackage.haskell.org/package/hedgehog" class="external-link uri">https://hackage.haskell.org/package/hedgehog</a>.</li>
 </ul>
 </div>
 </div>

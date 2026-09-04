@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">s7contract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,8 +39,14 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.1.0.9000" id="s7contract-0109000">s7contract 0.1.0.9000<a class="anchor" aria-label="anchor" href="#s7contract-0109000"></a></h2>
-<ul><li><p>Added S7-backed generative laws with composable generators, integrated shrinking, deterministic framework-neutral checks, bounded precondition discards, counterexample diagnostics, and one-result tinytest integration.</p></li>
+<h2 class="pkg-version" data-toc-text="0.2.0" id="s7contract-020">s7contract 0.2.0<a class="anchor" aria-label="anchor" href="#s7contract-020"></a></h2>
+<ul><li><p>Fixed nested vector generator composition. Vector shrinking now removes contiguous chunks throughout a vector while preserving its length bounds.</p></li>
+<li><p>Shrink candidates are constructed and mapped only when visited. Evaluation budgets no longer force unused siblings or later product components. Custom shrink functions still construct their own candidate lists.</p></li>
+<li><p>Retained original and last failing examples when shrinking errors or warns. Results report <code>shrink_status</code> and <code>shrink_condition</code>, and diagnostics describe the smallest counterexample found rather than claiming a global minimum. Generator warnings now produce structured runner errors.</p></li>
+<li><p>Standardized law runs on Mersenne-Twister with Inversion normals and Rejection sampling, and recorded run parameters for replay. Box-Muller callers are rejected before changing RNG state because its cached normal draw cannot be restored through R’s public API.</p></li>
+<li><p>Consolidated integer-bound and named-generator admission checks, including independent validation of each scalar bound.</p></li>
+<li><p>Documented the relationship to R and Haskell Hedgehog, current generator composition, and limits of replay and shrinking.</p></li>
+<li><p>Added S7-backed generative laws with composable generators, integrated shrinking, deterministic framework-neutral checks, bounded precondition discards, counterexample diagnostics, and one-result tinytest integration.</p></li>
 <li><p>Discarded cases now advance generator size, accepted shrinks are retained at the evaluation budget boundary, and <code><a href="../reference/gen_constant.html">gen_vector()</a></code> preserves element-count bounds by treating nonscalar draws as list elements and validating atomic element prototypes. Zero shrink budgets no longer expand shrink trees, and integer bounds and seeds reject R’s reserved missing-integer sentinel.</p></li>
 <li><p>Added references to the S7 traits discussion in RConsortium/S7#34.</p></li>
 </ul></div>

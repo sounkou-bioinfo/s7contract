@@ -1,6 +1,32 @@
 # Changelog
 
-## s7contract 0.1.0.9000
+## s7contract 0.2.0
+
+- Fixed nested vector generator composition. Vector shrinking now
+  removes contiguous chunks throughout a vector while preserving its
+  length bounds.
+
+- Shrink candidates are constructed and mapped only when visited.
+  Evaluation budgets no longer force unused siblings or later product
+  components. Custom shrink functions still construct their own
+  candidate lists.
+
+- Retained original and last failing examples when shrinking errors or
+  warns. Results report `shrink_status` and `shrink_condition`, and
+  diagnostics describe the smallest counterexample found rather than
+  claiming a global minimum. Generator warnings now produce structured
+  runner errors.
+
+- Standardized law runs on Mersenne-Twister with Inversion normals and
+  Rejection sampling, and recorded run parameters for replay. Box-Muller
+  callers are rejected before changing RNG state because its cached
+  normal draw cannot be restored through R’s public API.
+
+- Consolidated integer-bound and named-generator admission checks,
+  including independent validation of each scalar bound.
+
+- Documented the relationship to R and Haskell Hedgehog, current
+  generator composition, and limits of replay and shrinking.
 
 - Added S7-backed generative laws with composable generators, integrated
   shrinking, deterministic framework-neutral checks, bounded

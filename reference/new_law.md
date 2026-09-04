@@ -90,6 +90,26 @@ invisibly when its condition is true and otherwise discards the case.
 
 ## Details
 
+Runs use Mersenne-Twister, Inversion normals, and Rejection sampling,
+independently of the caller's RNG kind. Box-Muller callers are rejected
+before any RNG state is changed because R does not expose their cached
+normal draw. Replay requires unchanged generator/law code, run
+parameters, and compatible R/package versions; generators and laws must
+not depend on external mutable state or change the RNG configuration.
+The result's `parameters` list records all run arguments except `law`,
+for use with `do.call(check_law, ...)`.
+
+Shrinking is an ordered search, not a guarantee of a global minimum. The
+counterexample's `minimal` field holds the smallest example found. A
+result's `shrink_status` is `"complete"` when no immediate child
+preserves the failure, `"budget"` when the evaluation limit stopped the
+search (including zero), `"error"` if constructing candidates failed, or
+`"not_needed"` when no counterexample was found. A shrinking error or
+warning is stored separately in `shrink_condition`; the original and
+last failing examples are retained. Generator warnings and errors
+terminate the run with status `"error"`. Warnings or errors from `holds`
+are counterexamples.
+
 In a tinytest file, call `tinytest::using(s7contract)` before calling
 `expect_law()`. This activates tinytest's supported extension capture so
 the property run is recorded as one ordinary test result.

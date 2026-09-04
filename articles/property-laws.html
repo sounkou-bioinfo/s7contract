@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">s7contract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@
 <span><span class="fu">tinytest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytest/man/using.html" class="external-link">using</a></span><span class="op">(</span><span class="va">s7contract</span><span class="op">)</span></span></code></pre></div>
 <p>Generative laws separate three concerns: generators construct
 examples, laws state behavior over those examples, and a runner searches
-for a minimized counterexample. One call to <code><a href="../reference/new_law.html">expect_law()</a></code>
+for a smaller counterexample. One call to <code><a href="../reference/new_law.html">expect_law()</a></code>
 becomes one tinytest result even though the law is evaluated many
 times.</p>
 <div class="section level2">
@@ -141,7 +141,7 @@ the interface’s return contract.</p>
 <span><span class="co">#&gt;  info| Law 'non-negative radii have non-negative area' passed 100 tests (seed 20260902).</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="inspecting-a-minimized-failure">Inspecting a minimized failure<a class="anchor" aria-label="anchor" href="#inspecting-a-minimized-failure"></a>
+<h2 id="inspecting-and-replaying-a-failure">Inspecting and replaying a failure<a class="anchor" aria-label="anchor" href="#inspecting-and-replaying-a-failure"></a>
 </h2>
 <p>Use <code><a href="../reference/new_law.html">check_law()</a></code> when the structured result is needed
 independently of a test framework. This deliberately false law starts at
@@ -161,16 +161,130 @@ ten and shrinks to zero.</p>
 <span>  holds <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">&lt;</span> <span class="fl">0L</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/new_law.html">check_law</a></span><span class="op">(</span><span class="va">negative_law</span>, tests <span class="op">=</span> <span class="fl">10L</span>, seed <span class="op">=</span> <span class="fl">20260902L</span><span class="op">)</span></span>
+<span><span class="va">failure</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">check_law</a></span><span class="op">(</span><span class="va">negative_law</span>, tests <span class="op">=</span> <span class="fl">10L</span>, seed <span class="op">=</span> <span class="fl">20260902L</span><span class="op">)</span></span>
+<span><span class="va">failure</span></span>
 <span><span class="co">#&gt; Law 'generated values are negative' was falsified after 1 attempts and 1 shrinks (seed 20260902).</span></span>
 <span><span class="co">#&gt; The law returned FALSE.</span></span>
-<span><span class="co">#&gt; Minimal counterexample:</span></span>
+<span><span class="co">#&gt; Shrinking stopped: no child of this counterexample preserves the failure.</span></span>
+<span><span class="co">#&gt; Smallest counterexample found:</span></span>
 <span><span class="co">#&gt; List of 1</span></span>
 <span><span class="co">#&gt;  $ x: int 0</span></span></code></pre></div>
-<p>The result records the seed, original input, minimized
-counterexample, and shrink counts. Seed replay remains deterministic for
-an unchanged generator; the stored minimized value remains useful if
-generator code later changes.</p>
+<p>The result records the seed, RNG kind, run parameters, original
+input, smallest counterexample found, and shrink counts. The
+<code>minimal</code> field keeps its name for compatibility; it does not
+promise a global minimum. <code>shrink_status</code> distinguishes
+completion within the shrink tree, an evaluation budget, a shrinking
+error, and a run that needed no shrinking. If shrinking errors or warns,
+<code>shrink_condition</code> records that problem while the original
+and last failing examples remain available.</p>
+<p>Replay the same law and parameters with ordinary R function
+application:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">replayed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">check_law</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>law <span class="op">=</span> <span class="va">failure</span><span class="op">@</span><span class="va">law</span><span class="op">)</span>, <span class="va">failure</span><span class="op">@</span><span class="va">parameters</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replayed</span><span class="op">@</span><span class="va">counterexample</span><span class="op">@</span><span class="va">minimal</span>, <span class="va">failure</span><span class="op">@</span><span class="va">counterexample</span><span class="op">@</span><span class="va">minimal</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Runs use Mersenne-Twister, Inversion normals, and Rejection sampling,
+so changing the caller’s RNG kind does not change the generated
+sequence. Replay requires unchanged generator and law code, run
+parameters, and compatible R/package versions. Generators and laws must
+not depend on external mutable state or change the RNG configuration.
+Stored examples can still be tested directly when the generator
+changes.</p>
+<p>The caller’s RNG kind and state are restored on exit. The exception
+is an admission restriction: callers using Box-Muller normals are
+rejected before anything changes, because R does not expose their cached
+normal draw for restoration. Select another normal RNG kind before
+running laws in that session.</p>
+</div>
+<div class="section level2">
+<h2 id="composition-and-shrinking">Composition and shrinking<a class="anchor" aria-label="anchor" href="#composition-and-shrinking"></a>
+</h2>
+<p>Mapping transforms both the generated value and visited shrinks.
+Products combine independent generators and shrink one component at a
+time. Vectors remove contiguous chunks and then shrink elements,
+retaining their minimum length. Nesting vector generators produces lists
+of vectors, including empty inner vectors:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nested</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">new_law</a></span><span class="op">(</span></span>
+<span>  <span class="st">"nested vectors retain their element type"</span>,</span>
+<span>  generators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="../reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="op">)</span>, max <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span>, max <span class="op">=</span> <span class="fl">3L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  holds <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">is.integer</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/new_law.html">expect_law</a></span><span class="op">(</span><span class="va">nested</span>, tests <span class="op">=</span> <span class="fl">20L</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; ----- PASSED      : &lt;--&gt;</span></span>
+<span><span class="co">#&gt;  call| expect_law(nested, tests = 20, seed = 1)</span></span>
+<span><span class="co">#&gt;  info| Law 'nested vectors retain their element type' passed 20 tests (seed 1).</span></span></code></pre></div>
+<p>The runner constructs and transforms each shrink candidate only when
+visited. <code>shrinks = 0L</code> performs no shrink expansion. A
+custom <code>shrink</code> function still constructs its own list of
+candidates; the evaluation budget cannot bound the work performed inside
+user functions. Shrinkers and mapping functions must be deterministic,
+and mapped constructors must accept every visited shrink.</p>
+</div>
+<div class="section level2">
+<h2 id="relationship-to-hedgehog">Relationship to Hedgehog<a class="anchor" aria-label="anchor" href="#relationship-to-hedgehog"></a>
+</h2>
+<p><a href="https://hedgehogqa.r-universe.dev/hedgehog" class="external-link">R Hedgehog</a>
+is the reference for the broader property-testing scope. Its generators
+carry lazy rose trees, with deterministic shrinking preserved through
+composition. The underlying <a href="https://hackage.haskell.org/package/hedgehog" class="external-link">Haskell Hedgehog</a>
+design includes mapping, dependent generation, size-aware ranges, and
+state-machine testing.</p>
+<p>The table describes the scope of s7contract 0.2.0. It is not a
+compatibility claim.</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Concept</th>
+<th align="left">s7contract 0.2.0</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Mapping / functor composition</td>
+<td align="left">
+<code><a href="../reference/gen_constant.html">gen_map()</a></code> transforms values and their
+shrink trees.</td>
+</tr>
+<tr class="even">
+<td align="left">Independent / applicative composition</td>
+<td align="left">
+<code><a href="../reference/gen_constant.html">gen_product()</a></code> and named law arguments
+combine independent generators.</td>
+</tr>
+<tr class="odd">
+<td align="left">Dependent / monadic composition</td>
+<td align="left">No built-in bind combinator; custom generators must
+supply generation and shrinking together.</td>
+</tr>
+<tr class="even">
+<td align="left">Size-aware generation</td>
+<td align="left">Integer ranges and vector lengths grow with the
+runner’s size, up to configured bounds.</td>
+</tr>
+<tr class="odd">
+<td align="left">Choice and recursive generation</td>
+<td align="left">No built-in combinators.</td>
+</tr>
+<tr class="even">
+<td align="left">State-machine testing</td>
+<td align="left">No command/model runner.</td>
+</tr>
+<tr class="odd">
+<td align="left">Behavioral contracts</td>
+<td align="left">Laws can exercise S7 interfaces and traits through
+ordinary calls.</td>
+</tr>
+<tr class="even">
+<td align="left">Test-framework integration</td>
+<td align="left">
+<code><a href="../reference/new_law.html">check_law()</a></code> returns structured results;
+<code><a href="../reference/new_law.html">expect_law()</a></code> records one tinytest result.</td>
+</tr>
+</tbody>
+</table>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -9,7 +9,7 @@ tinytest::using(s7contract)
 
 Generative laws separate three concerns: generators construct examples,
 laws state behavior over those examples, and a runner searches for a
-minimized counterexample. One call to
+smaller counterexample. One call to
 [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
 becomes one tinytest result even though the law is evaluated many times.
 
@@ -80,7 +80,7 @@ expect_law(area_law, tests = 100L, seed = 20260902L)
 #>  info| Law 'non-negative radii have non-negative area' passed 100 tests (seed 20260902).
 ```
 
-## Inspecting a minimized failure
+## Inspecting and replaying a failure
 
 Use
 [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
@@ -103,15 +103,94 @@ negative_law <- new_law(
   holds = function(x) x < 0L
 )
 
-check_law(negative_law, tests = 10L, seed = 20260902L)
+failure <- check_law(negative_law, tests = 10L, seed = 20260902L)
+failure
 #> Law 'generated values are negative' was falsified after 1 attempts and 1 shrinks (seed 20260902).
 #> The law returned FALSE.
-#> Minimal counterexample:
+#> Shrinking stopped: no child of this counterexample preserves the failure.
+#> Smallest counterexample found:
 #> List of 1
 #>  $ x: int 0
 ```
 
-The result records the seed, original input, minimized counterexample,
-and shrink counts. Seed replay remains deterministic for an unchanged
-generator; the stored minimized value remains useful if generator code
-later changes.
+The result records the seed, RNG kind, run parameters, original input,
+smallest counterexample found, and shrink counts. The `minimal` field
+keeps its name for compatibility; it does not promise a global minimum.
+`shrink_status` distinguishes completion within the shrink tree, an
+evaluation budget, a shrinking error, and a run that needed no
+shrinking. If shrinking errors or warns, `shrink_condition` records that
+problem while the original and last failing examples remain available.
+
+Replay the same law and parameters with ordinary R function application:
+
+``` r
+
+replayed <- do.call(check_law, c(list(law = failure@law), failure@parameters))
+identical(replayed@counterexample@minimal, failure@counterexample@minimal)
+#> [1] TRUE
+```
+
+Runs use Mersenne-Twister, Inversion normals, and Rejection sampling, so
+changing the caller’s RNG kind does not change the generated sequence.
+Replay requires unchanged generator and law code, run parameters, and
+compatible R/package versions. Generators and laws must not depend on
+external mutable state or change the RNG configuration. Stored examples
+can still be tested directly when the generator changes.
+
+The caller’s RNG kind and state are restored on exit. The exception is
+an admission restriction: callers using Box-Muller normals are rejected
+before anything changes, because R does not expose their cached normal
+draw for restoration. Select another normal RNG kind before running laws
+in that session.
+
+## Composition and shrinking
+
+Mapping transforms both the generated value and visited shrinks.
+Products combine independent generators and shrink one component at a
+time. Vectors remove contiguous chunks and then shrink elements,
+retaining their minimum length. Nesting vector generators produces lists
+of vectors, including empty inner vectors:
+
+``` r
+
+nested <- new_law(
+  "nested vectors retain their element type",
+  generators = list(x = gen_vector(gen_vector(gen_integer(), max = 4L), max = 3L)),
+  holds = function(x) is.list(x) && all(vapply(x, is.integer, logical(1)))
+)
+expect_law(nested, tests = 20L, seed = 1L)
+#> ----- PASSED      : <-->
+#>  call| expect_law(nested, tests = 20, seed = 1)
+#>  info| Law 'nested vectors retain their element type' passed 20 tests (seed 1).
+```
+
+The runner constructs and transforms each shrink candidate only when
+visited. `shrinks = 0L` performs no shrink expansion. A custom `shrink`
+function still constructs its own list of candidates; the evaluation
+budget cannot bound the work performed inside user functions. Shrinkers
+and mapping functions must be deterministic, and mapped constructors
+must accept every visited shrink.
+
+## Relationship to Hedgehog
+
+[R Hedgehog](https://hedgehogqa.r-universe.dev/hedgehog) is the
+reference for the broader property-testing scope. Its generators carry
+lazy rose trees, with deterministic shrinking preserved through
+composition. The underlying [Haskell
+Hedgehog](https://hackage.haskell.org/package/hedgehog) design includes
+mapping, dependent generation, size-aware ranges, and state-machine
+testing.
+
+The table describes the scope of s7contract 0.2.0. It is not a
+compatibility claim.
+
+| Concept | s7contract 0.2.0 |
+|:---|:---|
+| Mapping / functor composition | [`gen_map()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md) transforms values and their shrink trees. |
+| Independent / applicative composition | [`gen_product()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md) and named law arguments combine independent generators. |
+| Dependent / monadic composition | No built-in bind combinator; custom generators must supply generation and shrinking together. |
+| Size-aware generation | Integer ranges and vector lengths grow with the runner’s size, up to configured bounds. |
+| Choice and recursive generation | No built-in combinators. |
+| State-machine testing | No command/model runner. |
+| Behavioral contracts | Laws can exercise S7 interfaces and traits through ordinary calls. |
+| Test-framework integration | [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md) returns structured results; [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md) records one tinytest result. |

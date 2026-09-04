@@ -5,13 +5,19 @@ toward zero when zero is within bounds, or toward the nearest bound. Product
 generators shrink one component at a time in argument order. Vector
 generators return an atomic vector only when the element prototype is atomic;
 those element draws must be scalar and match the prototype's storage type.
-Otherwise, vector generators return a list with one entry per element draw."><meta property="og:description" content="These generators carry their own deterministic shrink trees. Integer ranges
+Otherwise, vector generators return a list with one entry per element draw.
+Nested vector generators therefore return lists of vectors. Vector shrinking
+removes contiguous chunks, then shrinks individual elements, preserving the
+minimum length."><meta property="og:description" content="These generators carry their own deterministic shrink trees. Integer ranges
 and vector lengths expand with the runner's size. Integer values shrink
 toward zero when zero is within bounds, or toward the nearest bound. Product
 generators shrink one component at a time in argument order. Vector
 generators return an atomic vector only when the element prototype is atomic;
 those element draws must be scalar and match the prototype's storage type.
-Otherwise, vector generators return a list with one entry per element draw."></head><body>
+Otherwise, vector generators return a list with one entry per element draw.
+Nested vector generators therefore return lists of vectors. Vector shrinking
+removes contiguous chunks, then shrinks individual elements, preserving the
+minimum length."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -19,7 +25,7 @@ Otherwise, vector generators return a list with one entry per element draw."></h
 
     <a class="navbar-brand me-2" href="../index.html">s7contract</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,7 +64,10 @@ toward zero when zero is within bounds, or toward the nearest bound. Product
 generators shrink one component at a time in argument order. Vector
 generators return an atomic vector only when the element prototype is atomic;
 those element draws must be scalar and match the prototype's storage type.
-Otherwise, vector generators return a list with one entry per element draw.</p>
+Otherwise, vector generators return a list with one entry per element draw.
+Nested vector generators therefore return lists of vectors. Vector shrinking
+removes contiguous chunks, then shrinks individual elements, preserving the
+minimum length.</p>
     </div>
 
     <div class="section level2">

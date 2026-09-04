@@ -4,7 +4,9 @@ A generator draws a value together with an integrated tree of smaller
 values. `new_generator()` is the extension point for custom generators.
 Its `draw` function receives a non-negative integer size and returns one
 value. Its deterministic `shrink` function returns a list of strictly
-smaller values.
+smaller values. The custom shrinker constructs that list itself; the
+framework constructs and transforms the corresponding tree nodes only as
+they are visited.
 
 ## Usage
 
