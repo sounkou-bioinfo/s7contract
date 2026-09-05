@@ -1,5 +1,12 @@
 # s7contract 0.2.0.9000
 
+* Added dependent generation with `gen_bind()`, weighted `gen_element()` and
+  `gen_choice()`, and size control with `gen_sized()` and `gen_resize()`.
+  Dependent shrinks rebuild valid inputs with a captured local seed.
+
+* Added `gen_recursive()` for structures with decreasing recursive size,
+  `gen_example()` for reproducible inspection, and `gen_no_shrink()`.
+
 # s7contract 0.2.0
 
 * Fixed nested vector generator composition. Vector shrinking now removes

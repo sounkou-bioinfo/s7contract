@@ -21,6 +21,9 @@ reference:
     contents:
       - new_generator
       - gen_constant
+      - gen_bind
+      - gen_element
+      - gen_example
       - new_law
 
 articles:
@@ -33,4 +36,3 @@ articles:
     contents:
       - bioinformatics-interfaces
       - property-laws
-

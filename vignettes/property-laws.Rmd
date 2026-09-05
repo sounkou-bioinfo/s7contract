@@ -153,6 +153,76 @@ constructs its own list of candidates; the evaluation budget cannot bound the
 work performed inside user functions. Shrinkers and mapping functions must be
 deterministic, and mapped constructors must accept every visited shrink.
 
+## Dependent inputs
+
+`gen_bind()` uses one generated value to construct the next generator. Here the
+sequence length and its bases belong to one dependent input. Every shrink still
+has exactly the declared length, so the law needs no discarded preconditions.
+
+```{r dependent-sequences}
+sequences <- gen_bind(gen_integer(0L, 20L), function(n) {
+  gen_product(
+    length = gen_constant(n),
+    bases = gen_vector(gen_element(c("A", "C", "G", "T")), min = n, max = n)
+  )
+})
+sequence_law <- new_law(
+  "sequence length matches its declaration",
+  generators = list(x = sequences),
+  holds = function(x) length(x$bases) == x$length
+)
+expect_law(sequence_law, tests = 40L, seed = 1L)
+gen_example(sequences, size = 10L, seed = 42L)
+```
+
+Shrinking first tries smaller source values and rebuilds the dependent
+generator, then shrinks its result. Each rebuild uses the same captured local
+seed and size. Random draws inside the law therefore do not change the
+regenerated candidates. The factory must depend only on its input and the
+scoped RNG, and its constructors must accept every visited source shrink.
+
+## Choices and recursive values
+
+`gen_element()` chooses a value; `gen_choice()` chooses a generator. Entries are
+ordered from simpler to more complex for shrinking. Optional `prob` weights
+control sampling; zero-weight entries are excluded from generation and
+shrinking. All entries with positive weight are available even at size zero.
+
+```{r nullable-values}
+nullable <- gen_choice(gen_constant(NA_integer_), gen_integer(), prob = c(1, 9))
+gen_example(gen_vector(nullable, min = 6L, max = 6L), size = 10L, seed = 42L)
+```
+
+`gen_sized()` builds a generator from the runner's current size. `gen_resize()`
+overrides the size for one generator while leaving sibling generators alone.
+`gen_recursive()` supplies its expansion function with a child generator that
+uses half the current size, rounded down. At size zero, only the base generator
+runs. This supports nested lists, expression trees, or recursive S7 objects.
+
+```{r recursive-values}
+trees <- gen_recursive(
+  gen_element(c("A", "C", "G", "T")),
+  function(child) gen_product(left = child, right = child)
+)
+gen_example(trees, size = 7L, seed = 42L)
+
+leaf_count <- function(tree) {
+  if (is.list(tree)) leaf_count(tree$left) + leaf_count(tree$right) else 1L
+}
+tree_law <- new_law(
+  "binary trees have at least one leaf",
+  generators = list(tree = trees),
+  holds = function(tree) leaf_count(tree) >= 1L
+)
+expect_law(tree_law, tests = 30L, seed = 1L, max_size = 7L)
+```
+
+Recursive size bounds depth, not total node count; the expansion function still
+controls branching. Shrinking can replace a recursive value with a base value
+before shrinking within a branch. `gen_no_shrink()` removes a generator's
+shrinking when a value must remain fixed during the search. `gen_example()`
+draws one value without expanding shrinks and restores the caller's RNG state.
+
 ## Relationship to Hedgehog
 
 [R Hedgehog](https://hedgehogqa.r-universe.dev/hedgehog) is the reference for the
@@ -161,15 +231,17 @@ deterministic shrinking preserved through composition. The underlying
 [Haskell Hedgehog](https://hackage.haskell.org/package/hedgehog) design includes
 mapping, dependent generation, size-aware ranges, and state-machine testing.
 
-The table describes the scope of s7contract 0.2.0. It is not a compatibility claim.
+The table describes the current development version, without claiming API or
+seed compatibility with Hedgehog.
 
-| Concept | s7contract 0.2.0 |
+| Concept | s7contract |
 |:--|:--|
 | Mapping / functor composition | `gen_map()` transforms values and their shrink trees. |
 | Independent / applicative composition | `gen_product()` and named law arguments combine independent generators. |
-| Dependent / monadic composition | No built-in bind combinator; custom generators must supply generation and shrinking together. |
-| Size-aware generation | Integer ranges and vector lengths grow with the runner's size, up to configured bounds. |
-| Choice and recursive generation | No built-in combinators. |
+| Dependent / monadic composition | `gen_bind()` rebuilds downstream generators when upstream inputs shrink. |
+| Size-aware generation | Integer ranges and vector lengths grow with size; `gen_sized()` and `gen_resize()` expose size control. |
+| Choice and recursive generation | `gen_element()`, `gen_choice()`, and `gen_recursive()` retain integrated shrinking. |
+| Inspection and shrink control | `gen_example()` draws a reproducible value; `gen_no_shrink()` removes shrinking. |
 | State-machine testing | No command/model runner. |
 | Behavioral contracts | Laws can exercise S7 interfaces and traits through ordinary calls. |
 | Test-framework integration | `check_law()` returns structured results; `expect_law()` records one tinytest result. |

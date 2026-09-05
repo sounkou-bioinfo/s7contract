@@ -25,7 +25,7 @@
   old_kind <- RNGkind()
   if (identical(old_kind[[2L]], "Box-Muller")) {
     .abort(paste(
-      "check_law() cannot restore the cached Box-Muller normal draw.",
+      "Generator runs cannot restore the cached Box-Muller normal draw.",
       "Select another normal RNG kind before running laws."
     ))
   }

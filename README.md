@@ -186,9 +186,13 @@ expect_law(reverse_law, tests = 100L, seed = 20260902L)
 ```
 
 Generators construct valid examples explicitly; arbitrary S7 validators
-are not treated as invertible generator definitions. See
-`vignette("property-laws")` for executed interface and counterexample
-examples, replay, and the scope relative to R and Haskell Hedgehog.
+are not treated as invertible generator definitions. `gen_bind()` builds
+dependent inputs, such as a length and a vector of that length, and
+preserves the relationship during shrinking. `gen_choice()` selects
+among generators, and `gen_recursive()` builds nested values with
+decreasing recursive size. See `vignette("property-laws")` for executed
+interface and counterexample examples, replay, and the scope relative to
+R and Haskell Hedgehog.
 
 Shrinking reports the smallest counterexample found and whether the
 search completed, reached its evaluation budget, or encountered a
