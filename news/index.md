@@ -1,5 +1,7 @@
 # Changelog
 
+## s7contract 0.2.0.9000
+
 ## s7contract 0.2.0
 
 - Fixed nested vector generator composition. Vector shrinking now
