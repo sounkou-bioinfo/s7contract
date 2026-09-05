@@ -6,10 +6,17 @@
 [![R-CMD-check](https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml)
 [![R-universe](https://sounkou-bioinfo.r-universe.dev/badges/s7contract)](https://sounkou-bioinfo.r-universe.dev/s7contract)
 
-`s7contract` provides small experimental contract helpers for
-[S7](https://rconsortium.github.io/S7/). It keeps dispatch in ordinary
-S7 generics and methods. The words “interface” and “trait” are loose
-analogies, not Go or Rust compatibility claims.
+`s7contract` makes behavioral protocols explicit and testable around
+ordinary [S7](https://rconsortium.github.io/S7/) dispatch. Interfaces
+describe required operations; traits record explicit implementations
+with defaults and metadata. Optional argument and return checks validate
+individual calls. Generative laws test relationships between operations
+across generated examples.
+
+The interface and trait designs draw on Go and Rust, while generation
+and shrinking draw on Hedgehog. `implements()` checks method
+availability, `has_trait()` checks declared implementation, and
+`check_law()` reports sampled evidence about behavior.
 
 ## Installation
 
@@ -162,7 +169,7 @@ tryCatch(
 #> [1] "Return value must be <character>, not <double>"
 ```
 
-## Generative laws with tinytest
+## Testing protocol laws
 
 A law combines named generators with behavior that must hold for every
 sampled case. `expect_law()` executes the cases, shrinks the first
@@ -171,18 +178,18 @@ counterexample, and returns one ordinary tinytest result.
 ``` r
 tinytest::using(s7contract)
 
-reverse_law <- new_law(
-  "reverse is involutive",
+area_law <- new_law(
+  "non-negative radii have non-negative area",
   generators = list(
-    x = gen_vector(gen_integer(-100L, 100L), max = 20L)
+    x = gen_map(gen_integer(0L, 100L), function(r) Circle(r = as.double(r)))
   ),
-  holds = function(x) identical(rev(rev(x)), x)
+  holds = function(x) with(Shape, area(x)) >= 0
 )
 
-expect_law(reverse_law, tests = 100L, seed = 20260902L)
+expect_law(area_law, tests = 100L, seed = 20260902L)
 #> ----- PASSED      : <-->
-#>  call| expect_law(reverse_law, tests = 100, seed = 20260902)
-#>  info| Law 'reverse is involutive' passed 100 tests (seed 20260902).
+#>  call| expect_law(area_law, tests = 100, seed = 20260902)
+#>  info| Law 'non-negative radii have non-negative area' passed 100 tests (seed 20260902).
 ```
 
 Generators construct valid examples explicitly; arbitrary S7 validators
@@ -193,6 +200,14 @@ among generators, and `gen_recursive()` builds nested values with
 decreasing recursive size. See `vignette("property-laws")` for executed
 interface and counterexample examples, replay, and the scope relative to
 R and Haskell Hedgehog.
+
+The [protocol
+vignette](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.html)
+defines one `VectorLike` law suite for numeric vectors and a `ReadDepth`
+class. A deliberately faulty slice method passes structural checks but
+fails the slicing law. The example uses ordinary functions returning
+lists of laws, and is also installed as
+`system.file("examples", "vector-laws.R", package = "s7contract")`.
 
 Shrinking reports the smallest counterexample found and whether the
 search completed, reached its evaluation budget, or encountered a

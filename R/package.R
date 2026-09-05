@@ -1,13 +1,18 @@
-#' s7contract: Contract Helpers for S7
+#' s7contract: Behavioral Contracts and Generative Laws for S7
 #'
-#' `s7contract` provides experimental runtime contracts and generative laws:
+#' `s7contract` makes behavioral protocols explicit and testable around ordinary
+#' S7 dispatch:
 #'
 #' - Go-like structural interfaces defined by required generics.
 #' - Rust-like explicit traits with default methods and associated metadata.
+#' - Optional argument and return specifications checked at the point of use.
 #' - Property-based laws with integrated shrinking and tinytest expectations.
 #'
-#' The package keeps actual method dispatch inside ordinary S7 generics and uses
-#' runtime checks to describe or assert conformance.
+#' [implements()] checks method availability and [has_trait()] checks declared
+#' implementation. [check_law()] supplies separate evidence about behavior over
+#' generated cases. Protocol authors can reuse laws across implementations by
+#' writing ordinary functions that construct lists of laws; see
+#' `vignette("s7-interfaces-and-traits")` for an executed example.
 #'
 #' @docType package
 #' @name s7contract
