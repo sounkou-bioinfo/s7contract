@@ -222,6 +222,89 @@ user functions. Shrinkers and mapping functions must be deterministic,
 and mapped constructors must accept every visited shrink.</p>
 </div>
 <div class="section level2">
+<h2 id="dependent-inputs">Dependent inputs<a class="anchor" aria-label="anchor" href="#dependent-inputs"></a>
+</h2>
+<p><code><a href="../reference/gen_bind.html">gen_bind()</a></code> uses one generated value to construct the
+next generator. Here the sequence length and its bases belong to one
+dependent input. Every shrink still has exactly the declared length, so
+the law needs no discarded preconditions.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sequences</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_bind.html">gen_bind</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">20L</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/gen_constant.html">gen_product</a></span><span class="op">(</span></span>
+<span>    length <span class="op">=</span> <span class="fu"><a href="../reference/gen_constant.html">gen_constant</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>,</span>
+<span>    bases <span class="op">=</span> <span class="fu"><a href="../reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_element.html">gen_element</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"C"</span>, <span class="st">"G"</span>, <span class="st">"T"</span><span class="op">)</span><span class="op">)</span>, min <span class="op">=</span> <span class="va">n</span>, max <span class="op">=</span> <span class="va">n</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">sequence_law</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">new_law</a></span><span class="op">(</span></span>
+<span>  <span class="st">"sequence length matches its declaration"</span>,</span>
+<span>  generators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">sequences</span><span class="op">)</span>,</span>
+<span>  holds <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">x</span><span class="op">$</span><span class="va">bases</span><span class="op">)</span> <span class="op">==</span> <span class="va">x</span><span class="op">$</span><span class="va">length</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/new_law.html">expect_law</a></span><span class="op">(</span><span class="va">sequence_law</span>, tests <span class="op">=</span> <span class="fl">40L</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; ----- PASSED      : &lt;--&gt;</span></span>
+<span><span class="co">#&gt;  call| expect_law(sequence_law, tests = 40, seed = 1)</span></span>
+<span><span class="co">#&gt;  info| Law 'sequence length matches its declaration' passed 40 tests (seed 1).</span></span>
+<span><span class="fu"><a href="../reference/gen_example.html">gen_example</a></span><span class="op">(</span><span class="va">sequences</span>, size <span class="op">=</span> <span class="fl">10L</span>, seed <span class="op">=</span> <span class="fl">42L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $length</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $bases</span></span>
+<span><span class="co">#&gt; character(0)</span></span></code></pre></div>
+<p>Shrinking first tries smaller source values and rebuilds the
+dependent generator, then shrinks its result. Each rebuild uses the same
+captured local seed and size. Random draws inside the law therefore do
+not change the regenerated candidates. The factory must depend only on
+its input and the scoped RNG, and its constructors must accept every
+visited source shrink.</p>
+</div>
+<div class="section level2">
+<h2 id="choices-and-recursive-values">Choices and recursive values<a class="anchor" aria-label="anchor" href="#choices-and-recursive-values"></a>
+</h2>
+<p><code><a href="../reference/gen_element.html">gen_element()</a></code> chooses a value; <code><a href="../reference/gen_element.html">gen_choice()</a></code>
+chooses a generator. Entries are ordered from simpler to more complex
+for shrinking. Optional <code>prob</code> weights control sampling;
+zero-weight entries are excluded from generation and shrinking. All
+entries with positive weight are available even at size zero.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nullable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_element.html">gen_choice</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_constant</a></span><span class="op">(</span><span class="cn">NA_integer_</span><span class="op">)</span>, <span class="fu"><a href="../reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="op">)</span>, prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">9</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/gen_example.html">gen_example</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="va">nullable</span>, min <span class="op">=</span> <span class="fl">6L</span>, max <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">10L</span>, seed <span class="op">=</span> <span class="fl">42L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] NA  4  1 -4 -7 NA</span></span></code></pre></div>
+<p><code><a href="../reference/gen_bind.html">gen_sized()</a></code> builds a generator from the runner’s current
+size. <code><a href="../reference/gen_bind.html">gen_resize()</a></code> overrides the size for one generator
+while leaving sibling generators alone. <code><a href="../reference/gen_bind.html">gen_recursive()</a></code>
+supplies its expansion function with a child generator that uses half
+the current size, rounded down. At size zero, only the base generator
+runs. This supports nested lists, expression trees, or recursive S7
+objects.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">trees</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_bind.html">gen_recursive</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/gen_element.html">gen_element</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"C"</span>, <span class="st">"G"</span>, <span class="st">"T"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">child</span><span class="op">)</span> <span class="fu"><a href="../reference/gen_constant.html">gen_product</a></span><span class="op">(</span>left <span class="op">=</span> <span class="va">child</span>, right <span class="op">=</span> <span class="va">child</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/gen_example.html">gen_example</a></span><span class="op">(</span><span class="va">trees</span>, size <span class="op">=</span> <span class="fl">7L</span>, seed <span class="op">=</span> <span class="fl">42L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "G"</span></span>
+<span></span>
+<span><span class="va">leaf_count</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">tree</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">tree</span><span class="op">)</span><span class="op">)</span> <span class="fu">leaf_count</span><span class="op">(</span><span class="va">tree</span><span class="op">$</span><span class="va">left</span><span class="op">)</span> <span class="op">+</span> <span class="fu">leaf_count</span><span class="op">(</span><span class="va">tree</span><span class="op">$</span><span class="va">right</span><span class="op">)</span> <span class="kw">else</span> <span class="fl">1L</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">tree_law</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">new_law</a></span><span class="op">(</span></span>
+<span>  <span class="st">"binary trees have at least one leaf"</span>,</span>
+<span>  generators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tree <span class="op">=</span> <span class="va">trees</span><span class="op">)</span>,</span>
+<span>  holds <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">tree</span><span class="op">)</span> <span class="fu">leaf_count</span><span class="op">(</span><span class="va">tree</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">1L</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/new_law.html">expect_law</a></span><span class="op">(</span><span class="va">tree_law</span>, tests <span class="op">=</span> <span class="fl">30L</span>, seed <span class="op">=</span> <span class="fl">1L</span>, max_size <span class="op">=</span> <span class="fl">7L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; ----- PASSED      : &lt;--&gt;</span></span>
+<span><span class="co">#&gt;  call| expect_law(tree_law, tests = 30, seed = 1, max_size = 7)</span></span>
+<span><span class="co">#&gt;  info| Law 'binary trees have at least one leaf' passed 30 tests (seed 1).</span></span></code></pre></div>
+<p>Recursive size bounds depth, not total node count; the expansion
+function still controls branching. Shrinking can replace a recursive
+value with a base value before shrinking within a branch.
+<code><a href="../reference/gen_example.html">gen_no_shrink()</a></code> removes a generator’s shrinking when a
+value must remain fixed during the search. <code><a href="../reference/gen_example.html">gen_example()</a></code>
+draws one value without expanding shrinks and restores the caller’s RNG
+state.</p>
+</div>
+<div class="section level2">
 <h2 id="relationship-to-hedgehog">Relationship to Hedgehog<a class="anchor" aria-label="anchor" href="#relationship-to-hedgehog"></a>
 </h2>
 <p><a href="https://hedgehogqa.r-universe.dev/hedgehog" class="external-link">R Hedgehog</a>
@@ -230,8 +313,8 @@ carry lazy rose trees, with deterministic shrinking preserved through
 composition. The underlying <a href="https://hackage.haskell.org/package/hedgehog" class="external-link">Haskell Hedgehog</a>
 design includes mapping, dependent generation, size-aware ranges, and
 state-machine testing.</p>
-<p>The table describes the scope of s7contract 0.2.0. It is not a
-compatibility claim.</p>
+<p>The table describes the current development version, without claiming
+API or seed compatibility with Hedgehog.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -239,7 +322,7 @@ compatibility claim.</p>
 </colgroup>
 <thead><tr class="header">
 <th align="left">Concept</th>
-<th align="left">s7contract 0.2.0</th>
+<th align="left">s7contract</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -256,28 +339,38 @@ combine independent generators.</td>
 </tr>
 <tr class="odd">
 <td align="left">Dependent / monadic composition</td>
-<td align="left">No built-in bind combinator; custom generators must
-supply generation and shrinking together.</td>
+<td align="left">
+<code><a href="../reference/gen_bind.html">gen_bind()</a></code> rebuilds downstream generators
+when upstream inputs shrink.</td>
 </tr>
 <tr class="even">
 <td align="left">Size-aware generation</td>
-<td align="left">Integer ranges and vector lengths grow with the
-runner’s size, up to configured bounds.</td>
+<td align="left">Integer ranges and vector lengths grow with size;
+<code><a href="../reference/gen_bind.html">gen_sized()</a></code> and <code><a href="../reference/gen_bind.html">gen_resize()</a></code> expose size
+control.</td>
 </tr>
 <tr class="odd">
 <td align="left">Choice and recursive generation</td>
-<td align="left">No built-in combinators.</td>
+<td align="left">
+<code><a href="../reference/gen_element.html">gen_element()</a></code>, <code><a href="../reference/gen_element.html">gen_choice()</a></code>,
+and <code><a href="../reference/gen_bind.html">gen_recursive()</a></code> retain integrated shrinking.</td>
 </tr>
 <tr class="even">
+<td align="left">Inspection and shrink control</td>
+<td align="left">
+<code><a href="../reference/gen_example.html">gen_example()</a></code> draws a reproducible value;
+<code><a href="../reference/gen_example.html">gen_no_shrink()</a></code> removes shrinking.</td>
+</tr>
+<tr class="odd">
 <td align="left">State-machine testing</td>
 <td align="left">No command/model runner.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Behavioral contracts</td>
 <td align="left">Laws can exercise S7 interfaces and traits through
 ordinary calls.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Test-framework integration</td>
 <td align="left">
 <code><a href="../reference/new_law.html">check_law()</a></code> returns structured results;

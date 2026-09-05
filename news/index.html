@@ -40,7 +40,9 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0.9000" id="s7contract-0209000">s7contract 0.2.0.9000<a class="anchor" aria-label="anchor" href="#s7contract-0209000"></a></h2>
-</div>
+<ul><li><p>Added dependent generation with <code><a href="../reference/gen_bind.html">gen_bind()</a></code>, weighted <code><a href="../reference/gen_element.html">gen_element()</a></code> and <code><a href="../reference/gen_element.html">gen_choice()</a></code>, and size control with <code><a href="../reference/gen_bind.html">gen_sized()</a></code> and <code><a href="../reference/gen_bind.html">gen_resize()</a></code>. Dependent shrinks rebuild valid inputs with a captured local seed.</p></li>
+<li><p>Added <code><a href="../reference/gen_bind.html">gen_recursive()</a></code> for structures with decreasing recursive size, <code><a href="../reference/gen_example.html">gen_example()</a></code> for reproducible inspection, and <code><a href="../reference/gen_example.html">gen_no_shrink()</a></code>.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="s7contract-020">s7contract 0.2.0<a class="anchor" aria-label="anchor" href="#s7contract-020"></a></h2>
 <ul><li><p>Fixed nested vector generator composition. Vector shrinking now removes contiguous chunks throughout a vector while preserving its length bounds.</p></li>

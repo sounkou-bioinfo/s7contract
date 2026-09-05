@@ -2,6 +2,25 @@
 
 ## s7contract 0.2.0.9000
 
+- Added dependent generation with
+  [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md),
+  weighted
+  [`gen_element()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md)
+  and
+  [`gen_choice()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md),
+  and size control with
+  [`gen_sized()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
+  and
+  [`gen_resize()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md).
+  Dependent shrinks rebuild valid inputs with a captured local seed.
+
+- Added
+  [`gen_recursive()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
+  for structures with decreasing recursive size,
+  [`gen_example()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md)
+  for reproducible inspection, and
+  [`gen_no_shrink()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md).
+
 ## s7contract 0.2.0
 
 - Fixed nested vector generator composition. Vector shrinking now

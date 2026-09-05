@@ -49,6 +49,17 @@
   [`gen_product()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
   [`gen_vector()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
   : Basic property-based test generators
+- [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
+  [`gen_sized()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
+  [`gen_resize()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
+  [`gen_recursive()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
+  : Compose dependent, sized, and recursive generators
+- [`gen_element()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md)
+  [`gen_choice()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md)
+  : Choose values or generators
+- [`gen_example()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md)
+  [`gen_no_shrink()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md)
+  : Inspect a generator or disable its shrinking
 - [`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
   [`assume()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
   [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
