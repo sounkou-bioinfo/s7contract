@@ -13,6 +13,15 @@ smaller counterexample. One call to
 [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
 becomes one tinytest result even though the law is evaluated many times.
 
+In `s7contract`, these laws provide behavioral evidence for protocols
+whose operations are described by interfaces or traits. The [Behavioral
+Contracts on
+S7](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md)
+vignette defines one `VectorLike` law suite, runs it against two
+implementations, and finds a faulty slice method that satisfies the
+interface. This vignette explains the generator and runner machinery
+used by that example.
+
 ## A tinytest property
 
 The generator below produces integer vectors and carries an integrated

@@ -2,7 +2,7 @@
 
 ### Concepts
 
-- [Go-Like Interfaces and Rust-Like Traits on
+- [Behavioral Contracts on
   S7](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md):
 
 ### Use Cases

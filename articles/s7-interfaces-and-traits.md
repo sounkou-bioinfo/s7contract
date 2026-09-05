@@ -1,4 +1,4 @@
-# Go-Like Interfaces and Rust-Like Traits on S7
+# Behavioral Contracts on S7
 
 ``` r
 
@@ -8,21 +8,24 @@ library(s7contract)
 
 ## Introduction
 
-`s7contract` is a small experiment: can interface and trait ideas be
-expressed on top of S7 without replacing S7’s method system? The package
-answers yes, but with an important constraint. S7 still owns dispatch.
-`s7contract` only records and checks contracts around ordinary S7
-generics.
+`s7contract` makes behavioral protocols explicit and testable around
+ordinary S7 dispatch. It began with structural interfaces and explicit
+traits, then added argument/return checks and generative laws. These
+pieces answer different questions about the same implementation.
 
-The most natural layer is a Go-like structural interface. In S7,
-operations are already ordinary functions such as `draw(x)` or
-`area(x)`, and methods are registered for classes. A structural
-interface can therefore be just a named set of required generics.
+| Mechanism | What it checks |
+|:---|:---|
+| S7 class properties and validators | Whether an object’s representation is valid. |
+| Structural interface | Whether S7 can find the required methods. |
+| Explicit trait | Whether an implementation is declared with the required associated items. |
+| Checked call | Whether supplied argument and return specifications hold for this call. |
+| Generative law | Whether a behavioral claim holds for generated cases. |
 
-A Rust-like trait is also possible, but it needs an explicit registry.
-That extra machinery is useful for default methods and associated
-metadata, but it is less native to S7 because R does not have Rust’s
-compile-time trait bounds, coherence rules, or associated type checker.
+An implementation can satisfy an interface and still return incorrect
+answers. This vignette follows one vector protocol from method
+requirements to reusable laws, including a counterexample from a faulty
+implementation. Method registration and dispatch remain ordinary S7
+operations throughout.
 
 ## Background
 
@@ -307,37 +310,38 @@ num_scale(10, 0.5)
 #> [1] 5
 ```
 
-This interface does not prove mathematical laws such as associativity or
-an identity element. It only says that these operations are present. If
-those laws matter, they should be described in the documentation and
-tested with examples that are specific to the domain.
+This interface checks operation availability. Mathematical claims such
+as associativity or an identity element can be expressed with
+[`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+and domain-specific generators. The vector protocol below shows how to
+reuse such laws across implementations.
 
 ## Vector-like behavior
 
 A vector-like contract is often more practical. Many algorithms only
-need a length, a way to slice, and a way to expose values.
+need a length, a way to slice, and a way to expose values. Here both
+ordinary double vectors and `ReadDepth` objects implement those
+operations. The class validator keeps positions and depths aligned,
+while the interface describes the behavior consumers need.
 
 ``` r
 
 vec_length <- new_generic("vec_length", "x")
-vec_slice <- new_generic("vec_slice", "x")
+vec_slice <- new_generic("vec_slice", "x", function(x, i) S7_dispatch())
 vec_values <- new_generic("vec_values", "x")
 
 VectorLike <- new_interface(
   "VectorLike",
   generics = list(
-    length = vec_length,
-    slice = vec_slice,
-    values = vec_values
+    length = interface_requirement(vec_length, returns = class_integer),
+    slice = interface_requirement(vec_slice, args = list(i = class_integer)),
+    values = interface_requirement(vec_values, returns = class_double)
   )
 )
 
 ReadDepth <- new_class(
   "ReadDepth",
-  properties = list(
-    position = class_integer,
-    depth = class_double
-  ),
+  properties = list(position = class_integer, depth = class_double),
   validator = function(self) {
     if (length(self@position) != length(self@depth)) {
       "@position and @depth must have the same length"
@@ -351,15 +355,15 @@ method(vec_slice, ReadDepth) <- function(x, i) {
 }
 method(vec_values, ReadDepth) <- function(x) x@depth
 
-coverage <- ReadDepth(
-  position = 1:5,
-  depth = c(12, 15, 9, 20, 17)
-)
+method(vec_length, class_double) <- function(x) length(x)
+method(vec_slice, class_double) <- function(x, i) x[i]
+method(vec_values, class_double) <- function(x) x
 
+coverage <- ReadDepth(position = 1:5, depth = c(12, 15, 9, 20, 17))
 implements(coverage, VectorLike)
 #> [1] TRUE
-vec_values(vec_slice(coverage, 2:4))
-#> [1] 15  9 20
+implements(class_double, VectorLike)
+#> [1] TRUE
 ```
 
 A function can depend on this small protocol without knowing how the
@@ -369,16 +373,178 @@ object is represented internally.
 
 window_mean <- function(x, i) {
   assert_implements(x, VectorLike)
-  mean(vec_values(vec_slice(x, i)))
+  with(VectorLike, mean(vec_values(vec_slice(x, i))))
 }
 
 window_mean(coverage, 2:4)
 #> [1] 14.66667
+window_mean(c(12, 15, 9, 20, 17), 2:4)
+#> [1] 14.66667
 ```
 
-This kind of interface is best used at package boundaries. It is not
-meant to replace base vectors, S7 classes, or mature vector frameworks;
-it names the small piece of behavior a consumer needs.
+## One protocol, several implementations
+
+The protocol author can publish a function returning a named list of
+laws. Implementation authors supply a constructor from reference values
+to their own representation. Each law uses the same S7 generics and
+checks the result against those reference values.
+
+The domain here is unnamed double vectors containing small integers,
+with positive, in-range integer indices. Empty vectors and selections
+are included; indices may repeat or appear out of order. Missing values,
+names, negative indices, and the rest of R’s subsetting semantics are
+outside this example.
+
+[`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
+constructs the object and an index generator from the reference values.
+When those values shrink, it rebuilds both, preserving object validity
+and index bounds. Bounds come from the reference data rather than the
+method being tested. Inside the contract mask,
+[`base::length()`](https://rdrr.io/r/base/length.html) keeps the
+reference calculation separate from the interface’s `length` alias.
+
+``` r
+
+vector_laws <- function(make) {
+  values <- gen_map(gen_vector(gen_integer(-10L, 10L), max = 6L), as.double)
+  cases <- gen_bind(values, function(values) {
+    indices <- if (length(values) == 0L) {
+      gen_constant(integer())
+    } else {
+      gen_vector(gen_element(seq_along(values)), max = 6L)
+    }
+    gen_product(
+      x = gen_constant(make(values)),
+      values = gen_constant(values),
+      i = indices
+    )
+  })
+
+  list(
+    values = new_law("values preserve constructor input", list(input = cases),
+      function(input) with(VectorLike, {
+        identical(vec_values(input$x), input$values)
+      })),
+    length = new_law("length agrees with constructor input", list(input = cases),
+      function(input) with(VectorLike, {
+        identical(vec_length(input$x), base::length(input$values))
+      })),
+    slice_values = new_law("slicing preserves selected values and order", list(input = cases),
+      function(input) with(VectorLike, {
+        identical(vec_values(vec_slice(input$x, input$i)), input$values[input$i])
+      })),
+    slice_length = new_law("slice length matches the index count", list(input = cases),
+      function(input) with(VectorLike, {
+        identical(vec_length(vec_slice(input$x, input$i)), base::length(input$i))
+      }))
+  )
+}
+```
+
+`vector_laws()` is an ordinary function returning ordinary law objects.
+A list and [`lapply()`](https://rdrr.io/r/base/lapply.html) are enough
+to run the same four claims against both representations.
+
+``` r
+
+implementations <- list(
+  numeric = identity,
+  read_depth = function(values) ReadDepth(position = seq_along(values), depth = values)
+)
+vector_results <- lapply(implementations, function(make) {
+  lapply(vector_laws(make), check_law, tests = 100L, seed = 1L)
+})
+sapply(vector_results, function(results) {
+  vapply(results, function(result) result@status, character(1))
+})
+#>              numeric  read_depth
+#> values       "passed" "passed"  
+#> length       "passed" "passed"  
+#> slice_values "passed" "passed"  
+#> slice_length "passed" "passed"
+```
+
+## Structural conformance and a behavioral failure
+
+This subclass inherits the correct length and value methods, but its
+slice method reverses the requested order. All required methods are
+available, so
+[`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
+succeeds. Its slices also have valid representations and the expected
+value type and length.
+
+``` r
+
+ReversedDepth <- new_class("ReversedDepth", parent = ReadDepth)
+method(vec_slice, ReversedDepth) <- function(x, i) {
+  ReadDepth(position = x@position[rev(i)], depth = x@depth[rev(i)])
+}
+
+implements(ReversedDepth, VectorLike)
+#> [1] TRUE
+broken_results <- lapply(
+  vector_laws(function(values) ReversedDepth(position = seq_along(values), depth = values)),
+  check_law, tests = 100L, seed = 1L
+)
+vapply(broken_results, function(result) result@status, character(1))
+#>       values       length slice_values slice_length 
+#>     "passed"     "passed"  "falsified"     "passed"
+```
+
+Only the law about selected values and their order fails.
+[`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+reports that failure separately from structural conformance, and shrinks
+it to a smaller valid input. The checked call below still succeeds; its
+result differs from the reference slice.
+
+``` r
+
+failure <- broken_results$slice_values
+failure
+#> Law 'slicing preserves selected values and order' was falsified after 7 attempts and 6 shrinks (seed 1).
+#> The law returned FALSE.
+#> Shrinking stopped: no child of this counterexample preserves the failure.
+#> Smallest counterexample found:
+#> List of 1
+#>  $ input:List of 3
+#>   ..$ x     : <ReversedDepth>
+#>   .. ..@ position: int [1:2] 1 2
+#>   .. ..@ depth   : num [1:2] 0 -1
+#>   ..$ values: num [1:2] 0 -1
+#>   ..$ i     : int [1:2] 2 1
+example <- failure@counterexample@minimal$input
+example$values
+#> [1]  0 -1
+example$i
+#> [1] 2 1
+with(VectorLike, vec_values(vec_slice(example$x, example$i)))
+#> [1]  0 -1
+example$values[example$i]
+#> [1] -1  0
+```
+
+The result records the inputs and run parameters needed to replay the
+failure:
+
+``` r
+
+replayed <- do.call(check_law, c(list(law = failure@law), failure@parameters))
+identical(replayed@counterexample@minimal, failure@counterexample@minimal)
+#> [1] TRUE
+```
+
+These example definitions and checks are installed together in
+`system.file("examples", "vector-laws.R", package = "s7contract")`. The
+vignette and package tests execute that same script. For generator
+composition, budgets, and tinytest integration, see
+[`vignette("property-laws")`](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.md).
+
+[`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
+continues to check method availability;
+[`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
+checks declared implementation. Neither runs laws or changes meaning
+after a law passes or fails. The protocol’s laws and its
+implementation-specific generators are explicit test inputs.
 
 ## An explicit trait
 
@@ -507,8 +673,9 @@ dict_bind(
 ```
 
 The interface checks operation availability. The monad laws are semantic
-properties, so they belong in tests. A small law check can still be
-written in plain R.
+properties. These three concrete checks illustrate their meaning; the
+`vector_laws()` pattern above can also assemble generative laws for
+dictionaries.
 
 ``` r
 

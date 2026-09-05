@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Go-Like Interfaces and Rust-Like Traits with S7 • s7contract</title>
+<title>Behavioral Contracts and Generative Laws for S7 • s7contract</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Go-Like Interfaces and Rust-Like Traits with S7">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Behavioral Contracts and Generative Laws for S7">
 <meta name="description" content="Contract helpers built with S7 for expressing runtime protocols around ordinary S7 dispatch. Structural interfaces describe small sets of required S7 generics, while explicit traits record registered implementations with optional default methods and associated metadata. Optional runtime checks can validate argument and return specifications in contract-scoped evaluation. Generative laws combine composable generators, deterministic shrinking, and one-result tinytest expectations.">
 <meta property="og:description" content="Contract helpers built with S7 for expressing runtime protocols around ordinary S7 dispatch. Structural interfaces describe small sets of required S7 generics, while explicit traits record registered implementations with optional default methods and associated metadata. Optional runtime checks can validate argument and return specifications in contract-scoped evaluation. Generative laws combine composable generators, deterministic shrinking, and one-result tinytest expectations.">
 </head>
@@ -35,7 +35,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/s7-interfaces-and-traits.html">Go-Like Interfaces and Rust-Like Traits on S7</a></li>
+<li><a class="dropdown-item" href="articles/s7-interfaces-and-traits.html">Behavioral Contracts on S7</a></li>
     <li><a class="dropdown-item" href="articles/bioinformatics-interfaces.html">Bioinformatics Containers as Interfaces</a></li>
     <li><a class="dropdown-item" href="articles/property-laws.html">Generative Laws with tinytest</a></li>
   </ul>
@@ -58,7 +58,8 @@
 <div class="page-header"><h1 id="s7contract">s7contract<a class="anchor" aria-label="anchor" href="#s7contract"></a>
 </h1></div>
 <p><a href="https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/sounkou-bioinfo/s7contract/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://sounkou-bioinfo.r-universe.dev/s7contract" class="external-link"><img src="https://sounkou-bioinfo.r-universe.dev/badges/s7contract" alt="R-universe"></a></p>
-<p><code>s7contract</code> provides small experimental contract helpers for <a href="https://rconsortium.github.io/S7/" class="external-link">S7</a>. It keeps dispatch in ordinary S7 generics and methods. The words “interface” and “trait” are loose analogies, not Go or Rust compatibility claims.</p>
+<p><code>s7contract</code> makes behavioral protocols explicit and testable around ordinary <a href="https://rconsortium.github.io/S7/" class="external-link">S7</a> dispatch. Interfaces describe required operations; traits record explicit implementations with defaults and metadata. Optional argument and return checks validate individual calls. Generative laws test relationships between operations across generated examples.</p>
+<p>The interface and trait designs draw on Go and Rust, while generation and shrinking draw on Hedgehog. <code><a href="reference/interface_requirements.html">implements()</a></code> checks method availability, <code><a href="reference/trait_methods.html">has_trait()</a></code> checks declared implementation, and <code><a href="reference/new_law.html">check_law()</a></code> reports sampled evidence about behavior.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -196,25 +197,26 @@
 <span><span class="co">#&gt; [1] "Return value must be &lt;character&gt;, not &lt;double&gt;"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="generative-laws-with-tinytest">Generative laws with tinytest<a class="anchor" aria-label="anchor" href="#generative-laws-with-tinytest"></a>
+<h2 id="testing-protocol-laws">Testing protocol laws<a class="anchor" aria-label="anchor" href="#testing-protocol-laws"></a>
 </h2>
 <p>A law combines named generators with behavior that must hold for every sampled case. <code><a href="reference/new_law.html">expect_law()</a></code> executes the cases, shrinks the first counterexample, and returns one ordinary tinytest result.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">tinytest</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytest/man/using.html" class="external-link">using</a></span><span class="op">(</span><span class="va">s7contract</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">reverse_law</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/new_law.html">new_law</a></span><span class="op">(</span></span>
-<span>  <span class="st">"reverse is involutive"</span>,</span>
+<span><span class="va">area_law</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/new_law.html">new_law</a></span><span class="op">(</span></span>
+<span>  <span class="st">"non-negative radii have non-negative area"</span>,</span>
 <span>  generators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    x <span class="op">=</span> <span class="fu"><a href="reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="fu"><a href="reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="op">-</span><span class="fl">100L</span>, <span class="fl">100L</span><span class="op">)</span>, max <span class="op">=</span> <span class="fl">20L</span><span class="op">)</span></span>
+<span>    x <span class="op">=</span> <span class="fu"><a href="reference/gen_constant.html">gen_map</a></span><span class="op">(</span><span class="fu"><a href="reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">100L</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu">Circle</span><span class="op">(</span>r <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  holds <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rev.html" class="external-link">rev</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rev.html" class="external-link">rev</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span>, <span class="va">x</span><span class="op">)</span></span>
+<span>  holds <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">Shape</span>, <span class="fu">area</span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">0</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="reference/new_law.html">expect_law</a></span><span class="op">(</span><span class="va">reverse_law</span>, tests <span class="op">=</span> <span class="fl">100L</span>, seed <span class="op">=</span> <span class="fl">20260902L</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/new_law.html">expect_law</a></span><span class="op">(</span><span class="va">area_law</span>, tests <span class="op">=</span> <span class="fl">100L</span>, seed <span class="op">=</span> <span class="fl">20260902L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; ----- PASSED      : &lt;--&gt;</span></span>
-<span><span class="co">#&gt;  call| expect_law(reverse_law, tests = 100, seed = 20260902)</span></span>
-<span><span class="co">#&gt;  info| Law 'reverse is involutive' passed 100 tests (seed 20260902).</span></span></code></pre></div>
+<span><span class="co">#&gt;  call| expect_law(area_law, tests = 100, seed = 20260902)</span></span>
+<span><span class="co">#&gt;  info| Law 'non-negative radii have non-negative area' passed 100 tests (seed 20260902).</span></span></code></pre></div>
 <p>Generators construct valid examples explicitly; arbitrary S7 validators are not treated as invertible generator definitions. <code><a href="reference/gen_bind.html">gen_bind()</a></code> builds dependent inputs, such as a length and a vector of that length, and preserves the relationship during shrinking. <code><a href="reference/gen_element.html">gen_choice()</a></code> selects among generators, and <code><a href="reference/gen_bind.html">gen_recursive()</a></code> builds nested values with decreasing recursive size. See <code><a href="articles/property-laws.html">vignette("property-laws")</a></code> for executed interface and counterexample examples, replay, and the scope relative to R and Haskell Hedgehog.</p>
+<p>The <a href="https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.html">protocol vignette</a> defines one <code>VectorLike</code> law suite for numeric vectors and a <code>ReadDepth</code> class. A deliberately faulty slice method passes structural checks but fails the slicing law. The example uses ordinary functions returning lists of laws, and is also installed as <code>system.file("examples", "vector-laws.R", package = "s7contract")</code>.</p>
 <p>Shrinking reports the smallest counterexample found and whether the search completed, reached its evaluation budget, or encountered a shrinking error. Runs use a fixed RNG configuration and record their parameters for replay. Callers using Box-Muller normals must select another normal RNG kind first, because R does not expose the cached normal draw needed to restore their state.</p>
 </div>
 <div class="section level2">

@@ -2,6 +2,15 @@
 
 ## s7contract 0.2.0.9000
 
+- Added a reusable `VectorLike` law example shared by numeric vectors
+  and `ReadDepth`, with a faulty implementation that passes structural
+  checks but fails a slicing law. The vignette and tests execute the
+  same installed script.
+
+- Clarified how interfaces, traits, checked calls, and generative laws
+  describe and test behavioral protocols. Updated the package title to
+  reflect that scope.
+
 - Added dependent generation with
   [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md),
   weighted

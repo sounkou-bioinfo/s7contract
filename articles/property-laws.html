@@ -33,7 +33,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/s7-interfaces-and-traits.html">Go-Like Interfaces and Rust-Like Traits on S7</a></li>
+<li><a class="dropdown-item" href="../articles/s7-interfaces-and-traits.html">Behavioral Contracts on S7</a></li>
     <li><a class="dropdown-item" href="../articles/bioinformatics-interfaces.html">Bioinformatics Containers as Interfaces</a></li>
     <li><a class="dropdown-item" href="../articles/property-laws.html">Generative Laws with tinytest</a></li>
   </ul>
@@ -76,6 +76,13 @@ examples, laws state behavior over those examples, and a runner searches
 for a smaller counterexample. One call to <code><a href="../reference/new_law.html">expect_law()</a></code>
 becomes one tinytest result even though the law is evaluated many
 times.</p>
+<p>In <code>s7contract</code>, these laws provide behavioral evidence
+for protocols whose operations are described by interfaces or traits.
+The <a href="s7-interfaces-and-traits.html">Behavioral Contracts on
+S7</a> vignette defines one <code>VectorLike</code> law suite, runs it
+against two implementations, and finds a faulty slice method that
+satisfies the interface. This vignette explains the generator and runner
+machinery used by that example.</p>
 <div class="section level2">
 <h2 id="a-tinytest-property">A tinytest property<a class="anchor" aria-label="anchor" href="#a-tinytest-property"></a>
 </h2>

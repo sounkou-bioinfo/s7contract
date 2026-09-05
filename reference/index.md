@@ -4,7 +4,7 @@
 
 - [`s7contract-package`](https://sounkou-bioinfo.github.io/s7contract/reference/s7contract.md)
   [`s7contract`](https://sounkou-bioinfo.github.io/s7contract/reference/s7contract.md)
-  : s7contract: Contract Helpers for S7
+  : s7contract: Behavioral Contracts and Generative Laws for S7
 
 ## Interfaces
 

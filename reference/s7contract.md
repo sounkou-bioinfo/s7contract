@@ -1,7 +1,7 @@
-# s7contract: Contract Helpers for S7
+# s7contract: Behavioral Contracts and Generative Laws for S7
 
-`s7contract` provides experimental runtime contracts and generative
-laws:
+`s7contract` makes behavioral protocols explicit and testable around
+ordinary S7 dispatch:
 
 ## Details
 
@@ -10,11 +10,22 @@ laws:
 - Rust-like explicit traits with default methods and associated
   metadata.
 
+- Optional argument and return specifications checked at the point of
+  use.
+
 - Property-based laws with integrated shrinking and tinytest
   expectations.
 
-The package keeps actual method dispatch inside ordinary S7 generics and
-uses runtime checks to describe or assert conformance.
+[`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
+checks method availability and
+[`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
+checks declared implementation.
+[`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+supplies separate evidence about behavior over generated cases. Protocol
+authors can reuse laws across implementations by writing ordinary
+functions that construct lists of laws; see
+[`vignette("s7-interfaces-and-traits")`](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md)
+for an executed example.
 
 ## See also
 
