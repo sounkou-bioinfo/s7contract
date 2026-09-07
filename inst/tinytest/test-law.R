@@ -187,7 +187,7 @@ expect_identical(exhausted@status, "exhausted")
 expect_identical(exhausted@tests, 0L)
 expect_identical(exhausted@discards, 3L)
 
-# Discards still advance generator size, allowing later values to qualify.
+# Discarded cases advance generator size, allowing later values to qualify.
 size_gen <- new_generator(
   draw = function(size) as.integer(size),
   prototype = integer()

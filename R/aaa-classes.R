@@ -1,8 +1,7 @@
 # Internal S7 classes for contract descriptors.
 #
-# These are intentionally not exported. User-facing construction should go
-# through new_interface(), interface_requirement(), new_trait(), trait_method(),
-# and impl_trait() so validation and method registration happen in one place.
+# new_interface(), interface_requirement(), new_trait(), trait_method(), and
+# impl_trait() validate descriptors and register methods for public callers.
 
 s7_interface_requirement <- S7::new_class(
   "s7_interface_requirement",

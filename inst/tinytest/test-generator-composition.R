@@ -140,7 +140,7 @@ expect_identical(no_shrink_result@shrink_status, "complete")
 expect_identical(gen_example(gen_no_shrink(choices), seed = 2L), gen_example(choices, seed = 2L))
 expect_identical(gen_example(gen_vector(gen_no_shrink(ten), 2L, 2L)), c(10L, 10L))
 
-# Factory errors, warnings, and invalid results use the existing runner errors.
+# Factory errors, warnings, and invalid results produce structured runner errors.
 for (bad in list(gen_bind(ten, function(x) 1L), gen_sized(function(size) 1L))) {
   expect_error(gen_example(bad), pattern = "factory must return a generator", fixed = TRUE)
   failure <- check_law(new_law("invalid factory", list(x = bad), function(x) TRUE))

@@ -1,21 +1,24 @@
-# s7contract 0.2.0.9000
+# s7contract 0.2.1
 
-* Added `gen_sample()` for fixed-size sampling without replacement and
-  `gen_subsequence()` for ordered selections. Shrinking preserves distinct
-  source positions; the vector laws now cover both alongside repeated indices.
+* Added generative laws with `new_law()`, structured results from `check_law()`,
+  and one-result tinytest integration through `expect_law()`.
 
-* Store laws now generate multi-character UTF-8 keys and detect a put method
-  that truncates them. A new calendar-interval example maps integer offsets to
-  whole dates and detects an excluded endpoint. Both examples check case coverage.
+* Generators support integers, finite doubles, constants, mapping, independent
+  products, and nested vectors. `gen_sample()` selects positions without
+  replacement; `gen_subsequence()` preserves source order.
 
-* The Maybe dictionary example now checks all three monad laws with generated
-  values and function descriptions, including short-circuit cases. A faulty
-  dictionary demonstrates a reproducible failure with reduced function inputs.
+* Added dependent generation with `gen_bind()`, weighted `gen_element()` and
+  `gen_choice()`, and size control with `gen_sized()` and `gen_resize()`.
+  Dependent shrinks rebuild valid inputs with a captured local seed.
 
-* Added `gen_double()` for finite numeric intervals, with size-dependent bounds,
-  an explicit shrink origin, and lazy shrinking that stops when floating-point
-  rounding prevents progress. Vector protocol laws now exercise fractional
-  measurements and detect a value method that silently rounds them.
+* Added `gen_recursive()` for nested structures, `gen_example()` for reproducible
+  inspection, and `gen_no_shrink()` to hold values fixed during shrinking.
+
+* Shrinking constructs candidates lazily and preserves generator constraints.
+  Results report the smallest counterexample found, `shrink_status`, and
+  `shrink_condition`. Errors during shrinking preserve the original and last
+  failing examples. Vector shrinking removes chunks before shrinking elements;
+  double shrinking moves toward an explicit origin until rounding stops progress.
 
 * Added case classification and minimum observed coverage to `new_law()` and
   `new_state_law()`. Results retain counts and proportions; unmet requirements
@@ -27,59 +30,18 @@
   dependency-preserving shrinking, and original and reduced failure traces.
   The key/value example tests two S7 implementations and a faulty reset method.
 
-* Shortened the introductory vignette around one vector protocol. Moved the
-  full vector-law suite and Maybe dictionary into separate articles.
-
-* Added a reusable `VectorLike` law example shared by numeric vectors and
-  `ReadDepth`, with a faulty implementation that passes structural checks but
-  fails a slicing law.
-
-* Clarified how interfaces, traits, checked calls, and generative laws describe
-  and test behavioral protocols. Updated the package title to reflect that scope.
-
-* Added dependent generation with `gen_bind()`, weighted `gen_element()` and
-  `gen_choice()`, and size control with `gen_sized()` and `gen_resize()`.
-  Dependent shrinks rebuild valid inputs with a captured local seed.
-
-* Added `gen_recursive()` for structures with decreasing recursive size,
-  `gen_example()` for reproducible inspection, and `gen_no_shrink()`.
-
-# s7contract 0.2.0
-
-* Fixed nested vector generator composition. Vector shrinking now removes
-  contiguous chunks throughout a vector while preserving its length bounds.
-
-* Shrink candidates are constructed and mapped only when visited. Evaluation
-  budgets no longer force unused siblings or later product components.
-  Custom shrink functions still construct their own candidate lists.
-
-* Retained original and last failing examples when shrinking errors or warns.
-  Results report `shrink_status` and `shrink_condition`, and diagnostics describe
-  the smallest counterexample found rather than claiming a global minimum.
-  Generator warnings now produce structured runner errors.
-
 * Standardized law runs on Mersenne-Twister with Inversion normals and Rejection
   sampling, and recorded run parameters for replay. Box-Muller callers are
   rejected before changing RNG state because its cached normal draw cannot be
   restored through R's public API.
 
-* Consolidated integer-bound and named-generator admission checks, including
-  independent validation of each scalar bound.
+* Integer counts, bounds, and seeds are validated before conversion. Discarded
+  cases advance generator size and count toward the discard budget.
 
-* Documented the relationship to R and Haskell Hedgehog, current generator
-  composition, and limits of replay and shrinking.
-
-* Added S7-backed generative laws with composable generators, integrated
-  shrinking, deterministic framework-neutral checks, bounded precondition
-  discards, counterexample diagnostics, and one-result tinytest integration.
-
-* Discarded cases now advance generator size, accepted shrinks are retained at
-  the evaluation budget boundary, and `gen_vector()` preserves element-count
-  bounds by treating nonscalar draws as list elements and validating atomic
-  element prototypes. Zero shrink budgets no longer expand shrink trees, and
-  integer bounds and seeds reject R's reserved missing-integer sentinel.
-
-* Added references to the S7 traits discussion in RConsortium/S7#34.
+* Added reusable laws for numeric vectors and `ReadDepth`, generated Maybe
+  values and functions, UTF-8 store keys, and whole-day calendar intervals.
+  Examples demonstrate faults in slicing, rounding, key truncation, reset,
+  monad composition, and endpoint inclusion.
 
 # s7contract 0.1.0
 

@@ -21,7 +21,7 @@ expect_identical(result@coverage, data.frame(
   met = c(TRUE, TRUE, TRUE, NA, NA)
 ))
 
-# A threshold is inclusive; missing it does not invent a counterexample.
+# Coverage thresholds are inclusive; unmet coverage fails without a counterexample.
 too_high <- counted
 too_high@min_coverage <- c(even = 0.5001, never = 1)
 insufficient <- check_law(too_high, tests = 10L)

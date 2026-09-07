@@ -1,4 +1,4 @@
-# Execute the same installed example used by the concepts vignette.
+# Vector protocol conformance, behavioral laws, and shrinking.
 sys.source(system.file("examples", "vector-laws.R", package = "s7contract"),
            envir = environment())
 
@@ -9,7 +9,7 @@ for (results in vector_results) {
   expect_true(all(vapply(results, function(result) result@discards == 0L, logical(1))))
 }
 
-# Method availability remains separate from behavioral evidence.
+# ReversedDepth has the required methods but fails the slicing law.
 expect_true(implements(ReversedDepth, VectorLike))
 expect_identical(vapply(broken_results, function(result) result@status, character(1)),
                  c(values = "passed", length = "passed",
@@ -21,7 +21,7 @@ expect_true(failure@shrinks > 0L)
 expect_identical(replayed@counterexample@minimal, failure@counterexample@minimal)
 expect_identical(replayed@shrink_attempts, failure@shrink_attempts)
 
-# Shrunk examples retain valid objects and indices; checked calls still succeed.
+# Shrunk examples have valid objects and indices; slice values violate the law.
 for (arguments in list(failure@counterexample@original, failure@counterexample@minimal)) {
   input <- arguments$input
   expect_true(all(input$i %in% seq_along(input$values)))
@@ -57,7 +57,7 @@ audit_result <- do.call(check_law, c(list(law = audited), failure@parameters))
 expect_identical(audit_result@counterexample@minimal, failure@counterexample@minimal)
 expect_identical(visited, audit_result@attempts + audit_result@shrink_attempts)
 
-# Coverage makes the generated domain visible without changing counterexamples.
+# Coverage counts generated cases and enforces the requested minimum proportions.
 for (results in vector_results) {
   coverage <- results$slice_values@coverage
   expect_identical(coverage$label, c("empty", "nonempty", "repeated", "reordered",
@@ -75,7 +75,7 @@ expect_identical(failure@coverage_cases, failure@attempts)
 expect_identical(replayed@coverage, failure@coverage)
 expect_identical(failure@status, "falsified")
 
-# Rounding passed the former integer-only domain and fails on fractional inputs.
+# Rounding preserves integer inputs but changes fractional values.
 expect_true(implements(RoundedDepth, VectorLike))
 expect_identical(integer_check@status, "passed")
 expect_identical(fractional_check@status, "falsified")

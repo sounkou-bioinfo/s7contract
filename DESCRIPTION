@@ -1,6 +1,6 @@
 Package: s7contract
 Title: Behavioral Contracts and Generative Laws for 'S7'
-Version: 0.2.0.9000
+Version: 0.2.1
 Authors@R: c(
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))

@@ -45,7 +45,7 @@ audited_result <- do.call(check_law, c(list(law = audited), store_failure@parame
 expect_identical(audited_result@counterexample@minimal, store_failure@counterexample@minimal)
 expect_identical(visits, audited_result@attempts + audited_result@shrink_attempts)
 
-# The same protocol suite remains one tinytest expectation.
+# A stateful law records one tinytest expectation.
 expect_true(isTRUE(expect_law(store_law(stores$environment), tests = 20L)))
 failed_expectation <- expect_law(store_failure@law, tests = 100L, seed = 1L)
 expect_false(isTRUE(failed_expectation))
