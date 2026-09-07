@@ -81,11 +81,12 @@ A protocol author can publish a function returning a named list of laws.
 Implementation authors supply a constructor; the laws compare each
 result with the reference values passed to that constructor.
 
-The domain here is unnamed double vectors containing small integers,
-with positive, in-range integer indices. Empty vectors and selections
-are included; indices may repeat or appear out of order. Missing values,
-names, negative indices, and the rest of R’s subsetting semantics are
-outside this example.
+The domain here is unnamed vectors of finite doubles between -10 and 10,
+with positive, in-range integer indices.
+[`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
+expands its bounds with size and shrinks toward zero. Empty vectors and
+selections are included; indices may repeat or appear out of order.
+Missing values, names, and negative indices are outside this example.
 
 [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
 constructs the object and an index generator from the reference values.
@@ -97,8 +98,8 @@ reference calculation separate from the interface’s `length` alias.
 
 ``` r
 
-vector_laws <- function(make) {
-  values <- gen_map(gen_vector(gen_integer(-10L, 10L), max = 6L), as.double)
+vector_laws <- function(make, element = gen_double(-10, 10)) {
+  values <- gen_vector(element, max = 6L)
   cases <- gen_bind(values, function(values) {
     indices <- if (length(values) == 0L) {
       gen_constant(integer())
@@ -128,9 +129,11 @@ vector_laws <- function(make) {
       classify = function(input) c(
         if (length(input$values) == 0L) "empty" else "nonempty",
         if (anyDuplicated(input$i) > 0L) "repeated",
-        if (is.unsorted(input$i)) "reordered"
+        if (is.unsorted(input$i)) "reordered",
+        if (any(input$values != trunc(input$values))) "fractional"
       ),
-      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1, reordered = 0.1)
+      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1,
+                       reordered = 0.1, fractional = 0.5)
     ),
     slice_length = new_law("slice length matches the index count", list(input = cases),
       function(input) with(VectorLike, {
@@ -164,19 +167,21 @@ sapply(vector_results, function(results) {
 
 ## Which cases were tested?
 
-The slicing law classifies inputs as empty or nonempty, and labels
-selections with repeated or reordered indices. Each label counts once
-per accepted case. Its `min_coverage` requirements use proportions:
-`reordered = 0.1` asks for reordered indices in at least 10% of cases.
+The slicing law classifies inputs as empty or nonempty, records
+fractional values, and labels repeated or reordered indices. Each label
+counts once per accepted case. Its `min_coverage` requirements use
+proportions: `reordered = 0.1` asks for reordered indices in at least
+10% of cases.
 
 ``` r
 
 vector_results$numeric$slice_values@coverage
-#>       label count proportion minimum  met
-#> 1     empty    20       0.20    0.05 TRUE
-#> 2  nonempty    80       0.80    0.50 TRUE
-#> 3  repeated    46       0.46    0.10 TRUE
-#> 4 reordered    31       0.31    0.10 TRUE
+#>        label count proportion minimum  met
+#> 1      empty    16       0.16    0.05 TRUE
+#> 2   nonempty    84       0.84    0.50 TRUE
+#> 3   repeated    45       0.45    0.10 TRUE
+#> 4  reordered    37       0.37    0.10 TRUE
+#> 5 fractional    84       0.84    0.50 TRUE
 ```
 
 Fixing size at zero exercises only empty vectors. The predicate passes,
@@ -192,6 +197,7 @@ empty_only
 #>   "nonempty": 0/10 (0%; minimum 50% unmet)
 #>   "repeated": 0/10 (0%; minimum 10% unmet)
 #>   "reordered": 0/10 (0%; minimum 10% unmet)
+#>   "fractional": 0/10 (0%; minimum 50% unmet)
 #>   "empty": 10/10 (100%; minimum 5%)
 ```
 
@@ -213,7 +219,8 @@ slice method reverses the requested order. All required methods are
 available, so
 [`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
 succeeds. Its slices also have valid representations and the expected
-value type and length.
+value type and length. This run uses integer-valued doubles to keep the
+counterexample easy to read.
 
 ``` r
 
@@ -224,8 +231,10 @@ method(vec_slice, ReversedDepth) <- function(x, i) {
 
 implements(ReversedDepth, VectorLike)
 #> [1] TRUE
+whole_numbers <- gen_map(gen_integer(-10L, 10L), as.double, prototype = double())
 broken_results <- lapply(
-  vector_laws(function(values) ReversedDepth(position = seq_along(values), depth = values)),
+  vector_laws(function(values) ReversedDepth(position = seq_along(values), depth = values),
+              element = whole_numbers),
   check_law, tests = 100L, seed = 1L
 )
 vapply(broken_results, function(result) result@status, character(1))
@@ -256,6 +265,7 @@ failure
 #>   ..$ i     : int [1:2] 2 1
 #> Case coverage (7 accepted cases; partial run):
 #>   "nonempty": 3/7 (42.9%; minimum 50% unmet)
+#>   "fractional": 0/7 (0%; minimum 50% unmet)
 #>   "empty": 4/7 (57.1%; minimum 5%)
 #>   "repeated": 2/7 (28.6%; minimum 10%)
 #>   "reordered": 1/7 (14.3%; minimum 10%)
@@ -278,6 +288,26 @@ failure:
 replayed <- do.call(check_law, c(list(law = failure@law), failure@parameters))
 identical(replayed@counterexample@minimal, failure@counterexample@minimal)
 #> [1] TRUE
+```
+
+## A bug hidden by integer inputs
+
+This value method silently rounds fractional measurements. Integer-only
+inputs let it pass; the same law with
+[`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
+detects the loss of precision.
+
+``` r
+
+RoundedDepth <- new_class("RoundedDepth", parent = ReadDepth)
+method(vec_values, RoundedDepth) <- function(x) round(x@depth)
+rounded <- function(values) RoundedDepth(position = seq_along(values), depth = values)
+
+integer_check <- check_law(vector_laws(rounded, whole_numbers)$values, seed = 1L)
+fractional_check <- check_law(vector_laws(rounded)$values, seed = 1L)
+c(whole_numbers = integer_check@status, fractions = fractional_check@status)
+#> whole_numbers     fractions 
+#>      "passed"   "falsified"
 ```
 
 These example definitions and checks are installed together in

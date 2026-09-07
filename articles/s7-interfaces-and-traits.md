@@ -143,9 +143,9 @@ the object:
 ``` r
 
 length_law <- new_law("length matches constructor input",
-  generators = list(values = gen_vector(gen_integer(-10L, 10L), max = 6L)),
+  generators = list(values = gen_vector(gen_double(-10, 10), max = 6L)),
   holds = function(values) {
-    x <- ReadDepth(position = seq_along(values), depth = as.double(values))
+    x <- ReadDepth(position = seq_along(values), depth = values)
     with(VectorLike, identical(vec_length(x), base::length(values)))
   }
 )
@@ -155,7 +155,7 @@ check_law(length_law, tests = 100L, seed = 1L)
 #> Shrinking stopped: no child of this counterexample preserves the failure.
 #> Smallest counterexample found:
 #> List of 1
-#>  $ values: int(0)
+#>  $ values: num(0)
 ```
 
 The [vector law

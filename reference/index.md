@@ -49,6 +49,8 @@
   [`gen_product()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
   [`gen_vector()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
   : Basic property-based test generators
+- [`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
+  : Generate finite double values
 - [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_sized()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_resize()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)

@@ -191,7 +191,7 @@ tinytest::using(s7contract)
 area_law <- new_law(
   "non-negative radii have non-negative area",
   generators = list(
-    x = gen_map(gen_integer(0L, 100L), function(r) Circle(r = as.double(r)))
+    x = gen_map(gen_double(0, 100), function(r) Circle(r = r))
   ),
   holds = function(x) with(Shape, area(x)) >= 0
 )
@@ -311,6 +311,8 @@ normal draw needed to restore their state.
   [`gen_product()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
   [`gen_vector()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
   : Basic property-based test generators
+- [`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
+  : Generate finite double values
 - [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_sized()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_resize()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)

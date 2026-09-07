@@ -73,8 +73,8 @@ HasArea <- new_interface(
   )
 )
 circles <- gen_map(
-  gen_integer(0L, 1000L),
-  function(radius) Circle(radius = as.double(radius))
+  gen_double(0, 1000),
+  function(radius) Circle(radius = radius)
 )
 area_law <- new_law(
   "non-negative radii have non-negative area",
@@ -303,5 +303,6 @@ API or seed compatibility with Hedgehog.
 | Inspection and shrink control | [`gen_example()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md) draws a reproducible value; [`gen_no_shrink()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md) removes shrinking. |
 | State-machine testing | [`new_command()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_command.md), [`gen_commands()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_commands.md), and [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md) test sequential protocols against a model. |
 | Case coverage | `classify` labels generated inputs; `min_coverage` requires observed proportions within the test budget. See the [vector example](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.html#which-cases-were-tested). |
+| Numeric domains | [`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md) generates finite fractional values with a shrink origin; [`gen_choice()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md) adds exceptional values with explicit weights. |
 | Behavioral contracts | Laws can exercise S7 interfaces and traits through ordinary calls. |
 | Test-framework integration | [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md) returns structured results; [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md) records one tinytest result. |

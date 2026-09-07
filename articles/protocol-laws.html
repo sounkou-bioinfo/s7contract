@@ -141,11 +141,12 @@ object is represented internally.</p>
 <p>A protocol author can publish a function returning a named list of
 laws. Implementation authors supply a constructor; the laws compare each
 result with the reference values passed to that constructor.</p>
-<p>The domain here is unnamed double vectors containing small integers,
-with positive, in-range integer indices. Empty vectors and selections
-are included; indices may repeat or appear out of order. Missing values,
-names, negative indices, and the rest of R’s subsetting semantics are
-outside this example.</p>
+<p>The domain here is unnamed vectors of finite doubles between -10 and
+10, with positive, in-range integer indices. <code><a href="../reference/gen_double.html">gen_double()</a></code>
+expands its bounds with size and shrinks toward zero. Empty vectors and
+selections are included; indices may repeat or appear out of order.
+Missing values, names, and negative indices are outside this
+example.</p>
 <p><code><a href="../reference/gen_bind.html">gen_bind()</a></code> constructs the object and an index generator
 from the reference values. When those values shrink, it rebuilds both,
 preserving object validity and index bounds. Bounds come from the
@@ -153,8 +154,8 @@ reference data rather than the method being tested. Inside the contract
 mask, <code><a href="https://rdrr.io/r/base/length.html" class="external-link">base::length()</a></code> keeps the reference calculation
 separate from the interface’s <code>length</code> alias.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">vector_laws</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">make</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">values</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_constant.html">gen_map</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10L</span>, <span class="fl">10L</span><span class="op">)</span>, max <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span>, <span class="va">as.double</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">vector_laws</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">make</span>, <span class="va">element</span> <span class="op">=</span> <span class="fu"><a href="../reference/gen_double.html">gen_double</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">values</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="va">element</span>, max <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span></span>
 <span>  <span class="va">cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_bind.html">gen_bind</a></span><span class="op">(</span><span class="va">values</span>, <span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">indices</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0L</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="fu"><a href="../reference/gen_constant.html">gen_constant</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -184,9 +185,11 @@ separate from the interface’s <code>length</code> alias.</p>
 <span>      classify <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>        <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">values</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0L</span><span class="op">)</span> <span class="st">"empty"</span> <span class="kw">else</span> <span class="st">"nonempty"</span>,</span>
 <span>        <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">anyDuplicated</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">i</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0L</span><span class="op">)</span> <span class="st">"repeated"</span>,</span>
-<span>        <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.unsorted.html" class="external-link">is.unsorted</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">i</span><span class="op">)</span><span class="op">)</span> <span class="st">"reordered"</span></span>
+<span>        <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.unsorted.html" class="external-link">is.unsorted</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">i</span><span class="op">)</span><span class="op">)</span> <span class="st">"reordered"</span>,</span>
+<span>        <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">values</span> <span class="op">!=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">values</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="st">"fractional"</span></span>
 <span>      <span class="op">)</span>,</span>
-<span>      min_coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>empty <span class="op">=</span> <span class="fl">0.05</span>, nonempty <span class="op">=</span> <span class="fl">0.5</span>, repeated <span class="op">=</span> <span class="fl">0.1</span>, reordered <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
+<span>      min_coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>empty <span class="op">=</span> <span class="fl">0.05</span>, nonempty <span class="op">=</span> <span class="fl">0.5</span>, repeated <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>                       reordered <span class="op">=</span> <span class="fl">0.1</span>, fractional <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
 <span>    <span class="op">)</span>,</span>
 <span>    slice_length <span class="op">=</span> <span class="fu"><a href="../reference/new_law.html">new_law</a></span><span class="op">(</span><span class="st">"slice length matches the index count"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>input <span class="op">=</span> <span class="va">cases</span><span class="op">)</span>,</span>
 <span>      <span class="kw">function</span><span class="op">(</span><span class="va">input</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">VectorLike</span>, <span class="op">{</span></span>
@@ -216,18 +219,19 @@ representations.</p>
 <div class="section level2">
 <h2 id="which-cases-were-tested">Which cases were tested?<a class="anchor" aria-label="anchor" href="#which-cases-were-tested"></a>
 </h2>
-<p>The slicing law classifies inputs as empty or nonempty, and labels
-selections with repeated or reordered indices. Each label counts once
-per accepted case. Its <code>min_coverage</code> requirements use
-proportions: <code>reordered = 0.1</code> asks for reordered indices in
-at least 10% of cases.</p>
+<p>The slicing law classifies inputs as empty or nonempty, records
+fractional values, and labels repeated or reordered indices. Each label
+counts once per accepted case. Its <code>min_coverage</code>
+requirements use proportions: <code>reordered = 0.1</code> asks for
+reordered indices in at least 10% of cases.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vector_results</span><span class="op">$</span><span class="va">numeric</span><span class="op">$</span><span class="va">slice_values</span><span class="op">@</span><span class="va">coverage</span></span>
-<span><span class="co">#&gt;       label count proportion minimum  met</span></span>
-<span><span class="co">#&gt; 1     empty    20       0.20    0.05 TRUE</span></span>
-<span><span class="co">#&gt; 2  nonempty    80       0.80    0.50 TRUE</span></span>
-<span><span class="co">#&gt; 3  repeated    46       0.46    0.10 TRUE</span></span>
-<span><span class="co">#&gt; 4 reordered    31       0.31    0.10 TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt;        label count proportion minimum  met</span></span>
+<span><span class="co">#&gt; 1      empty    16       0.16    0.05 TRUE</span></span>
+<span><span class="co">#&gt; 2   nonempty    84       0.84    0.50 TRUE</span></span>
+<span><span class="co">#&gt; 3   repeated    45       0.45    0.10 TRUE</span></span>
+<span><span class="co">#&gt; 4  reordered    37       0.37    0.10 TRUE</span></span>
+<span><span class="co">#&gt; 5 fractional    84       0.84    0.50 TRUE</span></span></code></pre></div>
 <p>Fixing size at zero exercises only empty vectors. The predicate
 passes, but the coverage requirements prevent the run from passing:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -239,6 +243,7 @@ passes, but the coverage requirements prevent the run from passing:</p>
 <span><span class="co">#&gt;   "nonempty": 0/10 (0%; minimum 50% unmet)</span></span>
 <span><span class="co">#&gt;   "repeated": 0/10 (0%; minimum 10% unmet)</span></span>
 <span><span class="co">#&gt;   "reordered": 0/10 (0%; minimum 10% unmet)</span></span>
+<span><span class="co">#&gt;   "fractional": 0/10 (0%; minimum 50% unmet)</span></span>
 <span><span class="co">#&gt;   "empty": 10/10 (100%; minimum 5%)</span></span></code></pre></div>
 <p>This follows the test-data classification discussed by <a href="https://users.cs.northwestern.edu/~robby/courses/395-495-2009-fall/quick.pdf" class="external-link">Claessen
 and Hughes (2000), §2.4</a>. These minima describe observed proportions
@@ -255,7 +260,8 @@ fields.</p>
 <p>This subclass inherits the correct length and value methods, but its
 slice method reverses the requested order. All required methods are
 available, so <code><a href="../reference/interface_requirements.html">implements()</a></code> succeeds. Its slices also have
-valid representations and the expected value type and length.</p>
+valid representations and the expected value type and length. This run
+uses integer-valued doubles to keep the counterexample easy to read.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ReversedDepth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"ReversedDepth"</span>, parent <span class="op">=</span> <span class="va">ReadDepth</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">vec_slice</span>, <span class="va">ReversedDepth</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
@@ -264,8 +270,10 @@ valid representations and the expected value type and length.</p>
 <span></span>
 <span><span class="fu"><a href="../reference/interface_requirements.html">implements</a></span><span class="op">(</span><span class="va">ReversedDepth</span>, <span class="va">VectorLike</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="va">whole_numbers</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_constant.html">gen_map</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10L</span>, <span class="fl">10L</span><span class="op">)</span>, <span class="va">as.double</span>, prototype <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">double</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">broken_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span></span>
-<span>  <span class="fu">vector_laws</span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="fu">ReversedDepth</span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, depth <span class="op">=</span> <span class="va">values</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu">vector_laws</span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="fu">ReversedDepth</span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, depth <span class="op">=</span> <span class="va">values</span><span class="op">)</span>,</span>
+<span>              element <span class="op">=</span> <span class="va">whole_numbers</span><span class="op">)</span>,</span>
 <span>  <span class="va">check_law</span>, tests <span class="op">=</span> <span class="fl">100L</span>, seed <span class="op">=</span> <span class="fl">1L</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">broken_results</span>, <span class="kw">function</span><span class="op">(</span><span class="va">result</span><span class="op">)</span> <span class="va">result</span><span class="op">@</span><span class="va">status</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
@@ -291,6 +299,7 @@ below still succeeds; its result differs from the reference slice.</p>
 <span><span class="co">#&gt;   ..$ i     : int [1:2] 2 1</span></span>
 <span><span class="co">#&gt; Case coverage (7 accepted cases; partial run):</span></span>
 <span><span class="co">#&gt;   "nonempty": 3/7 (42.9%; minimum 50% unmet)</span></span>
+<span><span class="co">#&gt;   "fractional": 0/7 (0%; minimum 50% unmet)</span></span>
 <span><span class="co">#&gt;   "empty": 4/7 (57.1%; minimum 5%)</span></span>
 <span><span class="co">#&gt;   "repeated": 2/7 (28.6%; minimum 10%)</span></span>
 <span><span class="co">#&gt;   "reordered": 1/7 (14.3%; minimum 10%)</span></span>
@@ -309,6 +318,23 @@ failure:</p>
 <code class="sourceCode R"><span><span class="va">replayed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">check_law</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>law <span class="op">=</span> <span class="va">failure</span><span class="op">@</span><span class="va">law</span><span class="op">)</span>, <span class="va">failure</span><span class="op">@</span><span class="va">parameters</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replayed</span><span class="op">@</span><span class="va">counterexample</span><span class="op">@</span><span class="va">minimal</span>, <span class="va">failure</span><span class="op">@</span><span class="va">counterexample</span><span class="op">@</span><span class="va">minimal</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="a-bug-hidden-by-integer-inputs">A bug hidden by integer inputs<a class="anchor" aria-label="anchor" href="#a-bug-hidden-by-integer-inputs"></a>
+</h2>
+<p>This value method silently rounds fractional measurements.
+Integer-only inputs let it pass; the same law with
+<code><a href="../reference/gen_double.html">gen_double()</a></code> detects the loss of precision.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">RoundedDepth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span><span class="st">"RoundedDepth"</span>, parent <span class="op">=</span> <span class="va">ReadDepth</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">vec_values</span>, <span class="va">RoundedDepth</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">x</span><span class="op">@</span><span class="va">depth</span><span class="op">)</span></span>
+<span><span class="va">rounded</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="fu">RoundedDepth</span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">values</span><span class="op">)</span>, depth <span class="op">=</span> <span class="va">values</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">integer_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">check_law</a></span><span class="op">(</span><span class="fu">vector_laws</span><span class="op">(</span><span class="va">rounded</span>, <span class="va">whole_numbers</span><span class="op">)</span><span class="op">$</span><span class="va">values</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="va">fractional_check</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">check_law</a></span><span class="op">(</span><span class="fu">vector_laws</span><span class="op">(</span><span class="va">rounded</span><span class="op">)</span><span class="op">$</span><span class="va">values</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>whole_numbers <span class="op">=</span> <span class="va">integer_check</span><span class="op">@</span><span class="va">status</span>, fractions <span class="op">=</span> <span class="va">fractional_check</span><span class="op">@</span><span class="va">status</span><span class="op">)</span></span>
+<span><span class="co">#&gt; whole_numbers     fractions </span></span>
+<span><span class="co">#&gt;      "passed"   "falsified"</span></span></code></pre></div>
 <p>These example definitions and checks are installed together in
 <code>system.file("examples", "vector-laws.R", package = "s7contract")</code>.
 The vignette and package tests execute that same script. For generator

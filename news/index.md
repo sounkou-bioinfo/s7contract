@@ -2,6 +2,14 @@
 
 ## s7contract 0.2.0.9000
 
+- Added
+  [`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
+  for finite numeric intervals, with size-dependent bounds, an explicit
+  shrink origin, and lazy shrinking that stops when floating-point
+  rounding prevents progress. Vector protocol laws now exercise
+  fractional measurements and detect a value method that silently rounds
+  them.
+
 - Added case classification and minimum observed coverage to
   [`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
   and

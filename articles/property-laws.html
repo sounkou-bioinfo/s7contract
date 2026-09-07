@@ -136,8 +136,8 @@ the interface’s return contract.</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">circles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gen_constant.html">gen_map</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/gen_constant.html">gen_integer</a></span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">1000L</span><span class="op">)</span>,</span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="va">radius</span><span class="op">)</span> <span class="fu">Circle</span><span class="op">(</span>radius <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">radius</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/gen_double.html">gen_double</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1000</span><span class="op">)</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">radius</span><span class="op">)</span> <span class="fu">Circle</span><span class="op">(</span>radius <span class="op">=</span> <span class="va">radius</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">area_law</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">new_law</a></span><span class="op">(</span></span>
 <span>  <span class="st">"non-negative radii have non-negative area"</span>,</span>
@@ -387,11 +387,18 @@ budget. See the <a href="protocol-laws.html#which-cases-were-tested">vector
 example</a>.</td>
 </tr>
 <tr class="odd">
+<td align="left">Numeric domains</td>
+<td align="left">
+<code><a href="../reference/gen_double.html">gen_double()</a></code> generates finite fractional
+values with a shrink origin; <code><a href="../reference/gen_element.html">gen_choice()</a></code> adds exceptional
+values with explicit weights.</td>
+</tr>
+<tr class="even">
 <td align="left">Behavioral contracts</td>
 <td align="left">Laws can exercise S7 interfaces and traits through
 ordinary calls.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Test-framework integration</td>
 <td align="left">
 <code><a href="../reference/new_law.html">check_law()</a></code> returns structured results;
