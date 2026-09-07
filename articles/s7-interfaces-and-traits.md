@@ -6,323 +6,34 @@ library(S7)
 library(s7contract)
 ```
 
-## Introduction
+`s7contract` describes what a consumer needs from an S7 object and tests
+whether implementations behave as expected. S7 owns class definitions,
+method registration, and dispatch.
 
-`s7contract` makes behavioral protocols explicit and testable around
-ordinary S7 dispatch. It began with structural interfaces and explicit
-traits, then added argument/return checks and generative laws. These
-pieces answer different questions about the same implementation.
+The package began with structural interfaces and explicit traits. The
+[S7 traits discussion](https://github.com/RConsortium/S7/issues/34)
+describes the underlying need: checking method contracts around existing
+generics. [Go interfaces](https://go.dev/ref/spec#Interface_types)
+inform the structural approach; [Rust
+traits](https://doc.rust-lang.org/reference/items/traits.html) inform
+explicit registrations, defaults, and associated metadata. Here these
+are runtime R facilities. Checked calls and generative laws extend them
+from method availability to evidence about behavior.
 
-| Mechanism | What it checks |
+| Mechanism | Question |
 |:---|:---|
-| S7 class properties and validators | Whether an object’s representation is valid. |
-| Structural interface | Whether S7 can find the required methods. |
-| Explicit trait | Whether an implementation is declared with the required associated items. |
-| Checked call | Whether supplied argument and return specifications hold for this call. |
-| Generative law | Whether a behavioral claim holds for generated cases. |
+| S7 properties and validators | Is the object’s representation valid? |
+| [`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md) | Can S7 find the required methods? |
+| [`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md) | Has this implementation been declared? |
+| [`with()`](https://rdrr.io/r/base/with.html) / `%::%` | Do this call’s arguments and return value satisfy their specifications? |
+| [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md) | Does a behavioral claim hold over the generated cases? |
 
-An implementation can satisfy an interface and still return incorrect
-answers. This vignette follows one vector protocol from method
-requirements to reusable laws, including a counterexample from a faulty
-implementation. Method registration and dispatch remain ordinary S7
-operations throughout.
+## A vector protocol
 
-## Background
-
-S7 is a functional object-oriented system: methods belong to generic
-functions, not to objects. The call is `generic(object, ...)`, not
-`object$generic(...)`. That makes S7 close in spirit to protocols
-defined by behavior.
-
-Go interfaces are structural: a basic interface describes required
-methods, and a type satisfies the interface when it has those methods.
-Go style also favors small interfaces defined at the point of use: do
-not define an interface beside a single implementation merely to make
-that implementation conform. In S7 terms, define classes, generics, and
-methods where the behavior lives, then let the consumer define the
-protocol it accepts. Rust traits are nominal and explicit: an
-implementation is declared for a type, and traits may also contain
-defaults and associated items. `s7contract` maps these ideas to S7 as
-follows.
-
-``` text
-S7 generic       operation, e.g. area(x)
-S7 method        implementation for a class
-Go-like interface set of required S7 generics
-Rust-like trait  explicit implementation record plus S7 methods
-```
-
-This also clarifies what kind of “type” an interface defines. An S7
-class is a nominal representation type: it says how an object is
-constructed and validated. An interface is a behavioral or protocol
-type: it says what operations must be available. Both are useful, but
-they answer different questions.
-
-Packages such as `lambda.r` explore a different functional-programming
-route in R, with pattern-matching-style function clauses, guards, and
-optional type constraints. `s7contract` stays closer to S7: it does not
-create a new function clause language. By default it checks whether S7
-can find methods for required generics, or whether an explicit trait
-implementation has been registered. Optional argument and return
-specifications can be checked when evaluating a call with
-[`with()`](https://rdrr.io/r/base/with.html) or `%::%`.
-
-## A structural interface
-
-The classic drawing example remains useful because the behavior is
-visible. A `Drawable` object is anything for which S7 can find a
-`draw()` method. In real packages, this interface would usually live
-near the consumer that needs to draw things, not necessarily in the
-package that defines `Circle`.
-
-``` r
-
-area <- new_generic("area", "x")
-draw <- new_generic("draw", "x")
-
-Circle <- new_class("Circle", properties = list(r = class_double))
-Rect <- new_class("Rect", properties = list(w = class_double, h = class_double))
-
-method(area, Circle) <- function(x) pi * x@r^2
-method(draw, Circle) <- function(x) sprintf("circle(r = %s)", x@r)
-method(area, Rect) <- function(x) x@w * x@h
-
-Drawable <- new_interface("Drawable", generics = list(draw = draw))
-Shape <- new_interface("Shape", generics = list(area = area), parents = Drawable)
-
-implements(Circle, Shape)
-#> [1] TRUE
-implements(Rect, Shape)
-#> [1] FALSE
-missing_requirements(Rect, Shape)
-#>      interface requirement    ok                               message
-#> draw     Shape        draw FALSE Can't find method for `draw(<Rect>)`.
-```
-
-A consumer keeps ordinary S7 style. The assertion documents the expected
-behavior; the actual call is still normal dispatch through `draw(x)`.
-
-``` r
-
-render <- function(x) {
-  assert_implements(x, Drawable)
-  draw(x)
-}
-
-render(Circle(r = 2))
-#> [1] "circle(r = 2)"
-```
-
-The same boundary is convenient in tests. A mock only needs the behavior
-the consumer asks for.
-
-``` r
-
-MockDrawable <- new_class("MockDrawable")
-method(draw, MockDrawable) <- function(x) "mock drawing"
-
-render(MockDrawable())
-#> [1] "mock drawing"
-```
-
-This is the main reason structural interfaces fit S7 well. They add a
-small runtime check around a dispatch model that S7 already has. The
-practical API shape is the Go maxim adapted to R: accept objects that
-satisfy a small protocol; return ordinary, concrete R or S7 values.
-
-## When the whole protocol is a class family
-
-Some R APIs intentionally define a large protocol up front. DBI is the
-useful example: it is not just one consumer-local interface, but a
-package-level standard built around nominal connection, driver, and
-result classes plus many generic functions. That fits the “abstract data
-type” exception to the point-of-use rule.
-
-In S7, the analogous design is a class family for identity and
-representation, plus generics for behavior. Consumers can still depend
-on a smaller interface when they only need part of the protocol.
-
-``` r
-
-DatabaseConnection <- new_class("DatabaseConnection", abstract = TRUE)
-MemoryConnection <- new_class(
-  "MemoryConnection",
-  parent = DatabaseConnection,
-  properties = list(tables = class_list)
-)
-
-db_tables <- new_generic("db_tables", "con")
-db_read_table <- new_generic(
-  "db_read_table",
-  "con",
-  function(con, name) S7_dispatch()
-)
-
-method(db_tables, MemoryConnection) <- function(con) names(con@tables)
-method(db_read_table, MemoryConnection) <- function(con, name) con@tables[[name]]
-
-TableReader <- new_interface(
-  "TableReader",
-  generics = list(
-    db_tables = interface_requirement(db_tables, returns = class_character),
-    db_read_table = interface_requirement(
-      db_read_table,
-      args = list(name = class_character),
-      returns = class_data.frame
-    )
-  )
-)
-
-first_table <- function(con) {
-  assert_implements(con, TableReader)
-  db_read_table(con, db_tables(con)[[1]])
-}
-
-con <- MemoryConnection(tables = list(iris = head(iris, 2)))
-first_table(con)
-#>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
-#> 1          5.1         3.5          1.4         0.2  setosa
-#> 2          4.9         3.0          1.4         0.2  setosa
-```
-
-The class says “this object is a database connection”. The interface
-says “this consumer needs table-reading behavior”. A full DBI-like
-package may own the broad class family; ordinary downstream functions
-should still prefer the smallest protocol they use.
-
-## Progressive argument and return checks
-
-Interface requirements can optionally carry argument and return
-specifications. The default is permissive: unspecified arguments are not
-checked, and the return specification defaults to
-[`S7::class_any`](https://rconsortium.github.io/S7/reference/class_any.html).
-When specifications are present, expressions can be evaluated in a
-contract mask with either [`with()`](https://rdrr.io/r/base/with.html)
-or the lambda.r-style `%::%` operator. Calls to required generics inside
-that expression are checked.
-
-``` r
-
-Canvas <- new_class("Canvas")
-
-draw_on <- new_generic(
-  "draw_on",
-  c("x", "canvas"),
-  function(x, canvas, position, ...) S7_dispatch()
-)
-
-method(draw_on, list(Circle, Canvas)) <- function(x, canvas, position, ...) {
-  sprintf("circle(r = %s) at %s", x@r, position)
-}
-
-DrawableOnCanvas <- new_interface(
-  "DrawableOnCanvas",
-  generics = list(
-    draw_on = interface_requirement(
-      draw_on,
-      args = list(canvas = Canvas, position = class_integer),
-      returns = class_character
-    )
-  )
-)
-
-canvas <- Canvas()
-circle <- Circle(r = 2)
-
-implements(Circle, DrawableOnCanvas)
-#> [1] TRUE
-with(DrawableOnCanvas, draw_on(circle, canvas, position = 1L))
-#> [1] "circle(r = 2) at 1"
-draw_on(circle, canvas, position = 1L) %::% DrawableOnCanvas
-#> [1] "circle(r = 2) at 1"
-
-checked_draw <- with(DrawableOnCanvas, {
-  function(x) draw_on(x, canvas, position = 1L)
-})
-checked_draw(circle)
-#> [1] "circle(r = 2) at 1"
-```
-
-A method can satisfy the S7 method shape but still return the wrong kind
-of value. The checked call, including a function returned from
-[`with()`](https://rdrr.io/r/base/with.html), catches that after
-ordinary S7 dispatch has run.
-
-``` r
-
-BadCircle <- new_class("BadCircle", properties = list(r = class_double))
-method(draw_on, list(BadCircle, Canvas)) <- function(x, canvas, position, ...) {
-  x@r
-}
-
-tryCatch(
-  with(DrawableOnCanvas, draw_on(BadCircle(r = 2), canvas, position = 1L)),
-  error = function(e) conditionMessage(e)
-)
-#> [1] "Return value must be <character>, not <double>"
-
-tryCatch(
-  checked_draw(BadCircle(r = 2)),
-  error = function(e) conditionMessage(e)
-)
-#> [1] "Return value must be <character>, not <double>"
-```
-
-The input checks use S7 classes and S7 multiple dispatch. In this
-example, `canvas` is also a dispatch argument, so
-`implements(Circle, DrawableOnCanvas)` asks S7 for a
-`draw_on(<Circle>, <Canvas>)` method. The return value can only be
-checked after the call has run, which is why
-[`with()`](https://rdrr.io/r/base/with.html) and `%::%` are useful.
-
-## Number-like behavior
-
-A general `Number` interface is tempting, but it should be treated
-carefully. Base R arithmetic includes vectorization, recycling, missing
-values, attributes, and binary operations. A small number-like protocol
-is more honest: it says only which operations a particular consumer
-needs.
-
-``` r
-
-num_zero <- new_generic("num_zero", "x")
-num_add <- new_generic("num_add", "x")
-num_scale <- new_generic("num_scale", "x")
-
-NumberLike <- new_interface(
-  "NumberLike",
-  generics = list(
-    zero = num_zero,
-    add = num_add,
-    scale = num_scale
-  )
-)
-
-method(num_zero, class_double) <- function(x) 0
-method(num_add, class_double) <- function(x, y) x + y
-method(num_scale, class_double) <- function(x, k) x * k
-
-implements(class_double, NumberLike)
-#> [1] TRUE
-num_add(10, 5)
-#> [1] 15
-num_scale(10, 0.5)
-#> [1] 5
-```
-
-This interface checks operation availability. Mathematical claims such
-as associativity or an identity element can be expressed with
-[`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
-and domain-specific generators. The vector protocol below shows how to
-reuse such laws across implementations.
-
-## Vector-like behavior
-
-A vector-like contract is often more practical. Many algorithms only
-need a length, a way to slice, and a way to expose values. Here both
-ordinary double vectors and `ReadDepth` objects implement those
-operations. The class validator keeps positions and depths aligned,
-while the interface describes the behavior consumers need.
+A windowing function needs length, slicing, and access to values.
+`VectorLike` states those requirements. Both double vectors and
+`ReadDepth` objects provide the methods; the `ReadDepth` validator keeps
+positions and depths aligned.
 
 ``` r
 
@@ -366,8 +77,8 @@ implements(class_double, VectorLike)
 #> [1] TRUE
 ```
 
-A function can depend on this small protocol without knowing how the
-object is represented internally.
+The consumer uses the protocol without depending on either
+representation:
 
 ``` r
 
@@ -382,367 +93,85 @@ window_mean(c(12, 15, 9, 20, 17), 2:4)
 #> [1] 14.66667
 ```
 
-## One protocol, several implementations
-
-The protocol author can publish a function returning a named list of
-laws. Implementation authors supply a constructor from reference values
-to their own representation. Each law uses the same S7 generics and
-checks the result against those reference values.
-
-The domain here is unnamed double vectors containing small integers,
-with positive, in-range integer indices. Empty vectors and selections
-are included; indices may repeat or appear out of order. Missing values,
-names, negative indices, and the rest of R’s subsetting semantics are
-outside this example.
-
-[`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
-constructs the object and an index generator from the reference values.
-When those values shrink, it rebuilds both, preserving object validity
-and index bounds. Bounds come from the reference data rather than the
-method being tested. Inside the contract mask,
-[`base::length()`](https://rdrr.io/r/base/length.html) keeps the
-reference calculation separate from the interface’s `length` alias.
+[`assert_implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
+checks method availability. Inside `with(VectorLike, ...)`, calls also
+check the argument and return specifications declared by the interface.
+For example, its slice operation requires integer indices:
 
 ``` r
 
-vector_laws <- function(make) {
-  values <- gen_map(gen_vector(gen_integer(-10L, 10L), max = 6L), as.double)
-  cases <- gen_bind(values, function(values) {
-    indices <- if (length(values) == 0L) {
-      gen_constant(integer())
-    } else {
-      gen_vector(gen_element(seq_along(values)), max = 6L)
-    }
-    gen_product(
-      x = gen_constant(make(values)),
-      values = gen_constant(values),
-      i = indices
-    )
-  })
-
-  list(
-    values = new_law("values preserve constructor input", list(input = cases),
-      function(input) with(VectorLike, {
-        identical(vec_values(input$x), input$values)
-      })),
-    length = new_law("length agrees with constructor input", list(input = cases),
-      function(input) with(VectorLike, {
-        identical(vec_length(input$x), base::length(input$values))
-      })),
-    slice_values = new_law("slicing preserves selected values and order", list(input = cases),
-      function(input) with(VectorLike, {
-        identical(vec_values(vec_slice(input$x, input$i)), input$values[input$i])
-      })),
-    slice_length = new_law("slice length matches the index count", list(input = cases),
-      function(input) with(VectorLike, {
-        identical(vec_length(vec_slice(input$x, input$i)), base::length(input$i))
-      }))
-  )
-}
-```
-
-`vector_laws()` is an ordinary function returning ordinary law objects.
-A list and [`lapply()`](https://rdrr.io/r/base/lapply.html) are enough
-to run the same four claims against both representations.
-
-``` r
-
-implementations <- list(
-  numeric = identity,
-  read_depth = function(values) ReadDepth(position = seq_along(values), depth = values)
+tryCatch(
+  with(VectorLike, vec_slice(coverage, "first")),
+  error = function(e) conditionMessage(e)
 )
-vector_results <- lapply(implementations, function(make) {
-  lapply(vector_laws(make), check_law, tests = 100L, seed = 1L)
-})
-sapply(vector_results, function(results) {
-  vapply(results, function(result) result@status, character(1))
-})
-#>              numeric  read_depth
-#> values       "passed" "passed"  
-#> length       "passed" "passed"  
-#> slice_values "passed" "passed"  
-#> slice_length "passed" "passed"
+#> [1] "`i` must be <integer>, not <character>"
 ```
 
-## Structural conformance and a behavioral failure
+## Declaring an implementation
 
-This subclass inherits the correct length and value methods, but its
-slice method reverses the requested order. All required methods are
-available, so
-[`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
-succeeds. Its slices also have valid representations and the expected
-value type and length.
+Use a trait when a declaration or associated metadata matters to the
+consumer. Here the declaration attaches measurement units to
+`ReadDepth`:
 
 ``` r
 
-ReversedDepth <- new_class("ReversedDepth", parent = ReadDepth)
-method(vec_slice, ReversedDepth) <- function(x, i) {
-  ReadDepth(position = x@position[rev(i)], depth = x@depth[rev(i)])
-}
+Measured <- new_trait("Measured",
+  methods = list(values = trait_method(vec_values)),
+  assoc_consts = "UNITS"
+)
+has_trait(ReadDepth, Measured)
+#> [1] FALSE
 
-implements(ReversedDepth, VectorLike)
+impl_trait(Measured, ReadDepth,
+  methods = list(values = function(x) x@depth),
+  assoc_consts = list(UNITS = "reads"),
+  replace = TRUE
+)
+#> Overwriting method vec_values(<ReadDepth>)
+has_trait(ReadDepth, Measured)
 #> [1] TRUE
-broken_results <- lapply(
-  vector_laws(function(values) ReversedDepth(position = seq_along(values), depth = values)),
-  check_law, tests = 100L, seed = 1L
-)
-vapply(broken_results, function(result) result@status, character(1))
-#>       values       length slice_values slice_length 
-#>     "passed"     "passed"  "falsified"     "passed"
+trait_assoc_const(Measured, ReadDepth, "UNITS")
+#> [1] "reads"
 ```
 
-Only the law about selected values and their order fails.
-[`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
-reports that failure separately from structural conformance, and shrinks
-it to a smaller valid input. The checked call below still succeeds; its
-result differs from the reference slice.
+## Testing behavior
+
+Method availability and valid return types leave semantic claims
+untested. This law checks length against the values used to construct
+the object:
 
 ``` r
 
-failure <- broken_results$slice_values
-failure
-#> Law 'slicing preserves selected values and order' was falsified after 7 attempts and 6 shrinks (seed 1).
+length_law <- new_law("length matches constructor input",
+  generators = list(values = gen_vector(gen_integer(-10L, 10L), max = 6L)),
+  holds = function(values) {
+    x <- ReadDepth(position = seq_along(values), depth = as.double(values))
+    with(VectorLike, identical(vec_length(x), base::length(values)))
+  }
+)
+check_law(length_law, tests = 100L, seed = 1L)
+#> Law 'length matches constructor input' was falsified after 1 attempts and 0 shrinks (seed 1).
 #> The law returned FALSE.
 #> Shrinking stopped: no child of this counterexample preserves the failure.
 #> Smallest counterexample found:
 #> List of 1
-#>  $ input:List of 3
-#>   ..$ x     : <ReversedDepth>
-#>   .. ..@ position: int [1:2] 1 2
-#>   .. ..@ depth   : num [1:2] 0 -1
-#>   ..$ values: num [1:2] 0 -1
-#>   ..$ i     : int [1:2] 2 1
-example <- failure@counterexample@minimal$input
-example$values
-#> [1]  0 -1
-example$i
-#> [1] 2 1
-with(VectorLike, vec_values(vec_slice(example$x, example$i)))
-#> [1]  0 -1
-example$values[example$i]
-#> [1] -1  0
+#>  $ values: int(0)
 ```
 
-The result records the inputs and run parameters needed to replay the
-failure:
-
-``` r
-
-replayed <- do.call(check_law, c(list(law = failure@law), failure@parameters))
-identical(replayed@counterexample@minimal, failure@counterexample@minimal)
-#> [1] TRUE
-```
-
-These example definitions and checks are installed together in
-`system.file("examples", "vector-laws.R", package = "s7contract")`. The
-vignette and package tests execute that same script. For generator
-composition, budgets, and tinytest integration, see
-[`vignette("property-laws")`](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.md).
-
+The [vector law
+suite](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md)
+runs four laws against both representations and finds a faulty slice
+method that still satisfies the interface. Its generators preserve valid
+objects and indices while shrinking. Law results remain separate from
 [`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
-continues to check method availability;
-[`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
-checks declared implementation. Neither runs laws or changes meaning
-after a law passes or fails. The protocol’s laws and its
-implementation-specific generators are explicit test inputs.
+and
+[`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md).
 
-## An explicit trait
-
-A Rust-like trait adds nominal intent. A class may have the right
-methods structurally, but it does not have the trait until
-[`impl_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
-records that implementation.
-
-``` r
-
-perimeter <- new_generic("perimeter", "x")
-
-Measurable <- new_trait(
-  "Measurable",
-  methods = list(
-    area = trait_method(area),
-    perimeter = trait_method(perimeter, default = function(x) NA_real_)
-  ),
-  assoc_consts = c("UNITS")
-)
-
-impl_trait(
-  Measurable,
-  Circle,
-  methods = list(area = function(x) pi * x@r^2),
-  assoc_consts = list(UNITS = "unitless"),
-  replace = TRUE
-)
-#> Overwriting method area(<Circle>)
-
-has_trait(Circle, Measurable)
-#> [1] TRUE
-trait_call(Measurable, "area", Circle(r = 2))
-#> [1] 12.56637
-trait_call(Measurable, "perimeter", Circle(r = 2))
-#> [1] NA
-trait_assoc_const(Measurable, Circle, "UNITS")
-#> [1] "unitless"
-```
-
-The useful distinction is intent. A structural interface asks whether
-operations are available. An explicit trait asks whether a package
-author has declared a class to implement a named contract. The trait
-layer can also store associated metadata such as `UNITS`, which is
-awkward in a purely structural interface.
-
-## A Haskell-style dictionary object
-
-Haskell type classes are often explained as dictionaries: a `Monad m`
-constraint is operationally evidence that `m` has `pure` and `bind`. R
-can model that idea directly because functions are first-class values
-and S7 can validate function-valued properties.
-
-The example below defines a tiny `Maybe` algebraic data type, then
-stores its monad operations in an S7 dictionary object. The `s7contract`
-interface checks that the dictionary exposes the operations a consumer
-expects.
-
-``` r
-
-Maybe <- new_class("Maybe", abstract = TRUE)
-Nothing <- new_class("Nothing", parent = Maybe)
-Just <- new_class("Just", parent = Maybe, properties = list(value = class_any))
-
-MonadDict <- new_class(
-  "MonadDict",
-  properties = list(
-    name = class_character,
-    pure = class_function,
-    bind = class_function
-  )
-)
-
-dict_pure <- new_generic("dict_pure", "x")
-dict_bind <- new_generic("dict_bind", "x")
-
-MonadDictionary <- new_interface(
-  "MonadDictionary",
-  generics = list(
-    pure = dict_pure,
-    bind = dict_bind
-  )
-)
-
-method(dict_pure, MonadDict) <- function(x, value) {
-  (x@pure)(value)
-}
-method(dict_bind, MonadDict) <- function(x, mx, f) {
-  (x@bind)(mx, f)
-}
-
-MaybeMonad <- MonadDict(
-  name = "Maybe",
-  pure = function(value) Just(value = value),
-  bind = function(mx, f) {
-    if (S7_inherits(mx, Nothing)) {
-      Nothing()
-    } else {
-      f(mx@value)
-    }
-  }
-)
-
-implements(MaybeMonad, MonadDictionary)
-#> [1] TRUE
-```
-
-Now the dictionary can be passed around as an ordinary R object.
-
-``` r
-
-dict_bind(
-  MaybeMonad,
-  Just(value = 2),
-  function(x) dict_pure(MaybeMonad, x + 1)
-)
-#> <Just>
-#>  @ value: num 3
-
-dict_bind(
-  MaybeMonad,
-  Nothing(),
-  function(x) dict_pure(MaybeMonad, x + 1)
-)
-#> <Nothing>
-```
-
-The interface checks operation availability. The monad laws are semantic
-properties. These three concrete checks illustrate their meaning; the
-`vector_laws()` pattern above can also assemble generative laws for
-dictionaries.
-
-``` r
-
-maybe_equal <- function(x, y) {
-  if (S7_inherits(x, Nothing) && S7_inherits(y, Nothing)) {
-    return(TRUE)
-  }
-  if (S7_inherits(x, Just) && S7_inherits(y, Just)) {
-    return(identical(x@value, y@value))
-  }
-  FALSE
-}
-
-f <- function(x) dict_pure(MaybeMonad, x + 1)
-g <- function(x) dict_pure(MaybeMonad, x * 2)
-mx <- Just(value = 10)
-
-c(
-  left_identity = maybe_equal(
-    dict_bind(MaybeMonad, dict_pure(MaybeMonad, 10), f),
-    f(10)
-  ),
-  right_identity = maybe_equal(
-    dict_bind(MaybeMonad, mx, function(x) dict_pure(MaybeMonad, x)),
-    mx
-  ),
-  associativity = maybe_equal(
-    dict_bind(MaybeMonad, dict_bind(MaybeMonad, mx, f), g),
-    dict_bind(MaybeMonad, mx, function(x) dict_bind(MaybeMonad, f(x), g))
-  )
-)
-#>  left_identity right_identity  associativity 
-#>           TRUE           TRUE           TRUE
-```
-
-This is not Haskell’s static kind system. It is a concrete R/S7 encoding
-of the same operational idea: a type-class instance can be represented
-as a runtime object containing functions, and an interface can state
-which functions must be available.
-
-## Which feels more natural?
-
-For functional OOP in S7, Go-like structural interfaces are the default
-fit. S7 already makes generic functions the center of dispatch, so an
-interface as a set of required generics is small and idiomatic.
-
-Rust-like traits are heavier but useful when accidental compatibility
-would be a problem. They make sense for plugin systems, adapters, or
-domain protocols where a package should explicitly claim conformance and
-provide metadata or defaults.
-
-The practical rule is simple: start with a structural interface when the
-consumer only needs behavior; use a trait when the declaration itself
-carries meaning.
-
-## References
-
-- The S7 package documentation: <https://rconsortium.github.io/S7/>.
-- S7 issue \#34, “Traits”:
-  <https://github.com/RConsortium/S7/issues/34>.
-- The Go specification, especially interface types:
-  <https://go.dev/ref/spec#Interface_types>.
-- Chewxy, “How To Use Go Interfaces”:
-  <https://blog.chewxy.com/2018/03/18/golang-interfaces/>.
-- The Rust book chapter on traits:
-  <https://doc.rust-lang.org/book/ch10-02-traits.html>.
-- The Rust reference chapter on traits:
-  <https://doc.rust-lang.org/reference/items/traits.html>.
-- The `lambda.r` package on CRAN:
-  <https://cran.r-project.org/package=lambda.r>.
+For generator composition, replay, and tinytest integration, see
+[Generative Laws with
+tinytest](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.md).
+The [Maybe
+dictionary](https://sounkou-bioinfo.github.io/s7contract/articles/monad-dictionaries.md)
+shows function-valued operations; [Testing Stateful S7
+Protocols](https://sounkou-bioinfo.github.io/s7contract/articles/stateful-protocols.md)
+covers sequences of mutations checked against a reference model.

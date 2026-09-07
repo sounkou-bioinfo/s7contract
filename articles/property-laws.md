@@ -14,9 +14,8 @@ smaller counterexample. One call to
 becomes one tinytest result even though the law is evaluated many times.
 
 In `s7contract`, these laws provide behavioral evidence for protocols
-whose operations are described by interfaces or traits. The [Behavioral
-Contracts on
-S7](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md)
+whose operations are described by interfaces or traits. The [vector
+protocol](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md)
 vignette defines one `VectorLike` law suite, runs it against two
 implementations, and finds a faulty slice method that satisfies the
 interface. This vignette explains the generator and runner machinery
@@ -302,6 +301,6 @@ API or seed compatibility with Hedgehog.
 | Size-aware generation | Integer ranges and vector lengths grow with size; [`gen_sized()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md) and [`gen_resize()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md) expose size control. |
 | Choice and recursive generation | [`gen_element()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md), [`gen_choice()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md), and [`gen_recursive()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md) retain integrated shrinking. |
 | Inspection and shrink control | [`gen_example()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md) draws a reproducible value; [`gen_no_shrink()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_example.md) removes shrinking. |
-| State-machine testing | No command/model runner. |
+| State-machine testing | [`new_command()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_command.md), [`gen_commands()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_commands.md), and [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md) test sequential protocols against a model. |
 | Behavioral contracts | Laws can exercise S7 interfaces and traits through ordinary calls. |
 | Test-framework integration | [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md) returns structured results; [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md) records one tinytest result. |

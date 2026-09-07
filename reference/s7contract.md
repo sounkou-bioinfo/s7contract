@@ -24,8 +24,11 @@ checks declared implementation.
 supplies separate evidence about behavior over generated cases. Protocol
 authors can reuse laws across implementations by writing ordinary
 functions that construct lists of laws; see
-[`vignette("s7-interfaces-and-traits")`](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md)
+[`vignette("protocol-laws")`](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md)
 for an executed example.
+[`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md)
+tests sequences of commands against a reference model with fresh
+fixtures.
 
 ## See also
 

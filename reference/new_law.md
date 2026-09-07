@@ -108,7 +108,11 @@ search (including zero), `"error"` if constructing candidates failed, or
 warning is stored separately in `shrink_condition`; the original and
 last failing examples are retained. Generator warnings and errors
 terminate the run with status `"error"`. Warnings or errors from `holds`
-are counterexamples.
+are counterexamples. Stateful laws created by
+[`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md)
+additionally retain failure traces in the counterexample's
+`original_condition` and `condition` fields. Callback defects stop their
+shrink search, preserving any earlier false postcondition.
 
 In a tinytest file, call `tinytest::using(s7contract)` before calling
 `expect_law()`. This activates tinytest's supported extension capture so

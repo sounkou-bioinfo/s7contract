@@ -2,6 +2,19 @@
 
 ## s7contract 0.2.0.9000
 
+- Added sequential protocol laws with
+  [`new_command()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_command.md),
+  [`gen_commands()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_commands.md),
+  and
+  [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md).
+  Commands run against a reference model with fresh fixtures,
+  dependency-preserving shrinking, and original and reduced failure
+  traces. The key/value example tests two S7 implementations and a
+  faulty reset method.
+
+- Shortened the introductory vignette around one vector protocol. Moved
+  the full vector-law suite and Maybe dictionary into separate articles.
+
 - Added a reusable `VectorLike` law example shared by numeric vectors
   and `ReadDepth`, with a faulty implementation that passes structural
   checks but fails a slicing law. The vignette and tests execute the

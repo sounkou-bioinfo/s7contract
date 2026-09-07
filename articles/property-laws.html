@@ -35,7 +35,10 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/s7-interfaces-and-traits.html">Behavioral Contracts on S7</a></li>
     <li><a class="dropdown-item" href="../articles/bioinformatics-interfaces.html">Bioinformatics Containers as Interfaces</a></li>
+    <li><a class="dropdown-item" href="../articles/protocol-laws.html">Reusable Laws for a Vector Protocol</a></li>
     <li><a class="dropdown-item" href="../articles/property-laws.html">Generative Laws with tinytest</a></li>
+    <li><a class="dropdown-item" href="../articles/monad-dictionaries.html">A Maybe Dictionary on S7</a></li>
+    <li><a class="dropdown-item" href="../articles/stateful-protocols.html">Testing Stateful S7 Protocols</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -78,11 +81,11 @@ becomes one tinytest result even though the law is evaluated many
 times.</p>
 <p>In <code>s7contract</code>, these laws provide behavioral evidence
 for protocols whose operations are described by interfaces or traits.
-The <a href="s7-interfaces-and-traits.html">Behavioral Contracts on
-S7</a> vignette defines one <code>VectorLike</code> law suite, runs it
-against two implementations, and finds a faulty slice method that
-satisfies the interface. This vignette explains the generator and runner
-machinery used by that example.</p>
+The <a href="protocol-laws.html">vector protocol</a> vignette defines
+one <code>VectorLike</code> law suite, runs it against two
+implementations, and finds a faulty slice method that satisfies the
+interface. This vignette explains the generator and runner machinery
+used by that example.</p>
 <div class="section level2">
 <h2 id="a-tinytest-property">A tinytest property<a class="anchor" aria-label="anchor" href="#a-tinytest-property"></a>
 </h2>
@@ -370,7 +373,10 @@ and <code><a href="../reference/gen_bind.html">gen_recursive()</a></code> retain
 </tr>
 <tr class="odd">
 <td align="left">State-machine testing</td>
-<td align="left">No command/model runner.</td>
+<td align="left">
+<code><a href="../reference/new_command.html">new_command()</a></code>,
+<code><a href="../reference/gen_commands.html">gen_commands()</a></code>, and <code><a href="../reference/new_state_law.html">new_state_law()</a></code> test
+sequential protocols against a model.</td>
 </tr>
 <tr class="even">
 <td align="left">Behavioral contracts</td>

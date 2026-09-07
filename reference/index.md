@@ -66,3 +66,9 @@
   [`format_check_result()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
   [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
   : Define and check a generative law
+- [`new_command()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_command.md)
+  : Describe a command for a stateful protocol
+- [`gen_commands()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_commands.md)
+  : Generate and shrink model-valid command sequences
+- [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md)
+  : Define a generative law for a stateful protocol

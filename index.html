@@ -37,7 +37,10 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/s7-interfaces-and-traits.html">Behavioral Contracts on S7</a></li>
     <li><a class="dropdown-item" href="articles/bioinformatics-interfaces.html">Bioinformatics Containers as Interfaces</a></li>
+    <li><a class="dropdown-item" href="articles/protocol-laws.html">Reusable Laws for a Vector Protocol</a></li>
     <li><a class="dropdown-item" href="articles/property-laws.html">Generative Laws with tinytest</a></li>
+    <li><a class="dropdown-item" href="articles/monad-dictionaries.html">A Maybe Dictionary on S7</a></li>
+    <li><a class="dropdown-item" href="articles/stateful-protocols.html">Testing Stateful S7 Protocols</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -216,7 +219,7 @@
 <span><span class="co">#&gt;  call| expect_law(area_law, tests = 100, seed = 20260902)</span></span>
 <span><span class="co">#&gt;  info| Law 'non-negative radii have non-negative area' passed 100 tests (seed 20260902).</span></span></code></pre></div>
 <p>Generators construct valid examples explicitly; arbitrary S7 validators are not treated as invertible generator definitions. <code><a href="reference/gen_bind.html">gen_bind()</a></code> builds dependent inputs, such as a length and a vector of that length, and preserves the relationship during shrinking. <code><a href="reference/gen_element.html">gen_choice()</a></code> selects among generators, and <code><a href="reference/gen_bind.html">gen_recursive()</a></code> builds nested values with decreasing recursive size. See <code><a href="articles/property-laws.html">vignette("property-laws")</a></code> for executed interface and counterexample examples, replay, and the scope relative to R and Haskell Hedgehog.</p>
-<p>The <a href="https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.html">protocol vignette</a> defines one <code>VectorLike</code> law suite for numeric vectors and a <code>ReadDepth</code> class. A deliberately faulty slice method passes structural checks but fails the slicing law. The example uses ordinary functions returning lists of laws, and is also installed as <code>system.file("examples", "vector-laws.R", package = "s7contract")</code>.</p>
+<p>The <a href="https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.html">protocol vignette</a> defines one <code>VectorLike</code> law suite for numeric vectors and a <code>ReadDepth</code> class. A deliberately faulty slice method passes structural checks but fails the slicing law. The example uses ordinary functions returning lists of laws, and is also installed as <code>system.file("examples", "vector-laws.R", package = "s7contract")</code>.</p>
 <p>Shrinking reports the smallest counterexample found and whether the search completed, reached its evaluation budget, or encountered a shrinking error. Runs use a fixed RNG configuration and record their parameters for replay. Callers using Box-Muller normals must select another normal RNG kind first, because R does not expose the cached normal draw needed to restore their state.</p>
 </div>
 <div class="section level2">
