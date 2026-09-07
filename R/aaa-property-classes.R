@@ -24,7 +24,25 @@ s7_law <- S7::new_class(
   properties = list(
     name = S7::class_character,
     generators = S7::class_list,
-    holds = S7::class_function
+    holds = S7::class_function,
+    classify = S7::class_function,
+    min_coverage = S7::new_property(
+      S7::class_numeric,
+      default = numeric(),
+      validator = function(value) {
+        if (anyNA(value) || any(value < 0 | value > 1)) {
+          return("Minimum coverage must contain finite proportions between zero and one.")
+        }
+        if (length(value) == 0L) return(NULL)
+        nms <- names(value)
+        if (is.null(nms) || !is.null(dim(value))) {
+          return("Minimum coverage must be a named numeric vector.")
+        }
+        if (anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms)) {
+          return("Coverage labels must be non-missing, non-empty and unique.")
+        }
+      }
+    )
   ),
   validator = function(self) {
     if (length(self@name) != 1L || is.na(self@name) || !nzchar(self@name)) {
@@ -35,9 +53,11 @@ s7_law <- S7::new_class(
       return(paste("`generators`:", problem))
     }
     generator_names <- names(self@generators)
-    law_formals <- names(formals(self@holds))
-    if (!"..." %in% law_formals && !all(generator_names %in% law_formals)) {
-      return("`holds` must accept every named generator argument or `...`.")
+    for (callback in c("holds", "classify")) {
+      callback_formals <- names(formals(S7::prop(self, callback)))
+      if (!"..." %in% callback_formals && !all(generator_names %in% callback_formals)) {
+        return(sprintf("`%s` must accept every named generator argument or `...`.", callback))
+      }
     }
     NULL
   }
@@ -97,14 +117,16 @@ s7_check_result <- S7::new_class(
     counterexample = S7::class_any,
     condition = S7::class_any,
     shrink_status = S7::class_character,
-    shrink_condition = S7::class_any
+    shrink_condition = S7::class_any,
+    coverage = S7::class_data.frame,
+    coverage_cases = S7::class_integer
   ),
   validator = function(self) {
     if (
       length(self@status) != 1L ||
-        !self@status %in% c("passed", "falsified", "error", "exhausted")
+        !self@status %in% c("passed", "falsified", "error", "exhausted", "insufficient_coverage")
     ) {
-      "`status` must be passed, falsified, error, or exhausted."
+      "`status` must be passed, falsified, error, exhausted, or insufficient_coverage."
     }
   }
 )

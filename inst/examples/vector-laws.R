@@ -77,7 +77,14 @@ vector_laws <- function(make) {
     slice_values = new_law("slicing preserves selected values and order", list(input = cases),
       function(input) with(VectorLike, {
         identical(vec_values(vec_slice(input$x, input$i)), input$values[input$i])
-      })),
+      }),
+      classify = function(input) c(
+        if (length(input$values) == 0L) "empty" else "nonempty",
+        if (anyDuplicated(input$i) > 0L) "repeated",
+        if (is.unsorted(input$i)) "reordered"
+      ),
+      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1, reordered = 0.1)
+    ),
     slice_length = new_law("slice length matches the index count", list(input = cases),
       function(input) with(VectorLike, {
         identical(vec_length(vec_slice(input$x, input$i)), base::length(input$i))
@@ -122,3 +129,11 @@ example$values[example$i]
 ## ---- vector-law-replay
 replayed <- do.call(check_law, c(list(law = failure@law), failure@parameters))
 identical(replayed@counterexample@minimal, failure@counterexample@minimal)
+
+## ---- vector-law-coverage
+vector_results$numeric$slice_values@coverage
+
+## ---- vector-law-insufficient-coverage
+empty_only <- check_law(vector_laws(identity)$slice_values,
+                        tests = 10L, seed = 1L, max_size = 0L)
+empty_only

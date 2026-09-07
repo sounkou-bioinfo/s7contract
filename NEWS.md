@@ -1,5 +1,10 @@
 # s7contract 0.2.0.9000
 
+* Added case classification and minimum observed coverage to `new_law()` and
+  `new_state_law()`. Results retain counts and proportions; unmet requirements
+  produce `insufficient_coverage` after the requested passing cases. Discards,
+  errors, and shrink evaluations do not contribute to coverage.
+
 * Added sequential protocol laws with `new_command()`, `gen_commands()`, and
   `new_state_law()`. Commands run against a reference model with fresh fixtures,
   dependency-preserving shrinking, and original and reduced failure traces.

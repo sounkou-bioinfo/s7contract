@@ -183,6 +183,10 @@ gen_commands <- function(initial, commands, max = 10L) {
 #' @param setup Function of no arguments returning a fresh implementation fixture.
 #' @param teardown Function of that fixture releasing its resources.
 #' @param max_commands Maximum generated sequence length.
+#' @param classify Function of the generated `sequence` returning case labels,
+#'   as in [new_law()]. Labels describe the generated sequence, including any
+#'   suffix not executed after a failure.
+#' @param min_coverage Named minimum case proportions, as in [new_law()].
 #' @return An S7 law accepted by [check_law()] and [expect_law()].
 #' @examples
 #' increment <- new_command(
@@ -203,14 +207,15 @@ gen_commands <- function(initial, commands, max = 10L) {
 #' @export
 new_state_law <- function(
   name, initial, commands, setup, teardown = function(fixture) NULL,
-  max_commands = 10L
+  max_commands = 10L, classify = function(...) character(), min_coverage = numeric()
 ) {
   commands <- .command_set(commands)
   if (!is.function(setup) || !is.function(teardown)) {
     .abort("`setup` and `teardown` must be functions.")
   }
   new_law(name, list(sequence = gen_commands(initial, commands, max_commands)),
-          function(sequence) .run_commands(initial, commands, sequence, setup, teardown))
+          function(sequence) .run_commands(initial, commands, sequence, setup, teardown),
+          classify = classify, min_coverage = min_coverage)
 }
 
 .run_commands <- function(initial, commands, sequence, setup, teardown) {

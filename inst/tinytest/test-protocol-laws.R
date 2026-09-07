@@ -56,3 +56,20 @@ audited <- new_law(failure@law@name, failure@law@generators, function(input) {
 audit_result <- do.call(check_law, c(list(law = audited), failure@parameters))
 expect_identical(audit_result@counterexample@minimal, failure@counterexample@minimal)
 expect_identical(visited, audit_result@attempts + audit_result@shrink_attempts)
+
+# Coverage makes the generated domain visible without changing counterexamples.
+for (results in vector_results) {
+  coverage <- results$slice_values@coverage
+  expect_identical(coverage$label, c("empty", "nonempty", "repeated", "reordered"))
+  expect_true(all(coverage$met))
+  expect_identical(sum(coverage$count[1:2]), 100L)
+  expect_identical(results$slice_values@coverage_cases, 100L)
+}
+expect_identical(empty_only@status, "insufficient_coverage")
+expect_identical(empty_only@tests, 10L)
+expect_identical(empty_only@counterexample, NULL)
+expect_identical(empty_only@coverage$count, c(10L, 0L, 0L, 0L))
+expect_identical(empty_only@coverage$met, c(TRUE, FALSE, FALSE, FALSE))
+expect_identical(failure@coverage_cases, failure@attempts)
+expect_identical(replayed@coverage, failure@coverage)
+expect_identical(failure@status, "falsified")

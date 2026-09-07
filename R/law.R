@@ -159,8 +159,26 @@
   shrinks = 0L,
   shrink_attempts = 0L,
   shrink_status = "not_needed",
-  shrink_condition = NULL
+  shrink_condition = NULL,
+  coverage_counts = integer(),
+  coverage_cases = 0L
 ) {
+  proportion <- if (coverage_cases == 0L) {
+    rep(NA_real_, length(coverage_counts))
+  } else {
+    unname(coverage_counts) / coverage_cases
+  }
+  minimum <- unname(law@min_coverage[names(coverage_counts)])
+  coverage <- data.frame(
+    label = as.character(names(coverage_counts)),
+    count = unname(coverage_counts),
+    proportion = proportion,
+    minimum = as.double(minimum),
+    met = proportion >= minimum
+  )
+  if (identical(status, "passed") && any(coverage$met %in% FALSE)) {
+    status <- "insufficient_coverage"
+  }
   s7_check_result(
     law = law,
     status = status,
@@ -175,7 +193,9 @@
     counterexample = counterexample,
     condition = condition,
     shrink_status = shrink_status,
-    shrink_condition = shrink_condition
+    shrink_condition = shrink_condition,
+    coverage = coverage,
+    coverage_cases = as.integer(coverage_cases)
   )
 }
 
@@ -207,6 +227,23 @@
 #' in the counterexample's `original_condition` and `condition` fields. Callback
 #' defects stop their shrink search, preserving any earlier false postcondition.
 #'
+#' Optional `classify` labels each generated input before `holds` runs. Labels
+#' count once per case whose outcome is a pass or a false postcondition, including
+#' stateful postcondition failures. Discards, errors, and shrink candidates are
+#' excluded. A classifier warning, error, or invalid return terminates the run
+#' with status `"error"` before evaluating that case's law.
+#'
+#' The result's `coverage` data frame contains `label`, `count`, `proportion`,
+#' `minimum`, and `met`; `coverage_cases` is the denominator. Requirements for
+#' unseen labels have count zero. Unrequested minima and their `met` values are
+#' `NA`; with no accepted cases, proportions and all `met` values are also `NA`.
+#' After the requested passing cases, unmet minima give status
+#' `"insufficient_coverage"` and make `expect_law()` fail without a counterexample.
+#' Falsification, error, and exhaustion retain their own statuses and report
+#' partial coverage. Minima describe observed proportions within the test
+#' budget, without a statistical confidence guarantee. Generator size and
+#' preconditions can change the sampled distribution.
+#'
 #' In a tinytest file, call `tinytest::using(s7contract)` before calling
 #' `expect_law()`. This activates tinytest's supported extension capture so the
 #' property run is recorded as one ordinary test result.
@@ -215,6 +252,14 @@
 #' @param generators Uniquely named non-empty list of generators.
 #' @param holds Function accepting the generated arguments and returning one
 #'   non-missing logical value.
+#' @param classify Function accepting the same generated arguments as `holds`
+#'   and returning character labels, or `NULL` for none. Duplicate labels count
+#'   once per case; names are ignored. Labels must be non-missing and non-empty.
+#'   The classifier must be deterministic, must not draw random numbers, and
+#'   must not mutate inputs or external state. It is never called on shrinks.
+#' @param min_coverage Named numeric vector of minimum proportions in `[0, 1]`,
+#'   with unique label names. For example, `c(nonempty = 0.5)` requires at least
+#'   half of accepted generated cases to carry the label `"nonempty"`.
 #' @param law A law created by `new_law()`.
 #' @param tests Number of passing cases required.
 #' @param seed Deterministic local random seed. The caller's RNG kind and state
@@ -235,8 +280,10 @@
 #' )
 #' check_law(reverse_law, tests = 20L, seed = 1L)
 #' @export
-new_law <- function(name, generators, holds) {
-  s7_law(name = name, generators = generators, holds = holds)
+new_law <- function(name, generators, holds, classify = function(...) character(),
+                    min_coverage = numeric()) {
+  s7_law(name = name, generators = generators, holds = holds,
+          classify = classify, min_coverage = min_coverage)
 }
 
 #' @rdname new_law
@@ -285,6 +332,9 @@ check_law <- function(
     passed <- 0L
     attempts <- 0L
     discarded <- 0L
+    coverage_counts <- integer(length(law@min_coverage))
+    names(coverage_counts) <- names(law@min_coverage)
+    coverage_cases <- 0L
 
     while (passed < tests) {
       attempts <- attempts + 1L
@@ -296,7 +346,16 @@ check_law <- function(
             function(generator) generator@draw(size)
           )
           names(trees) <- names(law@generators)
-          .product_rose(trees)
+          generated <- .product_rose(trees)
+          labels <- do.call(law@classify, generated$value)
+          if (!is.null(labels) && !is.character(labels)) {
+            .abort("`classify` must return character labels or NULL.")
+          }
+          if (anyNA(labels) || any(!nzchar(labels))) {
+            .abort("`classify` labels must be non-missing and non-empty.")
+          }
+          labels <- unique(as.character(labels))
+          generated
         },
         error = identity,
         warning = identity
@@ -311,11 +370,18 @@ check_law <- function(
           seed,
           rng_kind,
           parameters,
-          condition = tree
+          condition = tree,
+          coverage_counts = coverage_counts,
+          coverage_cases = coverage_cases
         ))
       }
 
       evaluation <- .evaluate_law(law, tree$value)
+      if (evaluation$outcome %in% c("pass", "fail")) {
+        coverage_cases <- coverage_cases + 1L
+        coverage_counts[setdiff(labels, names(coverage_counts))] <- 0L
+        coverage_counts[labels] <- coverage_counts[labels] + 1L
+      }
       if (identical(evaluation$outcome, "pass")) {
         passed <- passed + 1L
         next
@@ -332,7 +398,9 @@ check_law <- function(
             seed,
             rng_kind,
             parameters,
-            condition = evaluation$condition
+            condition = evaluation$condition,
+            coverage_counts = coverage_counts,
+            coverage_cases = coverage_cases
           ))
         }
         next
@@ -365,7 +433,9 @@ check_law <- function(
         shrinks = reduced$shrinks,
         shrink_attempts = reduced$attempts,
         shrink_status = reduced$status,
-        shrink_condition = reduced$condition
+        shrink_condition = reduced$condition,
+        coverage_counts = coverage_counts,
+        coverage_cases = coverage_cases
       ))
     }
 
@@ -377,7 +447,9 @@ check_law <- function(
       discarded,
       seed,
       rng_kind,
-      parameters
+      parameters,
+      coverage_counts = coverage_counts,
+      coverage_cases = coverage_cases
     )
   })
 }
@@ -395,6 +467,10 @@ format_check_result <- function(x) {
       x@law@name,
       x@tests,
       x@seed
+    ),
+    insufficient_coverage = sprintf(
+      "Law '%s' passed %d tests but missed coverage requirements (seed %d).",
+      x@law@name, x@tests, x@seed
     ),
     exhausted = sprintf(
       "Law '%s' exhausted after %d discards and %d passes (seed %d).",
@@ -420,7 +496,7 @@ format_check_result <- function(x) {
   )
   if (is.null(x@counterexample)) {
     detail <- if (is.null(x@condition)) character() else conditionMessage(x@condition)
-    return(paste(c(header, detail), collapse = "\n"))
+    return(paste(c(header, detail, .format_law_coverage(x)), collapse = "\n"))
   }
   detail <- if (is.null(x@counterexample@condition)) {
     "The law returned FALSE."
@@ -450,14 +526,14 @@ format_check_result <- function(x) {
     budget = sprintf("Shrinking stopped at the evaluation budget (%d).", x@shrink_attempts),
     error = paste("Shrinking stopped:", conditionMessage(x@shrink_condition))
   )
-  paste(
+  paste(c(
     header,
     detail,
     shrinking,
     "Smallest counterexample found:",
     arguments,
-    sep = "\n"
-  )
+    .format_law_coverage(x)
+  ), collapse = "\n")
 }
 
 .print_s7_check_result <- function(x, ...) {

@@ -10,7 +10,9 @@ new_state_law(
   commands,
   setup,
   teardown = function(fixture) NULL,
-  max_commands = 10L
+  max_commands = 10L,
+  classify = function(...) character(),
+  min_coverage = numeric()
 )
 }
 \arguments{
@@ -25,6 +27,12 @@ new_state_law(
 \item{teardown}{Function of that fixture releasing its resources.}
 
 \item{max_commands}{Maximum generated sequence length.}
+
+\item{classify}{Function of the generated \code{sequence} returning case labels,
+as in \code{\link[=new_law]{new_law()}}. Labels describe the generated sequence, including any
+suffix not executed after a failure.}
+
+\item{min_coverage}{Named minimum case proportions, as in \code{\link[=new_law]{new_law()}}.}
 }
 \value{
 An S7 law accepted by \code{\link[=check_law]{check_law()}} and \code{\link[=expect_law]{expect_law()}}.

@@ -250,5 +250,6 @@ seed compatibility with Hedgehog.
 | Choice and recursive generation | `gen_element()`, `gen_choice()`, and `gen_recursive()` retain integrated shrinking. |
 | Inspection and shrink control | `gen_example()` draws a reproducible value; `gen_no_shrink()` removes shrinking. |
 | State-machine testing | `new_command()`, `gen_commands()`, and `new_state_law()` test sequential protocols against a model. |
+| Case coverage | `classify` labels generated inputs; `min_coverage` requires observed proportions within the test budget. See the [vector example](protocol-laws.html#which-cases-were-tested). |
 | Behavioral contracts | Laws can exercise S7 interfaces and traits through ordinary calls. |
 | Test-framework integration | `check_law()` returns structured results; `expect_law()` records one tinytest result. |
