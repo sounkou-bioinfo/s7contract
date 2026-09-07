@@ -12,7 +12,8 @@
 #' implementation. [check_law()] supplies separate evidence about behavior over
 #' generated cases. Protocol authors can reuse laws across implementations by
 #' writing ordinary functions that construct lists of laws; see
-#' `vignette("s7-interfaces-and-traits")` for an executed example.
+#' `vignette("protocol-laws")` for an executed example. [new_state_law()] tests
+#' sequences of commands against a reference model with fresh fixtures.
 #'
 #' @docType package
 #' @name s7contract

@@ -153,30 +153,32 @@
   }
   .new_rose(
     value,
-    function() {
-      width <- length(trees) - min_length
-      start <- 1L
-      elements <- NULL
-      function() {
-        while (width > 0L) {
-          if (start + width - 1L <= length(trees)) {
-            kept <- trees[-seq.int(start, length.out = width)]
-            start <<- start + width
-            return(.vector_rose(kept, prototype, min_length))
-          }
-          width <<- width %/% 2L
-          start <<- 1L
-        }
-        if (is.null(elements)) {
-          elements <<- .component_children(
-            trees,
-            function(candidate) .vector_rose(candidate, prototype, min_length)
-          )
-        }
-        elements()
-      }
-    }
+    function() .sequence_children(trees, min_length, function(candidate) {
+      .vector_rose(candidate, prototype, min_length)
+    })
   )
+}
+
+# Vectors and command sequences remove chunks before shrinking elements.
+.sequence_children <- function(trees, min_length, assemble) {
+  width <- length(trees) - min_length
+  start <- 1L
+  elements <- NULL
+  function() {
+    while (width > 0L) {
+      if (start + width - 1L <= length(trees)) {
+        kept <- trees[-seq.int(start, length.out = width)]
+        start <<- start + width
+        return(assemble(kept))
+      }
+      width <<- width %/% 2L
+      start <<- 1L
+    }
+    if (is.null(elements)) {
+      elements <<- .component_children(trees, assemble)
+    }
+    elements()
+  }
 }
 
 #' Construct a property-based test generator

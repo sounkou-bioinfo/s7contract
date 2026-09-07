@@ -71,6 +71,9 @@
   if (inherits(caught, "s7contract_discard")) {
     return(list(outcome = "discard", condition = caught))
   }
+  if (inherits(caught, "s7contract_state_failure")) {
+    return(list(outcome = "fail", condition = caught))
+  }
   if (!is.null(caught)) {
     return(list(outcome = "error", condition = caught))
   }
@@ -100,6 +103,8 @@
   next_child <- NULL
 
   problem <- tryCatch({
+    state_problem <- .state_shrink_problem(evaluation)
+    if (!is.null(state_problem)) stop(state_problem)
     while (attempts < limit) {
       if (is.null(next_child)) {
         next_child <- .rose_children(current)
@@ -111,23 +116,21 @@
       }
       attempts <- attempts + 1L
       candidate <- .evaluate_law(law, child$value)
-      same_outcome <- identical(
-        current_evaluation$outcome,
-        candidate$outcome
-      )
-      same_condition <- TRUE
-      if (same_outcome && identical(candidate$outcome, "error")) {
-        same_condition <- identical(
-          class(current_evaluation$condition)[[1L]],
-          class(candidate$condition)[[1L]]
-        )
+      state_problem <- .state_shrink_problem(candidate)
+      if (!is.null(state_problem)) stop(state_problem)
+      if (!identical(current_evaluation$outcome, candidate$outcome)) next
+      if (inherits(current_evaluation$condition, "s7contract_state_failure") &&
+          !identical(current_evaluation$condition$command, candidate$condition$command)) {
+        next
       }
-      if (same_outcome && same_condition) {
-        current <- child
-        current_evaluation <- candidate
-        accepted <- accepted + 1L
-        next_child <- NULL
+      if (identical(candidate$outcome, "error") &&
+          !identical(class(current_evaluation$condition)[[1L]], class(candidate$condition)[[1L]])) {
+        next
       }
+      current <- child
+      current_evaluation <- candidate
+      accepted <- accepted + 1L
+      next_child <- NULL
     }
     NULL
   }, error = identity, warning = identity)
@@ -200,6 +203,9 @@
 #' in `shrink_condition`; the original and last failing examples are retained.
 #' Generator warnings and errors terminate the run with status `"error"`.
 #' Warnings or errors from `holds` are counterexamples.
+#' Stateful laws created by [new_state_law()] additionally retain failure traces
+#' in the counterexample's `original_condition` and `condition` fields. Callback
+#' defects stop their shrink search, preserving any earlier false postcondition.
 #'
 #' In a tinytest file, call `tinytest::using(s7contract)` before calling
 #' `expect_law()`. This activates tinytest's supported extension capture so the
@@ -337,7 +343,8 @@ check_law <- function(
         original = tree$value,
         minimal = reduced$tree$value,
         outcome = reduced$evaluation$outcome,
-        condition = reduced$evaluation$condition
+        condition = reduced$evaluation$condition,
+        original_condition = evaluation$condition
       )
       status <- if (identical(evaluation$outcome, "fail")) {
         "falsified"
@@ -419,6 +426,13 @@ format_check_result <- function(x) {
     "The law returned FALSE."
   } else {
     conditionMessage(x@counterexample@condition)
+  }
+  if (inherits(x@counterexample@condition, "s7contract_state_condition")) {
+    condition <- x@counterexample@condition
+    detail <- paste(detail, paste(utils::capture.output(utils::str(
+      list(model = condition$model, input = condition$input, output = condition$output),
+      max.level = 3L, list.len = 20L, vec.len = 20L, give.attr = FALSE
+    )), collapse = "\n"), sep = "\n")
   }
   arguments <- paste(
     utils::capture.output(utils::str(

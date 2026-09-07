@@ -1,0 +1,100 @@
+---
+title: "Reusable Laws for a Vector Protocol"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reusable Laws for a Vector Protocol}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+knitr::read_chunk(
+  system.file("examples", "vector-laws.R", package = "s7contract")
+)
+```
+
+```{r setup}
+library(S7)
+library(s7contract)
+```
+
+This example extends [Behavioral Contracts on S7](s7-interfaces-and-traits.html)
+with one law suite shared by two implementations and a faulty subclass.
+
+## Vector-like behavior
+
+Many algorithms need only a length, a way to slice, and access to values. Here both ordinary double
+vectors and `ReadDepth` objects implement those operations. The class validator
+keeps positions and depths aligned, while the interface describes the behavior
+consumers need.
+
+```{r vector-interface}
+```
+
+A function can depend on this small protocol without knowing how the object is
+represented internally.
+
+```{r vector-consumer}
+```
+
+## One protocol, several implementations
+
+A protocol author can publish a function returning a named list of laws.
+Implementation authors supply a constructor; the laws compare each result with
+the reference values passed to that constructor.
+
+The domain here is unnamed double vectors containing small integers, with
+positive, in-range integer indices. Empty vectors and selections are included;
+indices may repeat or appear out of order. Missing values, names, negative
+indices, and the rest of R's subsetting semantics are outside this example.
+
+`gen_bind()` constructs the object and an index generator from the reference
+values. When those values shrink, it rebuilds both, preserving object validity
+and index bounds. Bounds come from the reference data rather than the method
+being tested. Inside the contract mask, `base::length()` keeps the reference
+calculation separate from the interface's `length` alias.
+
+```{r vector-law-suite}
+```
+
+`lapply()` runs the same four laws against both representations.
+
+```{r vector-law-implementations}
+```
+
+## Structural conformance and a behavioral failure
+
+This subclass inherits the correct length and value methods, but its slice
+method reverses the requested order. All required methods are available, so
+`implements()` succeeds. Its slices also have valid representations and the
+expected value type and length.
+
+```{r vector-law-broken}
+```
+
+Only the law about selected values and their order fails. `check_law()` reports
+that failure separately from structural conformance, and shrinks it to a smaller
+valid input. The checked call below still succeeds; its result differs from the
+reference slice.
+
+```{r vector-law-counterexample}
+```
+
+The result records the inputs and run parameters needed to replay the failure:
+
+```{r vector-law-replay}
+```
+
+These example definitions and checks are installed together in
+`system.file("examples", "vector-laws.R", package = "s7contract")`. The vignette
+and package tests execute that same script. For generator composition, budgets,
+and tinytest integration, see `vignette("property-laws")`.
+
+`implements()` continues to check method availability; `has_trait()` checks
+declared implementation. Neither runs laws or changes meaning after a law passes
+or fails. The protocol's laws and its implementation-specific generators are
+explicit test inputs.

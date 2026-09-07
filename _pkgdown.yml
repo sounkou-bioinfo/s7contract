@@ -25,6 +25,9 @@ reference:
       - gen_element
       - gen_example
       - new_law
+      - new_command
+      - gen_commands
+      - new_state_law
 
 articles:
   - title: Concepts
@@ -35,4 +38,7 @@ articles:
     navbar: ~
     contents:
       - bioinformatics-interfaces
+      - protocol-laws
       - property-laws
+      - monad-dictionaries
+      - stateful-protocols

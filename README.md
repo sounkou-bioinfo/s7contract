@@ -202,7 +202,7 @@ interface and counterexample examples, replay, and the scope relative to
 R and Haskell Hedgehog.
 
 The [protocol
-vignette](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.html)
+vignette](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.html)
 defines one `VectorLike` law suite for numeric vectors and a `ReadDepth`
 class. A deliberately faulty slice method passes structural checks but
 fails the slicing law. The example uses ordinary functions returning

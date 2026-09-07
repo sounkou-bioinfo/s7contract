@@ -50,8 +50,34 @@ s7_counterexample <- S7::new_class(
     original = S7::class_list,
     minimal = S7::class_list,
     outcome = S7::class_character,
-    condition = S7::class_any
+    condition = S7::class_any,
+    original_condition = S7::class_any
   )
+)
+
+s7_command <- S7::new_class(
+  "s7_command",
+  package = "s7contract",
+  properties = list(
+    name = S7::class_character,
+    generate = S7::class_function,
+    execute = S7::class_function,
+    update = S7::class_function,
+    ensure = S7::class_function,
+    require = S7::class_function
+  ),
+  validator = function(self) {
+    if (length(self@name) != 1L || is.na(self@name) || !nzchar(self@name)) {
+      "`name` must be one non-empty string."
+    }
+  }
+)
+
+# References keep producer identities when earlier commands are removed.
+s7_command_ref <- S7::new_class(
+  "s7_command_ref",
+  package = "s7contract",
+  properties = list(id = S7::class_integer)
 )
 
 s7_check_result <- S7::new_class(

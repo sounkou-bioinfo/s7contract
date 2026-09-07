@@ -1,0 +1,119 @@
+---
+title: "Testing Stateful S7 Protocols"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Testing Stateful S7 Protocols}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::read_chunk(
+  system.file("examples", "store-laws.R", package = "s7contract")
+)
+```
+
+```{r store-setup}
+```
+
+A mutable store must behave correctly across calls: a put changes a later get,
+a delete removes a key, and a reset clears earlier entries. We can test these
+relationships by generating command sequences and comparing each operation
+with a reference model.
+
+## The protocol and its implementations
+
+This protocol stores one integer per string key and reports keys in sorted
+order. The example uses three keys and small integer values. Missing keys
+return `NULL`; generated get and delete commands use existing keys.
+
+```{r store-interface}
+```
+
+One implementation stores environment bindings; the other updates a list held
+in an environment. Both use ordinary S7 methods.
+
+```{r store-implementations}
+```
+
+## Commands and a reference model
+
+The model is a named list of expected values. Each command defines its input
+generator, implementation call, and postcondition. A model update derives the
+next state from the input. `get` and `delete` are available only when a key
+exists; their preconditions also apply during shrinking.
+
+```{r store-commands}
+```
+
+`ensure(state, input, output)` sees the model before the command and returns a
+scalar logical. It runs after `update()` has computed the next model. The
+model's expected values come from the inputs, independently of the store's
+answers.
+
+## One law, two fixtures
+
+`new_state_law()` builds a law for the existing runner. Every case and evaluated
+shrink gets a fresh fixture; teardown runs once after each successful setup,
+including after a false postcondition, warning, or error.
+
+```{r store-law}
+```
+
+Sequence length grows with the runner's size, up to `max_commands`. Generation
+may stop sooner when no command is available. Empty sequences are allowed.
+`expect_law()` can run the same law as one tinytest expectation.
+
+## A reset that leaves data behind
+
+This subclass has every required method, but reset does nothing:
+
+```{r store-broken}
+```
+
+The runner reduces the failure to a put followed by a reset. It first removes
+chunks of commands, then shrinks their inputs. After each change, it removes
+commands whose preconditions no longer hold, along with their dependents.
+The search retains failures of the same command's postcondition; the result is
+minimal relative to the shrink tree and evaluation budget.
+
+The failure condition retains the resolved inputs, outputs, and model states:
+
+```{r store-trace}
+```
+
+The original trace is in `store_failure@counterexample@original_condition$trace`.
+Unexpected callback errors stop shrinking and preserve an established
+counterexample. If teardown also fails, its condition is retained separately
+as `cleanup_condition`. `shrink_condition` reports why the search stopped.
+
+```{r store-replay}
+```
+
+Replay requires unchanged commands, generators, run parameters, and compatible
+R/package versions. Setup must reproduce the initial state; shared mutable
+state outside the fixture would break that guarantee. The runner restores the
+caller's RNG state as described in [Generative Laws with tinytest](property-laws.html).
+
+## Commands that return handles
+
+Some protocols allocate a handle that later commands consume. During generation,
+`update(state, input, output)` receives an opaque reference to the future output.
+It can append that reference to a list of live handles, and later generators can
+select one with `gen_element()`. During execution, the same update receives the
+actual handle.
+
+References resolve when passed directly as command inputs or nested in ordinary
+lists. They retain the producer's ID when earlier commands are removed. Removing
+a producer also removes consumers of its output. References inside classed
+containers are not traversed; place them in a plain list before execution.
+The update must work with both symbolic and concrete outputs, without inspecting
+their representation. Models need value semantics; traces containing mutable
+handles retain R's reference semantics.
+
+The design follows [R Hedgehog's state-machine example](https://github.com/hedgehogqa/r-hedgehog/blob/master/vignettes/state-machines.Rmd)
+and [Haskell Hedgehog's commands](https://github.com/hedgehogqa/haskell-hedgehog/blob/master/hedgehog/src/Hedgehog/Internal/State.hs).
+For the model-based testing background, see
+[Hughes (2016)](https://research.chalmers.se/publication/232550).
+This runner executes sequential commands; it does not test concurrent histories.

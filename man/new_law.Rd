@@ -86,6 +86,9 @@ counterexample was found. A shrinking error or warning is stored separately
 in \code{shrink_condition}; the original and last failing examples are retained.
 Generator warnings and errors terminate the run with status \code{"error"}.
 Warnings or errors from \code{holds} are counterexamples.
+Stateful laws created by \code{\link[=new_state_law]{new_state_law()}} additionally retain failure traces
+in the counterexample's \code{original_condition} and \code{condition} fields. Callback
+defects stop their shrink search, preserving any earlier false postcondition.
 
 In a tinytest file, call \code{tinytest::using(s7contract)} before calling
 \code{expect_law()}. This activates tinytest's supported extension capture so the
