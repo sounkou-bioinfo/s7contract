@@ -2,6 +2,14 @@
 
 ## s7contract 0.2.0.9000
 
+- Added case classification and minimum observed coverage to
+  [`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+  and
+  [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md).
+  Results retain counts and proportions; unmet requirements produce
+  `insufficient_coverage` after the requested passing cases. Discards,
+  errors, and shrink evaluations do not contribute to coverage.
+
 - Added sequential protocol laws with
   [`new_command()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_command.md),
   [`gen_commands()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_commands.md),

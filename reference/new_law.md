@@ -9,7 +9,13 @@ checked.
 ## Usage
 
 ``` r
-new_law(name, generators, holds)
+new_law(
+  name,
+  generators,
+  holds,
+  classify = function(...) character(),
+  min_coverage = numeric()
+)
 
 assume(condition)
 
@@ -48,6 +54,21 @@ expect_law(
 
   Function accepting the generated arguments and returning one
   non-missing logical value.
+
+- classify:
+
+  Function accepting the same generated arguments as `holds` and
+  returning character labels, or `NULL` for none. Duplicate labels count
+  once per case; names are ignored. Labels must be non-missing and
+  non-empty. The classifier must be deterministic, must not draw random
+  numbers, and must not mutate inputs or external state. It is never
+  called on shrinks.
+
+- min_coverage:
+
+  Named numeric vector of minimum proportions in `[0, 1]`, with unique
+  label names. For example, `c(nonempty = 0.5)` requires at least half
+  of accepted generated cases to carry the label `"nonempty"`.
 
 - condition:
 
@@ -113,6 +134,25 @@ are counterexamples. Stateful laws created by
 additionally retain failure traces in the counterexample's
 `original_condition` and `condition` fields. Callback defects stop their
 shrink search, preserving any earlier false postcondition.
+
+Optional `classify` labels each generated input before `holds` runs.
+Labels count once per case whose outcome is a pass or a false
+postcondition, including stateful postcondition failures. Discards,
+errors, and shrink candidates are excluded. A classifier warning, error,
+or invalid return terminates the run with status `"error"` before
+evaluating that case's law.
+
+The result's `coverage` data frame contains `label`, `count`,
+`proportion`, `minimum`, and `met`; `coverage_cases` is the denominator.
+Requirements for unseen labels have count zero. Unrequested minima and
+their `met` values are `NA`; with no accepted cases, proportions and all
+`met` values are also `NA`. After the requested passing cases, unmet
+minima give status `"insufficient_coverage"` and make `expect_law()`
+fail without a counterexample. Falsification, error, and exhaustion
+retain their own statuses and report partial coverage. Minima describe
+observed proportions within the test budget, without a statistical
+confidence guarantee. Generator size and preconditions can change the
+sampled distribution.
 
 In a tinytest file, call `tinytest::using(s7contract)` before calling
 `expect_law()`. This activates tinytest's supported extension capture so

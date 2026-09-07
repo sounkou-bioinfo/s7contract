@@ -18,7 +18,9 @@ new_state_law(
   commands,
   setup,
   teardown = function(fixture) NULL,
-  max_commands = 10L
+  max_commands = 10L,
+  classify = function(...) character(),
+  min_coverage = numeric()
 )
 ```
 
@@ -48,6 +50,18 @@ new_state_law(
 - max_commands:
 
   Maximum generated sequence length.
+
+- classify:
+
+  Function of the generated `sequence` returning case labels, as in
+  [`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md).
+  Labels describe the generated sequence, including any suffix not
+  executed after a failure.
+
+- min_coverage:
+
+  Named minimum case proportions, as in
+  [`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md).
 
 ## Value
 

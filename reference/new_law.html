@@ -57,7 +57,13 @@ expectation, regardless of how many generated cases were checked.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">new_law</span><span class="op">(</span><span class="va">name</span>, <span class="va">generators</span>, <span class="va">holds</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">new_law</span><span class="op">(</span></span>
+<span>  <span class="va">name</span>,</span>
+<span>  <span class="va">generators</span>,</span>
+<span>  <span class="va">holds</span>,</span>
+<span>  classify <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">...</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  min_coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">assume</span><span class="op">(</span><span class="va">condition</span><span class="op">)</span></span>
 <span></span>
@@ -97,6 +103,20 @@ expectation, regardless of how many generated cases were checked.</p>
 <dt id="arg-holds">holds<a class="anchor" aria-label="anchor" href="#arg-holds"></a></dt>
 <dd><p>Function accepting the generated arguments and returning one
 non-missing logical value.</p></dd>
+
+
+<dt id="arg-classify">classify<a class="anchor" aria-label="anchor" href="#arg-classify"></a></dt>
+<dd><p>Function accepting the same generated arguments as <code>holds</code>
+and returning character labels, or <code>NULL</code> for none. Duplicate labels count
+once per case; names are ignored. Labels must be non-missing and non-empty.
+The classifier must be deterministic, must not draw random numbers, and
+must not mutate inputs or external state. It is never called on shrinks.</p></dd>
+
+
+<dt id="arg-min-coverage">min_coverage<a class="anchor" aria-label="anchor" href="#arg-min-coverage"></a></dt>
+<dd><p>Named numeric vector of minimum proportions in <code>[0, 1]</code>,
+with unique label names. For example, <code>c(nonempty = 0.5)</code> requires at least
+half of accepted generated cases to carry the label <code>"nonempty"</code>.</p></dd>
 
 
 <dt id="arg-condition">condition<a class="anchor" aria-label="anchor" href="#arg-condition"></a></dt>
@@ -159,6 +179,21 @@ Warnings or errors from <code>holds</code> are counterexamples.
 Stateful laws created by <code><a href="new_state_law.html">new_state_law()</a></code> additionally retain failure traces
 in the counterexample's <code>original_condition</code> and <code>condition</code> fields. Callback
 defects stop their shrink search, preserving any earlier false postcondition.</p>
+<p>Optional <code>classify</code> labels each generated input before <code>holds</code> runs. Labels
+count once per case whose outcome is a pass or a false postcondition, including
+stateful postcondition failures. Discards, errors, and shrink candidates are
+excluded. A classifier warning, error, or invalid return terminates the run
+with status <code>"error"</code> before evaluating that case's law.</p>
+<p>The result's <code>coverage</code> data frame contains <code>label</code>, <code>count</code>, <code>proportion</code>,
+<code>minimum</code>, and <code>met</code>; <code>coverage_cases</code> is the denominator. Requirements for
+unseen labels have count zero. Unrequested minima and their <code>met</code> values are
+<code>NA</code>; with no accepted cases, proportions and all <code>met</code> values are also <code>NA</code>.
+After the requested passing cases, unmet minima give status
+<code>"insufficient_coverage"</code> and make <code>expect_law()</code> fail without a counterexample.
+Falsification, error, and exhaustion retain their own statuses and report
+partial coverage. Minima describe observed proportions within the test
+budget, without a statistical confidence guarantee. Generator size and
+preconditions can change the sampled distribution.</p>
 <p>In a tinytest file, call <code>tinytest::using(s7contract)</code> before calling
 <code>expect_law()</code>. This activates tinytest's supported extension capture so the
 property run is recorded as one ordinary test result.</p>

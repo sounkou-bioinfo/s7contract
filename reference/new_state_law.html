@@ -63,7 +63,9 @@ it is responsible for releasing any partially acquired resources.</p>
 <span>  <span class="va">commands</span>,</span>
 <span>  <span class="va">setup</span>,</span>
 <span>  teardown <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">fixture</span><span class="op">)</span> <span class="cn">NULL</span>,</span>
-<span>  max_commands <span class="op">=</span> <span class="fl">10L</span></span>
+<span>  max_commands <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  classify <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">...</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  min_coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -93,6 +95,16 @@ it is responsible for releasing any partially acquired resources.</p>
 
 <dt id="arg-max-commands">max_commands<a class="anchor" aria-label="anchor" href="#arg-max-commands"></a></dt>
 <dd><p>Maximum generated sequence length.</p></dd>
+
+
+<dt id="arg-classify">classify<a class="anchor" aria-label="anchor" href="#arg-classify"></a></dt>
+<dd><p>Function of the generated <code>sequence</code> returning case labels,
+as in <code><a href="new_law.html">new_law()</a></code>. Labels describe the generated sequence, including any
+suffix not executed after a failure.</p></dd>
+
+
+<dt id="arg-min-coverage">min_coverage<a class="anchor" aria-label="anchor" href="#arg-min-coverage"></a></dt>
+<dd><p>Named minimum case proportions, as in <code><a href="new_law.html">new_law()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

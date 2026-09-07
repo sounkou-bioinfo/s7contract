@@ -13,10 +13,9 @@ with one law suite shared by two implementations and a faulty subclass.
 ## Vector-like behavior
 
 Many algorithms need only a length, a way to slice, and access to
-values. Here both ordinary double vectors and `ReadDepth` objects
-implement those operations. The class validator keeps positions and
-depths aligned, while the interface describes the behavior consumers
-need.
+values. Both ordinary double vectors and `ReadDepth` objects implement
+those operations. The class validator keeps positions and depths
+aligned, while the interface describes the behavior consumers need.
 
 ``` r
 
@@ -125,7 +124,14 @@ vector_laws <- function(make) {
     slice_values = new_law("slicing preserves selected values and order", list(input = cases),
       function(input) with(VectorLike, {
         identical(vec_values(vec_slice(input$x, input$i)), input$values[input$i])
-      })),
+      }),
+      classify = function(input) c(
+        if (length(input$values) == 0L) "empty" else "nonempty",
+        if (anyDuplicated(input$i) > 0L) "repeated",
+        if (is.unsorted(input$i)) "reordered"
+      ),
+      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1, reordered = 0.1)
+    ),
     slice_length = new_law("slice length matches the index count", list(input = cases),
       function(input) with(VectorLike, {
         identical(vec_length(vec_slice(input$x, input$i)), base::length(input$i))
@@ -155,6 +161,50 @@ sapply(vector_results, function(results) {
 #> slice_values "passed" "passed"  
 #> slice_length "passed" "passed"
 ```
+
+## Which cases were tested?
+
+The slicing law classifies inputs as empty or nonempty, and labels
+selections with repeated or reordered indices. Each label counts once
+per accepted case. Its `min_coverage` requirements use proportions:
+`reordered = 0.1` asks for reordered indices in at least 10% of cases.
+
+``` r
+
+vector_results$numeric$slice_values@coverage
+#>       label count proportion minimum  met
+#> 1     empty    20       0.20    0.05 TRUE
+#> 2  nonempty    80       0.80    0.50 TRUE
+#> 3  repeated    46       0.46    0.10 TRUE
+#> 4 reordered    31       0.31    0.10 TRUE
+```
+
+Fixing size at zero exercises only empty vectors. The predicate passes,
+but the coverage requirements prevent the run from passing:
+
+``` r
+
+empty_only <- check_law(vector_laws(identity)$slice_values,
+                        tests = 10L, seed = 1L, max_size = 0L)
+empty_only
+#> Law 'slicing preserves selected values and order' passed 10 tests but missed coverage requirements (seed 1).
+#> Case coverage (10 accepted cases):
+#>   "nonempty": 0/10 (0%; minimum 50% unmet)
+#>   "repeated": 0/10 (0%; minimum 10% unmet)
+#>   "reordered": 0/10 (0%; minimum 10% unmet)
+#>   "empty": 10/10 (100%; minimum 5%)
+```
+
+This follows the test-data classification discussed by [Claessen and
+Hughes (2000),
+§2.4](https://users.cs.northwestern.edu/~robby/courses/395-495-2009-fall/quick.pdf).
+These minima describe observed proportions within the chosen test
+budget; they carry no statistical confidence guarantee. Discards,
+errors, and shrink evaluations contribute no counts. A falsifying
+generated case does count, and a run that ends early reports partial
+coverage alongside its primary failure. See
+[`new_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
+for classifier requirements and result fields.
 
 ## Structural conformance and a behavioral failure
 
@@ -204,6 +254,11 @@ failure
 #>   .. ..@ depth   : num [1:2] 0 -1
 #>   ..$ values: num [1:2] 0 -1
 #>   ..$ i     : int [1:2] 2 1
+#> Case coverage (7 accepted cases; partial run):
+#>   "nonempty": 3/7 (42.9%; minimum 50% unmet)
+#>   "empty": 4/7 (57.1%; minimum 5%)
+#>   "repeated": 2/7 (28.6%; minimum 10%)
+#>   "reordered": 1/7 (14.3%; minimum 10%)
 example <- failure@counterexample@minimal$input
 example$values
 #> [1]  0 -1
