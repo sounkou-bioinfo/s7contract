@@ -35,7 +35,7 @@ for (arguments in list(failure@counterexample@original, failure@counterexample@m
 # The domain includes empty vectors, empty selections, duplicates, and reordering.
 for (make in implementations) {
   laws <- vector_laws(make)
-  for (values in list(double(), c(-1, 0, 2))) {
+  for (values in list(double(), c(-1, 0, 2), c(-0.25, 0, 0.5))) {
     indices <- list(integer())
     if (length(values) > 0L) indices <- c(indices, list(c(3L, 1L, 3L)))
     for (i in indices) {
@@ -60,7 +60,7 @@ expect_identical(visited, audit_result@attempts + audit_result@shrink_attempts)
 # Coverage makes the generated domain visible without changing counterexamples.
 for (results in vector_results) {
   coverage <- results$slice_values@coverage
-  expect_identical(coverage$label, c("empty", "nonempty", "repeated", "reordered"))
+  expect_identical(coverage$label, c("empty", "nonempty", "repeated", "reordered", "fractional"))
   expect_true(all(coverage$met))
   expect_identical(sum(coverage$count[1:2]), 100L)
   expect_identical(results$slice_values@coverage_cases, 100L)
@@ -68,8 +68,21 @@ for (results in vector_results) {
 expect_identical(empty_only@status, "insufficient_coverage")
 expect_identical(empty_only@tests, 10L)
 expect_identical(empty_only@counterexample, NULL)
-expect_identical(empty_only@coverage$count, c(10L, 0L, 0L, 0L))
-expect_identical(empty_only@coverage$met, c(TRUE, FALSE, FALSE, FALSE))
+expect_identical(empty_only@coverage$count, c(10L, 0L, 0L, 0L, 0L))
+expect_identical(empty_only@coverage$met, c(TRUE, FALSE, FALSE, FALSE, FALSE))
 expect_identical(failure@coverage_cases, failure@attempts)
 expect_identical(replayed@coverage, failure@coverage)
 expect_identical(failure@status, "falsified")
+
+# Rounding passed the former integer-only domain and fails on fractional inputs.
+expect_true(implements(RoundedDepth, VectorLike))
+expect_identical(integer_check@status, "passed")
+expect_identical(fractional_check@status, "falsified")
+expect_identical(fractional_check@counterexample@outcome, "fail")
+for (input in list(fractional_check@counterexample@original$input,
+                   fractional_check@counterexample@minimal$input)) {
+  expect_true(all(is.finite(input$values)))
+  expect_true(all(input$values >= -10 & input$values <= 10))
+  expect_true(any(input$values != round(input$values)))
+  expect_false(identical(vec_values(input$x), input$values))
+}

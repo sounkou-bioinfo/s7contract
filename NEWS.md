@@ -1,5 +1,10 @@
 # s7contract 0.2.0.9000
 
+* Added `gen_double()` for finite numeric intervals, with size-dependent bounds,
+  an explicit shrink origin, and lazy shrinking that stops when floating-point
+  rounding prevents progress. Vector protocol laws now exercise fractional
+  measurements and detect a value method that silently rounds them.
+
 * Added case classification and minimum observed coverage to `new_law()` and
   `new_state_law()`. Results retain counts and proportions; unmet requirements
   produce `insufficient_coverage` after the requested passing cases. Discards,

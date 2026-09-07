@@ -75,8 +75,8 @@ HasArea <- new_interface(
   )
 )
 circles <- gen_map(
-  gen_integer(0L, 1000L),
-  function(radius) Circle(radius = as.double(radius))
+  gen_double(0, 1000),
+  function(radius) Circle(radius = radius)
 )
 area_law <- new_law(
   "non-negative radii have non-negative area",
@@ -251,5 +251,6 @@ seed compatibility with Hedgehog.
 | Inspection and shrink control | `gen_example()` draws a reproducible value; `gen_no_shrink()` removes shrinking. |
 | State-machine testing | `new_command()`, `gen_commands()`, and `new_state_law()` test sequential protocols against a model. |
 | Case coverage | `classify` labels generated inputs; `min_coverage` requires observed proportions within the test budget. See the [vector example](protocol-laws.html#which-cases-were-tested). |
+| Numeric domains | `gen_double()` generates finite fractional values with a shrink origin; `gen_choice()` adds exceptional values with explicit weights. |
 | Behavioral contracts | Laws can exercise S7 interfaces and traits through ordinary calls. |
 | Test-framework integration | `check_law()` returns structured results; `expect_law()` records one tinytest result. |

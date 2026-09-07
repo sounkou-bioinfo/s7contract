@@ -21,6 +21,7 @@ reference:
     contents:
       - new_generator
       - gen_constant
+      - gen_double
       - gen_bind
       - gen_element
       - gen_example

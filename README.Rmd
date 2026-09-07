@@ -175,7 +175,7 @@ tinytest::using(s7contract)
 area_law <- new_law(
   "non-negative radii have non-negative area",
   generators = list(
-    x = gen_map(gen_integer(0L, 100L), function(r) Circle(r = as.double(r)))
+    x = gen_map(gen_double(0, 100), function(r) Circle(r = r))
   ),
   holds = function(x) with(Shape, area(x)) >= 0
 )

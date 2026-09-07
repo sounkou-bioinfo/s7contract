@@ -50,8 +50,8 @@ window_mean(coverage, 2:4)
 window_mean(c(12, 15, 9, 20, 17), 2:4)
 
 ## ---- vector-law-suite
-vector_laws <- function(make) {
-  values <- gen_map(gen_vector(gen_integer(-10L, 10L), max = 6L), as.double)
+vector_laws <- function(make, element = gen_double(-10, 10)) {
+  values <- gen_vector(element, max = 6L)
   cases <- gen_bind(values, function(values) {
     indices <- if (length(values) == 0L) {
       gen_constant(integer())
@@ -81,9 +81,11 @@ vector_laws <- function(make) {
       classify = function(input) c(
         if (length(input$values) == 0L) "empty" else "nonempty",
         if (anyDuplicated(input$i) > 0L) "repeated",
-        if (is.unsorted(input$i)) "reordered"
+        if (is.unsorted(input$i)) "reordered",
+        if (any(input$values != trunc(input$values))) "fractional"
       ),
-      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1, reordered = 0.1)
+      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1,
+                       reordered = 0.1, fractional = 0.5)
     ),
     slice_length = new_law("slice length matches the index count", list(input = cases),
       function(input) with(VectorLike, {
@@ -111,8 +113,10 @@ method(vec_slice, ReversedDepth) <- function(x, i) {
 }
 
 implements(ReversedDepth, VectorLike)
+whole_numbers <- gen_map(gen_integer(-10L, 10L), as.double, prototype = double())
 broken_results <- lapply(
-  vector_laws(function(values) ReversedDepth(position = seq_along(values), depth = values)),
+  vector_laws(function(values) ReversedDepth(position = seq_along(values), depth = values),
+              element = whole_numbers),
   check_law, tests = 100L, seed = 1L
 )
 vapply(broken_results, function(result) result@status, character(1))
@@ -137,3 +141,12 @@ vector_results$numeric$slice_values@coverage
 empty_only <- check_law(vector_laws(identity)$slice_values,
                         tests = 10L, seed = 1L, max_size = 0L)
 empty_only
+
+## ---- vector-law-rounding
+RoundedDepth <- new_class("RoundedDepth", parent = ReadDepth)
+method(vec_values, RoundedDepth) <- function(x) round(x@depth)
+rounded <- function(values) RoundedDepth(position = seq_along(values), depth = values)
+
+integer_check <- check_law(vector_laws(rounded, whole_numbers)$values, seed = 1L)
+fractional_check <- check_law(vector_laws(rounded)$values, seed = 1L)
+c(whole_numbers = integer_check@status, fractions = fractional_check@status)

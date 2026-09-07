@@ -93,9 +93,9 @@ This law checks length against the values used to construct the object:
 
 ```{r length-law}
 length_law <- new_law("length matches constructor input",
-  generators = list(values = gen_vector(gen_integer(-10L, 10L), max = 6L)),
+  generators = list(values = gen_vector(gen_double(-10, 10), max = 6L)),
   holds = function(values) {
-    x <- ReadDepth(position = seq_along(values), depth = as.double(values))
+    x <- ReadDepth(position = seq_along(values), depth = values)
     with(VectorLike, identical(vec_length(x), base::length(values)))
   }
 )
