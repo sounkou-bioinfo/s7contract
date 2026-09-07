@@ -59,11 +59,11 @@ S7 dispatch:</p>
 <li><p>Optional argument and return specifications checked at the point of use.</p></li>
 <li><p>Property-based laws with integrated shrinking and tinytest expectations.</p></li>
 </ul><p><code><a href="interface_requirements.html">implements()</a></code> checks method availability and <code><a href="trait_methods.html">has_trait()</a></code> checks declared
-implementation. <code><a href="new_law.html">check_law()</a></code> supplies separate evidence about behavior over
-generated cases. Protocol authors can reuse laws across implementations by
-writing ordinary functions that construct lists of laws; see
-<code><a href="../articles/protocol-laws.html">vignette("protocol-laws")</a></code> for an executed example. <code><a href="new_state_law.html">new_state_law()</a></code> tests
-sequences of commands against a reference model with fresh fixtures.</p>
+implementation. <code><a href="new_law.html">check_law()</a></code> tests behavior over generated cases. Protocol
+authors can reuse laws across implementations by writing functions that
+construct lists of laws; see <code><a href="../articles/protocol-laws.html">vignette("protocol-laws")</a></code>.
+<code><a href="new_state_law.html">new_state_law()</a></code> tests sequences of commands against a reference model
+with fresh fixtures.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

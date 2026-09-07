@@ -180,12 +180,10 @@ maybe_results$associativity@coverage
 #> 5      both_Just    21      0.105    0.05 TRUE
 ```
 
-The results cover the declared domain; arbitrary R functions, effects,
-and payload types are outside it. `dict_bind()` calls the dictionary
-under test.
+These laws test the generated families of functions and integer
+payloads. `dict_bind()` calls the dictionary under test;
 [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
-composes generators and their shrink trees; it does not implement the
-dictionary.
+composes generators and their shrink trees.
 
 ## A default that breaks the laws
 
@@ -255,7 +253,6 @@ identical(maybe_replayed@counterexample@minimal, maybe_failure@counterexample@mi
 #> [1] TRUE
 ```
 
-The vignette and regression tests share
-`system.file("examples", "maybe-laws.R", package = "s7contract")`. The
-[Haskell monad tutorial](https://www.haskell.org/tutorial/monads.html)
-develops the distinction between type-class operations and their laws.
+The [Haskell monad
+tutorial](https://www.haskell.org/tutorial/monads.html) develops the
+distinction between type-class operations and their laws.

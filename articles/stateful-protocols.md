@@ -8,7 +8,7 @@ library(s7contract)
 
 A mutable store must behave correctly across calls: a put changes a
 later get, a delete removes a key, and a reset clears earlier entries.
-We can test these relationships by generating command sequences and
+We can test these relationships by generating sequential commands and
 comparing each operation with a reference model.
 
 ## The protocol and its implementations
@@ -177,9 +177,9 @@ of the store’s answers.
 ## One law, two fixtures
 
 [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md)
-builds a law for the existing runner. Every case and evaluated shrink
-gets a fresh fixture; teardown runs once after each successful setup,
-including after a false postcondition, warning, or error.
+gives every case and evaluated shrink a fresh fixture. Teardown runs
+once after each successful setup, including after a false postcondition,
+warning, or error.
 
 ``` r
 

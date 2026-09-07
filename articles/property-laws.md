@@ -18,14 +18,13 @@ whose operations are described by interfaces or traits. The [vector
 protocol](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md)
 vignette defines one `VectorLike` law suite, runs it against two
 implementations, and finds a faulty slice method that satisfies the
-interface. This vignette explains the generator and runner machinery
-used by that example.
+interface.
 
 ## A tinytest property
 
 The generator below produces integer vectors and carries an integrated
 shrink tree. The law checks that reversing a vector twice returns the
-original value. This chunk executes while the vignette is built.
+original value.
 
 ``` r
 
@@ -45,10 +44,9 @@ expect_law(reverse_law, tests = 100L, seed = 20260902L)
 
 ## Laws over an S7 interface
 
-A law can exercise an existing `s7contract` interface. The generator
-constructs valid `Circle` objects rather than attempting to invert the
-class validator. Calls inside the law retain the interface’s return
-contract.
+Generate non-negative radii to construct valid `Circle` objects. The law
+checks their areas through an interface that requires a double return
+value.
 
 ``` r
 
@@ -123,9 +121,9 @@ failure
 
 The result records the seed, RNG kind, run parameters, original input,
 smallest counterexample found, and shrink counts. The `minimal` field
-keeps its name for compatibility; it does not promise a global minimum.
-`shrink_status` distinguishes completion within the shrink tree, an
-evaluation budget, a shrinking error, and a run that needed no
+holds the smallest failure found within the shrink tree and evaluation
+budget. `shrink_status` distinguishes completion within the shrink tree,
+an evaluation budget, a shrinking error, and a run that needed no
 shrinking. If shrinking errors or warns, `shrink_condition` records that
 problem while the original and last failing examples remain available.
 
@@ -145,11 +143,9 @@ compatible R/package versions. Generators and laws must not depend on
 external mutable state or change the RNG configuration. Stored examples
 can still be tested directly when the generator changes.
 
-The caller’s RNG kind and state are restored on exit. The exception is
-an admission restriction: callers using Box-Muller normals are rejected
-before anything changes, because R does not expose their cached normal
-draw for restoration. Select another normal RNG kind before running laws
-in that session.
+The caller’s RNG kind and state are restored on exit. Box-Muller normals
+are unsupported because R does not expose their cached draw for
+restoration; select another normal RNG kind before running laws.
 
 ## Composition and shrinking
 
@@ -282,16 +278,11 @@ state.
 
 ## Relationship to Hedgehog
 
-[R Hedgehog](https://hedgehogqa.r-universe.dev/hedgehog) is the
-reference for the broader property-testing scope. Its generators carry
-lazy rose trees, with deterministic shrinking preserved through
-composition. The underlying [Haskell
-Hedgehog](https://hackage.haskell.org/package/hedgehog) design includes
-mapping, dependent generation, size-aware ranges, and state-machine
-testing.
-
-The table describes the current development version, without claiming
-API or seed compatibility with Hedgehog.
+Generation and shrinking follow [R
+Hedgehog](https://hedgehogqa.r-universe.dev/hedgehog) and [Haskell
+Hedgehog](https://hackage.haskell.org/package/hedgehog): generators
+carry lazy rose trees, preserving shrinking through composition. The
+corresponding operations in `s7contract` are:
 
 | Concept | s7contract |
 |:---|:---|

@@ -228,9 +228,7 @@ interval queried on that same day.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $day</span></span>
 <span><span class="co">#&gt; [1] "2024-01-01"</span></span></code></pre></div>
-<p>The same installed script supplies this article and the regression
-tests. Replay retains the bounds and query along with the run
-parameters:</p>
+<p>Replay the failure with its recorded parameters:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">calendar_replayed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">check_law</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>law <span class="op">=</span> <span class="va">calendar_failure</span><span class="op">@</span><span class="va">law</span><span class="op">)</span>, <span class="va">calendar_failure</span><span class="op">@</span><span class="va">parameters</span><span class="op">)</span><span class="op">)</span></span>

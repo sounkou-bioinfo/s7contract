@@ -7,8 +7,8 @@ library(s7contract)
 ```
 
 `s7contract` describes what a consumer needs from an S7 object and tests
-whether implementations behave as expected. S7 owns class definitions,
-method registration, and dispatch.
+whether implementations behave as expected. S7 provides class
+definitions, method registration, and dispatch.
 
 The package began with structural interfaces and explicit traits. The
 [S7 traits discussion](https://github.com/RConsortium/S7/issues/34)
@@ -162,10 +162,7 @@ The [vector law
 suite](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md)
 runs four laws against both representations and finds a faulty slice
 method that still satisfies the interface. Its generators preserve valid
-objects and indices while shrinking. Law results remain separate from
-[`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
-and
-[`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md).
+objects and indices while shrinking.
 
 For generator composition, replay, and tinytest integration, see
 [Generative Laws with

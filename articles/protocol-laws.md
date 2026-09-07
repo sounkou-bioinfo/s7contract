@@ -6,9 +6,10 @@ library(S7)
 library(s7contract)
 ```
 
-This example extends [Behavioral Contracts on
-S7](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md)
-with one law suite shared by two implementations and a faulty subclass.
+The same four laws test ordinary double vectors and an S7 `ReadDepth`
+class. For an introduction to interfaces and traits, see [Behavioral
+Contracts on
+S7](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md).
 
 ## Vector-like behavior
 
@@ -190,7 +191,7 @@ selected positions to preserve uniqueness.
 [`gen_subsequence()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
 grows length with size and keeps source order during shrinking. Both
 sample positions; equal values at different positions may still appear
-together. Sampling with replacement remains a composition of
+together. Sampling with replacement uses
 [`gen_vector()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
 and
 [`gen_element()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md).
@@ -268,11 +269,9 @@ vapply(broken_results, function(result) result@status, character(1))
 #>     "passed"     "passed"  "falsified"     "passed"
 ```
 
-Only the law about selected values and their order fails.
-[`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
-reports that failure separately from structural conformance, and shrinks
-it to a smaller valid input. The checked call below still succeeds; its
-result differs from the reference slice.
+Only the law about selected values and their order fails. The reduced
+input still produces a valid slice, but its values differ from the
+reference slice.
 
 ``` r
 
@@ -338,15 +337,6 @@ c(whole_numbers = integer_check@status, fractions = fractional_check@status)
 #>      "passed"   "falsified"
 ```
 
-These example definitions and checks are installed together in
-`system.file("examples", "vector-laws.R", package = "s7contract")`. The
-vignette and package tests execute that same script. For generator
-composition, budgets, and tinytest integration, see
-[`vignette("property-laws")`](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.md).
-
-[`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
-continues to check method availability;
-[`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
-checks declared implementation. Neither runs laws or changes meaning
-after a law passes or fails. The protocol’s laws and its
-implementation-specific generators are explicit test inputs.
+For generator composition, budgets, and tinytest integration, see
+[Generative Laws with
+tinytest](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.md).

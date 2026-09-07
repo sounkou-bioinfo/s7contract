@@ -21,11 +21,10 @@ checks method availability and
 [`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
 checks declared implementation.
 [`check_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
-supplies separate evidence about behavior over generated cases. Protocol
-authors can reuse laws across implementations by writing ordinary
-functions that construct lists of laws; see
-[`vignette("protocol-laws")`](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md)
-for an executed example.
+tests behavior over generated cases. Protocol authors can reuse laws
+across implementations by writing functions that construct lists of
+laws; see
+[`vignette("protocol-laws")`](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md).
 [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md)
 tests sequences of commands against a reference model with fresh
 fixtures.

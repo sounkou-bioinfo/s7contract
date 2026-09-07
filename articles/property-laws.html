@@ -85,15 +85,13 @@ for protocols whose operations are described by interfaces or traits.
 The <a href="protocol-laws.html">vector protocol</a> vignette defines
 one <code>VectorLike</code> law suite, runs it against two
 implementations, and finds a faulty slice method that satisfies the
-interface. This vignette explains the generator and runner machinery
-used by that example.</p>
+interface.</p>
 <div class="section level2">
 <h2 id="a-tinytest-property">A tinytest property<a class="anchor" aria-label="anchor" href="#a-tinytest-property"></a>
 </h2>
 <p>The generator below produces integer vectors and carries an
 integrated shrink tree. The law checks that reversing a vector twice
-returns the original value. This chunk executes while the vignette is
-built.</p>
+returns the original value.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reverse_law</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">new_law</a></span><span class="op">(</span></span>
 <span>  <span class="st">"reverse is involutive"</span>,</span>
@@ -111,10 +109,9 @@ built.</p>
 <div class="section level2">
 <h2 id="laws-over-an-s7-interface">Laws over an S7 interface<a class="anchor" aria-label="anchor" href="#laws-over-an-s7-interface"></a>
 </h2>
-<p>A law can exercise an existing <code>s7contract</code> interface. The
-generator constructs valid <code>Circle</code> objects rather than
-attempting to invert the class validator. Calls inside the law retain
-the interface’s return contract.</p>
+<p>Generate non-negative radii to construct valid <code>Circle</code>
+objects. The law checks their areas through an interface that requires a
+double return value.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Circle</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
 <span>  <span class="st">"CirclePropertyVignette"</span>,</span>
@@ -182,12 +179,12 @@ ten and shrinks to zero.</p>
 <span><span class="co">#&gt;  $ x: int 0</span></span></code></pre></div>
 <p>The result records the seed, RNG kind, run parameters, original
 input, smallest counterexample found, and shrink counts. The
-<code>minimal</code> field keeps its name for compatibility; it does not
-promise a global minimum. <code>shrink_status</code> distinguishes
-completion within the shrink tree, an evaluation budget, a shrinking
-error, and a run that needed no shrinking. If shrinking errors or warns,
-<code>shrink_condition</code> records that problem while the original
-and last failing examples remain available.</p>
+<code>minimal</code> field holds the smallest failure found within the
+shrink tree and evaluation budget. <code>shrink_status</code>
+distinguishes completion within the shrink tree, an evaluation budget, a
+shrinking error, and a run that needed no shrinking. If shrinking errors
+or warns, <code>shrink_condition</code> records that problem while the
+original and last failing examples remain available.</p>
 <p>Replay the same law and parameters with ordinary R function
 application:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -201,11 +198,9 @@ parameters, and compatible R/package versions. Generators and laws must
 not depend on external mutable state or change the RNG configuration.
 Stored examples can still be tested directly when the generator
 changes.</p>
-<p>The caller’s RNG kind and state are restored on exit. The exception
-is an admission restriction: callers using Box-Muller normals are
-rejected before anything changes, because R does not expose their cached
-normal draw for restoration. Select another normal RNG kind before
-running laws in that session.</p>
+<p>The caller’s RNG kind and state are restored on exit. Box-Muller
+normals are unsupported because R does not expose their cached draw for
+restoration; select another normal RNG kind before running laws.</p>
 </div>
 <div class="section level2">
 <h2 id="composition-and-shrinking">Composition and shrinking<a class="anchor" aria-label="anchor" href="#composition-and-shrinking"></a>
@@ -318,14 +313,10 @@ state.</p>
 <div class="section level2">
 <h2 id="relationship-to-hedgehog">Relationship to Hedgehog<a class="anchor" aria-label="anchor" href="#relationship-to-hedgehog"></a>
 </h2>
-<p><a href="https://hedgehogqa.r-universe.dev/hedgehog" class="external-link">R Hedgehog</a>
-is the reference for the broader property-testing scope. Its generators
-carry lazy rose trees, with deterministic shrinking preserved through
-composition. The underlying <a href="https://hackage.haskell.org/package/hedgehog" class="external-link">Haskell Hedgehog</a>
-design includes mapping, dependent generation, size-aware ranges, and
-state-machine testing.</p>
-<p>The table describes the current development version, without claiming
-API or seed compatibility with Hedgehog.</p>
+<p>Generation and shrinking follow <a href="https://hedgehogqa.r-universe.dev/hedgehog" class="external-link">R Hedgehog</a> and <a href="https://hackage.haskell.org/package/hedgehog" class="external-link">Haskell
+Hedgehog</a>: generators carry lazy rose trees, preserving shrinking
+through composition. The corresponding operations in
+<code>s7contract</code> are:</p>
 <table class="table">
 <colgroup>
 <col width="50%">

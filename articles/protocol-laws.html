@@ -74,8 +74,10 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rconsortium.github.io/S7/" class="external-link">S7</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/sounkou-bioinfo/s7contract" class="external-link">s7contract</a></span><span class="op">)</span></span></code></pre></div>
-<p>This example extends <a href="s7-interfaces-and-traits.html">Behavioral Contracts on S7</a> with
-one law suite shared by two implementations and a faulty subclass.</p>
+<p>The same four laws test ordinary double vectors and an S7
+<code>ReadDepth</code> class. For an introduction to interfaces and
+traits, see <a href="s7-interfaces-and-traits.html">Behavioral Contracts
+on S7</a>.</p>
 <div class="section level2">
 <h2 id="vector-like-behavior">Vector-like behavior<a class="anchor" aria-label="anchor" href="#vector-like-behavior"></a>
 </h2>
@@ -241,7 +243,7 @@ earlier source positions, swapping selected positions to preserve
 uniqueness. <code><a href="../reference/gen_sample.html">gen_subsequence()</a></code> grows length with size and
 keeps source order during shrinking. Both sample positions; equal values
 at different positions may still appear together. Sampling with
-replacement remains a composition of <code><a href="../reference/gen_constant.html">gen_vector()</a></code> and
+replacement uses <code><a href="../reference/gen_constant.html">gen_vector()</a></code> and
 <code><a href="../reference/gen_element.html">gen_element()</a></code>.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vector_results</span><span class="op">$</span><span class="va">numeric</span><span class="op">$</span><span class="va">slice_values</span><span class="op">@</span><span class="va">coverage</span></span>
@@ -302,10 +304,9 @@ uses integer-valued doubles to keep the counterexample easy to read.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">broken_results</span>, <span class="kw">function</span><span class="op">(</span><span class="va">result</span><span class="op">)</span> <span class="va">result</span><span class="op">@</span><span class="va">status</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       values       length slice_values slice_length </span></span>
 <span><span class="co">#&gt;     "passed"     "passed"  "falsified"     "passed"</span></span></code></pre></div>
-<p>Only the law about selected values and their order fails.
-<code><a href="../reference/new_law.html">check_law()</a></code> reports that failure separately from structural
-conformance, and shrinks it to a smaller valid input. The checked call
-below still succeeds; its result differs from the reference slice.</p>
+<p>Only the law about selected values and their order fails. The reduced
+input still produces a valid slice, but its values differ from the
+reference slice.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">failure</span> <span class="op">&lt;-</span> <span class="va">broken_results</span><span class="op">$</span><span class="va">slice_values</span></span>
 <span><span class="va">failure</span></span>
@@ -360,15 +361,7 @@ Integer-only inputs let it pass; the same law with
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>whole_numbers <span class="op">=</span> <span class="va">integer_check</span><span class="op">@</span><span class="va">status</span>, fractions <span class="op">=</span> <span class="va">fractional_check</span><span class="op">@</span><span class="va">status</span><span class="op">)</span></span>
 <span><span class="co">#&gt; whole_numbers     fractions </span></span>
 <span><span class="co">#&gt;      "passed"   "falsified"</span></span></code></pre></div>
-<p>These example definitions and checks are installed together in
-<code>system.file("examples", "vector-laws.R", package = "s7contract")</code>.
-The vignette and package tests execute that same script. For generator
-composition, budgets, and tinytest integration, see
-<code><a href="../articles/property-laws.html">vignette("property-laws")</a></code>.</p>
-<p><code><a href="../reference/interface_requirements.html">implements()</a></code> continues to check method availability;
-<code><a href="../reference/trait_methods.html">has_trait()</a></code> checks declared implementation. Neither runs
-laws or changes meaning after a law passes or fails. The protocol’s laws
-and its implementation-specific generators are explicit test inputs.</p>
+<p>For generator composition, budgets, and tinytest integration, see <a href="property-laws.html">Generative Laws with tinytest</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

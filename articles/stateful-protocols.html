@@ -76,7 +76,7 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/sounkou-bioinfo/s7contract" class="external-link">s7contract</a></span><span class="op">)</span></span></code></pre></div>
 <p>A mutable store must behave correctly across calls: a put changes a
 later get, a delete removes a key, and a reset clears earlier entries.
-We can test these relationships by generating command sequences and
+We can test these relationships by generating sequential commands and
 comparing each operation with a reference model.</p>
 <div class="section level2">
 <h2 id="the-protocol-and-its-implementations">The protocol and its implementations<a class="anchor" aria-label="anchor" href="#the-protocol-and-its-implementations"></a>
@@ -231,10 +231,9 @@ values come from the inputs, independently of the store’s answers.</p>
 <div class="section level2">
 <h2 id="one-law-two-fixtures">One law, two fixtures<a class="anchor" aria-label="anchor" href="#one-law-two-fixtures"></a>
 </h2>
-<p><code><a href="../reference/new_state_law.html">new_state_law()</a></code> builds a law for the existing runner.
-Every case and evaluated shrink gets a fresh fixture; teardown runs once
-after each successful setup, including after a false postcondition,
-warning, or error.</p>
+<p><code><a href="../reference/new_state_law.html">new_state_law()</a></code> gives every case and evaluated shrink a
+fresh fixture. Teardown runs once after each successful setup, including
+after a false postcondition, warning, or error.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">store_law</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">make</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/new_state_law.html">new_state_law</a></span><span class="op">(</span><span class="st">"key/value operations follow the model"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">store_commands</span>,</span>

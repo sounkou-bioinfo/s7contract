@@ -172,9 +172,7 @@ calendar_failure@counterexample@minimal$input[c("start", "end", "day")]
 #> [1] "2024-01-01"
 ```
 
-The same installed script supplies this article and the regression
-tests. Replay retains the bounds and query along with the run
-parameters:
+Replay the failure with its recorded parameters:
 
 ``` r
 

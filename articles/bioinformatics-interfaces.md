@@ -169,9 +169,8 @@ library_size(mock)
 #>       3       7
 ```
 
-This is the productive use case. A package can write against a small
-protocol, return an ordinary vector, and let separate adapters provide
-methods for concrete containers.
+A package can write against a small protocol, return an ordinary vector,
+and let separate adapters provide methods for concrete containers.
 
 ## When an explicit trait helps
 
@@ -227,17 +226,14 @@ comparable, that row ranges use the same genome build, or that an assay
 transform is appropriate for a downstream model. Those checks should
 remain explicit and domain-specific.
 
-The narrow conclusion is useful enough: interfaces can mimic a small
-behavioral slice of a class such as `SummarizedExperiment`, but they
-should not replace the class or its ecosystem.
-
 ## References
 
 - The Bioconductor `SummarizedExperiment` package:
   <https://bioconductor.org/packages/SummarizedExperiment/>.
-- Morgan et al. (2023), “Orchestrating high-throughput genomic analysis
-  with Bioconductor”: <https://bioconductor.org/help/publications/>.
+- Huber et al. (2015), [“Orchestrating high-throughput genomic analysis
+  with Bioconductor”](https://www.nature.com/articles/nmeth.3252).
 - The S7 package documentation: <https://rconsortium.github.io/S7/>.
 - Chewxy, “How To Use Go Interfaces”:
   <https://blog.chewxy.com/2018/03/18/golang-interfaces/>.
-- The `s7contract` interface and trait vignette in this package.
+- [Behavioral Contracts on
+  S7](https://sounkou-bioinfo.github.io/s7contract/articles/s7-interfaces-and-traits.md).
