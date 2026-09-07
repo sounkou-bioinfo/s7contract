@@ -51,6 +51,9 @@
   : Basic property-based test generators
 - [`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
   : Generate finite double values
+- [`gen_sample()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+  [`gen_subsequence()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+  : Sample source positions without replacement
 - [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_sized()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_resize()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)

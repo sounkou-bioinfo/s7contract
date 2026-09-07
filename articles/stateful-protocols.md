@@ -14,7 +14,7 @@ comparing each operation with a reference model.
 ## The protocol and its implementations
 
 This protocol stores one integer per string key and reports keys in
-sorted order. The example uses three keys and small integer values.
+sorted order. The example uses bounded strings and small integer values.
 Missing keys return `NULL`; generated get and delete commands use
 existing keys.
 
@@ -78,6 +78,38 @@ method(store_keys, ListStore) <- function(x) sort(as.character(names(x@data$valu
 
 ## Commands and a reference model
 
+Keys contain one to four code points from `a`, `b`, `c`, and `\u00e9`
+(é). This recipe converts the alphabet to UTF-8, rejects missing and
+byte strings, and counts code points rather than bytes or grapheme
+clusters. The alphabet must be nonempty; each entry must contain exactly
+one code point. With `min = 0`, the recipe also generates `""`, which
+environment bindings cannot use as a key. Shrinking removes chunks
+before moving characters toward earlier alphabet entries.
+
+``` r
+
+string_generator <- function(alphabet, min = 0L, max = 4L) {
+  if (!is.character(alphabet) || anyNA(alphabet)) {
+    stop("alphabet must contain non-missing characters")
+  }
+  if (any(Encoding(alphabet) == "bytes")) stop("byte strings are not supported")
+  alphabet <- enc2utf8(alphabet)
+  if (any(!validUTF8(alphabet))) stop("alphabet must be valid UTF-8")
+  if (any(nchar(alphabet, type = "chars") != 1L)) {
+    stop("each alphabet entry must be one Unicode code point")
+  }
+  gen_map(gen_vector(gen_element(alphabet), min, max),
+          function(parts) paste0(parts, collapse = ""), prototype = character())
+}
+store_keys_generator <- string_generator(c("a", "b", "c", "\u00e9"), min = 1L)
+```
+
+[`paste()`](https://stat.ethz.ch/R-manual/R-devel/library/base/html/paste.html)
+preserves UTF-8 here and collapses zero entries to one empty string.
+Missing values are rejected before concatenation because
+[`paste()`](https://rdrr.io/r/base/paste.html) would turn them into the
+literal text `"NA"`.
+
 The model is a named list of expected values. Each command defines its
 input generator, implementation call, and postcondition. A model update
 derives the next state from the input. `get` and `delete` are available
@@ -92,7 +124,7 @@ existing_key <- function(state) {
 store_commands <- list(
   new_command("put",
     generate = function(state) gen_product(
-      key = gen_element(c("a", "b", "c")), value = gen_integer(-10L, 10L)),
+      key = store_keys_generator, value = gen_integer(-10L, 10L)),
     execute = function(fixture, input) with(KeyValue, {
       store_put(fixture, input$key, input$value)
       store_get(fixture, input$key)
@@ -161,7 +193,14 @@ store_law <- function(make) {
     teardown = function(fixture) {
       rm(list = ls(fixture@data, all.names = TRUE), envir = fixture@data)
     },
-    max_commands = 12L
+    max_commands = 12L,
+    classify = function(sequence) {
+      puts <- Filter(function(step) step$command == "put", sequence)
+      keys <- vapply(puts, function(step) step$input$key, character(1))
+      c(if (any(nchar(keys, type = "chars") > 1L)) "multi_character",
+        if (any(grepl("\u00e9", keys, fixed = TRUE))) "non_ascii")
+    },
+    min_coverage = c(multi_character = 0.3, non_ascii = 0.2)
   )
 }
 stores <- list(
@@ -180,6 +219,57 @@ are allowed.
 [`expect_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_law.md)
 can run the same law as one tinytest expectation.
 
+The classifier records sequences containing multi-character and
+non-ASCII put keys. It counts generated inputs, including any suffix
+after an execution failure.
+
+``` r
+
+store_results$environment@coverage
+#>             label count proportion minimum  met
+#> 1 multi_character    78       0.78     0.3 TRUE
+#> 2       non_ascii    69       0.69     0.2 TRUE
+```
+
+## A put that truncates keys
+
+This implementation keeps only the first character when writing a key.
+The law reduces its failure to `put("aa", 0L)`: a subsequent get of
+`"aa"` returns `NULL`.
+
+``` r
+
+TruncatedStore <- new_class("TruncatedStore", parent = EnvStore)
+method(store_put, TruncatedStore) <- function(x, key, value) {
+  assign(substr(key, 1L, 1L), value, envir = x@data)
+  invisible(NULL)
+}
+truncated_failure <- check_law(
+  store_law(function() TruncatedStore(data = new.env(parent = emptyenv()))),
+  tests = 100L, shrinks = 200L, seed = 1L
+)
+truncated_failure
+#> Law 'key/value operations follow the model' was falsified after 3 attempts and 3 shrinks (seed 1).
+#> Step 1 'put' (ensure): postcondition returned FALSE
+#> List of 3
+#>  $ model : list()
+#>  $ input :List of 2
+#>   ..$ key  : chr "aa"
+#>   ..$ value: int 0
+#>  $ output: NULL
+#> Shrinking stopped: no child of this counterexample preserves the failure.
+#> Smallest counterexample found:
+#> List of 1
+#>  $ sequence:List of 1
+#>   ..$ :List of 3
+#>   .. ..$ id     : int 1
+#>   .. ..$ command: chr "put"
+#>   .. ..$ input  :List of 2
+#> Case coverage (3 accepted cases; partial run):
+#>   "non_ascii": 0/3 (0%; minimum 20% unmet)
+#>   "multi_character": 1/3 (33.3%; minimum 30%)
+```
+
 ## A reset that leaves data behind
 
 This subclass has every required method, but reset does nothing:
@@ -196,7 +286,7 @@ store_failure <- check_law(
   tests = 100L, shrinks = 200L, seed = 1L
 )
 store_failure
-#> Law 'key/value operations follow the model' was falsified after 9 attempts and 4 shrinks (seed 1).
+#> Law 'key/value operations follow the model' was falsified after 6 attempts and 5 shrinks (seed 1).
 #> Step 2 'reset' (ensure): postcondition returned FALSE
 #> List of 3
 #>  $ model :List of 1
@@ -208,13 +298,16 @@ store_failure
 #> List of 1
 #>  $ sequence:List of 2
 #>   ..$ :List of 3
-#>   .. ..$ id     : int 1
+#>   .. ..$ id     : int 2
 #>   .. ..$ command: chr "put"
 #>   .. ..$ input  :List of 2
 #>   ..$ :List of 3
 #>   .. ..$ id     : int 3
 #>   .. ..$ command: chr "reset"
 #>   .. ..$ input  : NULL
+#> Case coverage (6 accepted cases; partial run):
+#>   "non_ascii": 1/6 (16.7%; minimum 20% unmet)
+#>   "multi_character": 2/6 (33.3%; minimum 30%)
 ```
 
 The runner reduces the failure to a put followed by a reset. It first
@@ -232,7 +325,7 @@ states:
 store_failure@counterexample@condition$trace
 #> [[1]]
 #> [[1]]$id
-#> [1] 1
+#> [1] 2
 #> 
 #> [[1]]$command
 #> [1] "put"

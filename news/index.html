@@ -21,6 +21,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/s7-interfaces-and-traits.html">Behavioral Contracts on S7</a></li>
     <li><a class="dropdown-item" href="../articles/bioinformatics-interfaces.html">Bioinformatics Containers as Interfaces</a></li>
     <li><a class="dropdown-item" href="../articles/protocol-laws.html">Reusable Laws for a Vector Protocol</a></li>
+    <li><a class="dropdown-item" href="../articles/calendar-intervals.html">Laws for Calendar Intervals</a></li>
     <li><a class="dropdown-item" href="../articles/property-laws.html">Generative Laws with tinytest</a></li>
     <li><a class="dropdown-item" href="../articles/monad-dictionaries.html">A Maybe Dictionary on S7</a></li>
     <li><a class="dropdown-item" href="../articles/stateful-protocols.html">Testing Stateful S7 Protocols</a></li>
@@ -43,7 +44,9 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0.9000" id="s7contract-0209000">s7contract 0.2.0.9000<a class="anchor" aria-label="anchor" href="#s7contract-0209000"></a></h2>
-<ul><li><p>The Maybe dictionary example now checks all three monad laws with generated values and function descriptions, including short-circuit cases. A faulty dictionary demonstrates a reproducible failure with reduced function inputs.</p></li>
+<ul><li><p>Added <code><a href="../reference/gen_sample.html">gen_sample()</a></code> for fixed-size sampling without replacement and <code><a href="../reference/gen_sample.html">gen_subsequence()</a></code> for ordered selections. Shrinking preserves distinct source positions; the vector laws now cover both alongside repeated indices.</p></li>
+<li><p>Store laws now generate multi-character UTF-8 keys and detect a put method that truncates them. A new calendar-interval example maps integer offsets to whole dates and detects an excluded endpoint. Both examples check case coverage and share executable definitions with their articles and regression tests.</p></li>
+<li><p>The Maybe dictionary example now checks all three monad laws with generated values and function descriptions, including short-circuit cases. A faulty dictionary demonstrates a reproducible failure with reduced function inputs.</p></li>
 <li><p>Added <code><a href="../reference/gen_double.html">gen_double()</a></code> for finite numeric intervals, with size-dependent bounds, an explicit shrink origin, and lazy shrinking that stops when floating-point rounding prevents progress. Vector protocol laws now exercise fractional measurements and detect a value method that silently rounds them.</p></li>
 <li><p>Added case classification and minimum observed coverage to <code><a href="../reference/new_law.html">new_law()</a></code> and <code><a href="../reference/new_state_law.html">new_state_law()</a></code>. Results retain counts and proportions; unmet requirements produce <code>insufficient_coverage</code> after the requested passing cases. Discards, errors, and shrink evaluations do not contribute to coverage.</p></li>
 <li><p>Added sequential protocol laws with <code><a href="../reference/new_command.html">new_command()</a></code>, <code><a href="../reference/gen_commands.html">gen_commands()</a></code>, and <code><a href="../reference/new_state_law.html">new_state_law()</a></code>. Commands run against a reference model with fresh fixtures, dependency-preserving shrinking, and original and reduced failure traces. The key/value example tests two S7 implementations and a faulty reset method.</p></li>

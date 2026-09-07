@@ -85,8 +85,10 @@ The domain here is unnamed vectors of finite doubles between -10 and 10,
 with positive, in-range integer indices.
 [`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
 expands its bounds with size and shrinks toward zero. Empty vectors and
-selections are included; indices may repeat or appear out of order.
-Missing values, names, and negative indices are outside this example.
+selections are included; indices may repeat or appear out of order. The
+generator mixes ordered subsequences, permutations without replacement,
+and repeated selections. Missing values, names, and negative indices are
+outside this example.
 
 [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
 constructs the object and an index generator from the reference values.
@@ -104,7 +106,11 @@ vector_laws <- function(make, element = gen_double(-10, 10)) {
     indices <- if (length(values) == 0L) {
       gen_constant(integer())
     } else {
-      gen_vector(gen_element(seq_along(values)), max = 6L)
+      gen_choice(
+        gen_subsequence(seq_along(values)),
+        gen_sample(seq_along(values)),
+        gen_vector(gen_element(seq_along(values)), max = 6L)
+      )
     }
     gen_product(
       x = gen_constant(make(values)),
@@ -130,10 +136,13 @@ vector_laws <- function(make, element = gen_double(-10, 10)) {
         if (length(input$values) == 0L) "empty" else "nonempty",
         if (anyDuplicated(input$i) > 0L) "repeated",
         if (is.unsorted(input$i)) "reordered",
+        if (!is.unsorted(input$i, strictly = TRUE)) "subsequence",
+        if (length(input$i) == length(input$values) && !anyDuplicated(input$i)) "permutation",
         if (any(input$values != trunc(input$values))) "fractional"
       ),
-      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1,
-                       reordered = 0.1, fractional = 0.5)
+      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.05,
+                       reordered = 0.1, subsequence = 0.2, permutation = 0.2,
+                       fractional = 0.5)
     ),
     slice_length = new_law("slice length matches the index count", list(input = cases),
       function(input) with(VectorLike, {
@@ -168,20 +177,35 @@ sapply(vector_results, function(results) {
 ## Which cases were tested?
 
 The slicing law classifies inputs as empty or nonempty, records
-fractional values, and labels repeated or reordered indices. Each label
-counts once per accepted case. Its `min_coverage` requirements use
-proportions: `reordered = 0.1` asks for reordered indices in at least
-10% of cases.
+fractional values, and labels repeated, reordered, subsequence, and
+permutation selections. Labels describe the indices themselves, so they
+can overlap: an empty selection is a subsequence, and a full ordered
+selection is also a permutation. Each label counts once per accepted
+case. Its `min_coverage` requirements use proportions: `reordered = 0.1`
+asks for reordered indices in at least 10% of cases.
+
+[`gen_sample()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+fixes cardinality and shrinks toward earlier source positions, swapping
+selected positions to preserve uniqueness.
+[`gen_subsequence()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+grows length with size and keeps source order during shrinking. Both
+sample positions; equal values at different positions may still appear
+together. Sampling with replacement remains a composition of
+[`gen_vector()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_constant.md)
+and
+[`gen_element()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_element.md).
 
 ``` r
 
 vector_results$numeric$slice_values@coverage
-#>        label count proportion minimum  met
-#> 1      empty    16       0.16    0.05 TRUE
-#> 2   nonempty    84       0.84    0.50 TRUE
-#> 3   repeated    45       0.45    0.10 TRUE
-#> 4  reordered    37       0.37    0.10 TRUE
-#> 5 fractional    84       0.84    0.50 TRUE
+#>         label count proportion minimum  met
+#> 1       empty    16       0.16    0.05 TRUE
+#> 2    nonempty    84       0.84    0.50 TRUE
+#> 3    repeated    17       0.17    0.05 TRUE
+#> 4   reordered    36       0.36    0.10 TRUE
+#> 5 subsequence    57       0.57    0.20 TRUE
+#> 6 permutation    57       0.57    0.20 TRUE
+#> 7  fractional    84       0.84    0.50 TRUE
 ```
 
 Fixing size at zero exercises only empty vectors. The predicate passes,
@@ -195,10 +219,12 @@ empty_only
 #> Law 'slicing preserves selected values and order' passed 10 tests but missed coverage requirements (seed 1).
 #> Case coverage (10 accepted cases):
 #>   "nonempty": 0/10 (0%; minimum 50% unmet)
-#>   "repeated": 0/10 (0%; minimum 10% unmet)
+#>   "repeated": 0/10 (0%; minimum 5% unmet)
 #>   "reordered": 0/10 (0%; minimum 10% unmet)
 #>   "fractional": 0/10 (0%; minimum 50% unmet)
 #>   "empty": 10/10 (100%; minimum 5%)
+#>   "subsequence": 10/10 (100%; minimum 20%)
+#>   "permutation": 10/10 (100%; minimum 20%)
 ```
 
 This follows the test-data classification discussed by [Claessen and
@@ -252,7 +278,7 @@ result differs from the reference slice.
 
 failure <- broken_results$slice_values
 failure
-#> Law 'slicing preserves selected values and order' was falsified after 7 attempts and 6 shrinks (seed 1).
+#> Law 'slicing preserves selected values and order' was falsified after 3 attempts and 1 shrinks (seed 1).
 #> The law returned FALSE.
 #> Shrinking stopped: no child of this counterexample preserves the failure.
 #> Smallest counterexample found:
@@ -262,22 +288,24 @@ failure
 #>   .. ..@ position: int [1:2] 1 2
 #>   .. ..@ depth   : num [1:2] 0 -1
 #>   ..$ values: num [1:2] 0 -1
-#>   ..$ i     : int [1:2] 2 1
-#> Case coverage (7 accepted cases; partial run):
-#>   "nonempty": 3/7 (42.9%; minimum 50% unmet)
-#>   "fractional": 0/7 (0%; minimum 50% unmet)
-#>   "empty": 4/7 (57.1%; minimum 5%)
-#>   "repeated": 2/7 (28.6%; minimum 10%)
-#>   "reordered": 1/7 (14.3%; minimum 10%)
+#>   ..$ i     : int [1:2] 1 2
+#> Case coverage (3 accepted cases; partial run):
+#>   "nonempty": 1/3 (33.3%; minimum 50% unmet)
+#>   "repeated": 0/3 (0%; minimum 5% unmet)
+#>   "reordered": 0/3 (0%; minimum 10% unmet)
+#>   "fractional": 0/3 (0%; minimum 50% unmet)
+#>   "empty": 2/3 (66.7%; minimum 5%)
+#>   "subsequence": 3/3 (100%; minimum 20%)
+#>   "permutation": 3/3 (100%; minimum 20%)
 example <- failure@counterexample@minimal$input
 example$values
 #> [1]  0 -1
 example$i
-#> [1] 2 1
+#> [1] 1 2
 with(VectorLike, vec_values(vec_slice(example$x, example$i)))
-#> [1]  0 -1
-example$values[example$i]
 #> [1] -1  0
+example$values[example$i]
+#> [1]  0 -1
 ```
 
 The result records the inputs and run parameters needed to replay the

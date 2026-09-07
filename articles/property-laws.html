@@ -36,6 +36,7 @@
 <li><a class="dropdown-item" href="../articles/s7-interfaces-and-traits.html">Behavioral Contracts on S7</a></li>
     <li><a class="dropdown-item" href="../articles/bioinformatics-interfaces.html">Bioinformatics Containers as Interfaces</a></li>
     <li><a class="dropdown-item" href="../articles/protocol-laws.html">Reusable Laws for a Vector Protocol</a></li>
+    <li><a class="dropdown-item" href="../articles/calendar-intervals.html">Laws for Calendar Intervals</a></li>
     <li><a class="dropdown-item" href="../articles/property-laws.html">Generative Laws with tinytest</a></li>
     <li><a class="dropdown-item" href="../articles/monad-dictionaries.html">A Maybe Dictionary on S7</a></li>
     <li><a class="dropdown-item" href="../articles/stateful-protocols.html">Testing Stateful S7 Protocols</a></li>
@@ -392,6 +393,17 @@ example</a>.</td>
 <code><a href="../reference/gen_double.html">gen_double()</a></code> generates finite fractional
 values with a shrink origin; <code><a href="../reference/gen_element.html">gen_choice()</a></code> adds exceptional
 values with explicit weights.</td>
+</tr>
+<tr class="even">
+<td align="left">Selection domains</td>
+<td align="left">
+<code><a href="../reference/gen_sample.html">gen_sample()</a></code> preserves sample cardinality
+and distinct source positions; <code><a href="../reference/gen_sample.html">gen_subsequence()</a></code> preserves
+source order. See the <a href="protocol-laws.html">vector laws</a>.</td>
+</tr>
+<tr class="odd">
+<td align="left">Strings and calendar dates</td>
+<td align="left">Composed recipes exercise <a href="stateful-protocols.html">UTF-8 store keys</a> and <a href="calendar-intervals.html">whole-day intervals</a>.</td>
 </tr>
 <tr class="even">
 <td align="left">Behavioral contracts</td>

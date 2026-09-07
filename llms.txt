@@ -313,6 +313,9 @@ normal draw needed to restore their state.
   : Basic property-based test generators
 - [`gen_double()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_double.md)
   : Generate finite double values
+- [`gen_sample()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+  [`gen_subsequence()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+  : Sample source positions without replacement
 - [`gen_bind()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_sized()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
   [`gen_resize()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_bind.md)
@@ -350,6 +353,8 @@ normal draw needed to restore their state.
   Interfaces](https://sounkou-bioinfo.github.io/s7contract/articles/bioinformatics-interfaces.md):
 - [Reusable Laws for a Vector
   Protocol](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.md):
+- [Laws for Calendar
+  Intervals](https://sounkou-bioinfo.github.io/s7contract/articles/calendar-intervals.md):
 - [Generative Laws with
   tinytest](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.md):
 - [A Maybe Dictionary on

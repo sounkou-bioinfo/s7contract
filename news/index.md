@@ -2,6 +2,19 @@
 
 ## s7contract 0.2.0.9000
 
+- Added
+  [`gen_sample()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+  for fixed-size sampling without replacement and
+  [`gen_subsequence()`](https://sounkou-bioinfo.github.io/s7contract/reference/gen_sample.md)
+  for ordered selections. Shrinking preserves distinct source positions;
+  the vector laws now cover both alongside repeated indices.
+
+- Store laws now generate multi-character UTF-8 keys and detect a put
+  method that truncates them. A new calendar-interval example maps
+  integer offsets to whole dates and detects an excluded endpoint. Both
+  examples check case coverage and share executable definitions with
+  their articles and regression tests.
+
 - The Maybe dictionary example now checks all three monad laws with
   generated values and function descriptions, including short-circuit
   cases. A faulty dictionary demonstrates a reproducible failure with
