@@ -75,10 +75,9 @@ function in a composition.
 ```{r maybe-checks}
 ```
 
-The results cover the declared domain; arbitrary R functions, effects, and
-payload types are outside it. `dict_bind()` calls the dictionary under test.
-`gen_bind()` composes generators and their shrink trees; it does not implement
-the dictionary.
+These laws test the generated families of functions and integer payloads.
+`dict_bind()` calls the dictionary under test; `gen_bind()` composes generators
+and their shrink trees.
 
 ## A default that breaks the laws
 
@@ -99,7 +98,5 @@ The same law and recorded parameters reproduce the failure:
 ```{r maybe-replay}
 ```
 
-The vignette and regression tests share
-`system.file("examples", "maybe-laws.R", package = "s7contract")`.
 The [Haskell monad tutorial](https://www.haskell.org/tutorial/monads.html)
 develops the distinction between type-class operations and their laws.

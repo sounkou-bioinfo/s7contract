@@ -11,16 +11,17 @@
   if (!is.numeric(x) || length(x) != 1L) {
     .abort("`%s` must be one integer.", arg)
   }
-  # R's integer conversion owns representability, including the NA sentinel.
-  value <- suppressWarnings(as.integer(x))
-  if (is.na(value) || value != x || value < lower) {
+  if (!is.finite(x)) {
+    .abort("`%s` must be one integer.", arg)
+  }
+  if (x != trunc(x) || x < lower || x > .Machine$integer.max) {
     qualifier <- if (signed) "" else if (positive) "positive " else "non-negative "
     .abort("`%s` must be one %sinteger.", arg, qualifier)
   }
-  value
+  as.integer(x)
 }
 
-# Owns the save/set/restore transaction so every exit path restores global RNG.
+# Restore the caller's RNG on every exit path.
 .with_seed <- function(seed, rng_kind, code) {
   old_kind <- RNGkind()
   if (identical(old_kind[[2L]], "Box-Muller")) {
@@ -92,7 +93,7 @@
   )
 }
 
-# Owns ordered, budgeted search over one integrated shrink tree.
+# Search one shrink tree in order, within the evaluation budget.
 .shrink_law <- function(law, tree, evaluation, limit) {
   current <- tree
   current_evaluation <- evaluation

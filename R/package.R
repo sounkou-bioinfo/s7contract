@@ -9,11 +9,11 @@
 #' - Property-based laws with integrated shrinking and tinytest expectations.
 #'
 #' [implements()] checks method availability and [has_trait()] checks declared
-#' implementation. [check_law()] supplies separate evidence about behavior over
-#' generated cases. Protocol authors can reuse laws across implementations by
-#' writing ordinary functions that construct lists of laws; see
-#' `vignette("protocol-laws")` for an executed example. [new_state_law()] tests
-#' sequences of commands against a reference model with fresh fixtures.
+#' implementation. [check_law()] tests behavior over generated cases. Protocol
+#' authors can reuse laws across implementations by writing functions that
+#' construct lists of laws; see `vignette("protocol-laws")`.
+#' [new_state_law()] tests sequences of commands against a reference model
+#' with fresh fixtures.
 #'
 #' @docType package
 #' @name s7contract

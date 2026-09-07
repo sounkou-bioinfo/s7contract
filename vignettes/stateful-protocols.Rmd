@@ -19,7 +19,7 @@ knitr::read_chunk(
 
 A mutable store must behave correctly across calls: a put changes a later get,
 a delete removes a key, and a reset clears earlier entries. We can test these
-relationships by generating command sequences and comparing each operation
+relationships by generating sequential commands and comparing each operation
 with a reference model.
 
 ## The protocol and its implementations
@@ -69,8 +69,8 @@ answers.
 
 ## One law, two fixtures
 
-`new_state_law()` builds a law for the existing runner. Every case and evaluated
-shrink gets a fresh fixture; teardown runs once after each successful setup,
+`new_state_law()` gives every case and evaluated shrink a fresh fixture.
+Teardown runs once after each successful setup,
 including after a false postcondition, warning, or error.
 
 ```{r store-law}

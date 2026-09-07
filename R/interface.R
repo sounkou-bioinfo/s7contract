@@ -99,7 +99,7 @@ interface_requirement <- function(
 ) {
   .check_s7_generic(generic, "generic")
   if (is.null(name)) {
-    name <- .generic_label(generic)
+    name <- generic@name
   }
   if (!is.character(name) || length(name) != 1 || !nzchar(name)) {
     .abort("`name` must be a non-empty string.")

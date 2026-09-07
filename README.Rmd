@@ -183,19 +183,19 @@ area_law <- new_law(
 expect_law(area_law, tests = 100L, seed = 20260902L)
 ```
 
-Generators construct valid examples explicitly; arbitrary S7 validators are
-not treated as invertible generator definitions. `gen_bind()` builds dependent
-inputs, such as a length and a vector of that length, and preserves the
-relationship during shrinking. `gen_choice()` selects among generators, and
-`gen_recursive()` builds nested values with decreasing recursive size. See
-`vignette("property-laws")` for executed interface and counterexample examples,
-replay, and the scope relative to R and Haskell Hedgehog.
+Generators construct valid examples; S7 validators check the objects they
+produce. `gen_bind()` builds dependent inputs, such as a length and a vector of
+that length, and preserves the relationship during shrinking. `gen_choice()` selects
+among generators, and `gen_recursive()` builds nested values with decreasing
+recursive size. See
+[Generative Laws with tinytest](https://sounkou-bioinfo.github.io/s7contract/articles/property-laws.html)
+for generator composition, shrinking, and replay.
 
 The [protocol vignette](https://sounkou-bioinfo.github.io/s7contract/articles/protocol-laws.html)
 defines one `VectorLike` law suite for numeric vectors and a `ReadDepth` class.
 A deliberately faulty slice method passes structural checks but fails the slicing
-law. The example uses ordinary functions returning lists of laws, and is also
-installed as `system.file("examples", "vector-laws.R", package = "s7contract")`.
+law. A function returning a list of laws lets both implementations use the
+same suite.
 
 Shrinking reports the smallest counterexample found and whether the search
 completed, reached its evaluation budget, or encountered a shrinking error.
@@ -209,8 +209,8 @@ because R does not expose the cached normal draw needed to restore their state.
 - Interfaces check S7 method availability by default; optional argument and
   return checks are progressive runtime checks.
 - Traits are a package-level registry on top of S7 dispatch.
-- Generative laws sample configured domains; they are evidence, not proofs, and
-  in-process checks cannot recover from a hard R session crash.
+- Generative laws test the cases produced by their generators; passing a run
+  does not prove a law for all inputs.
 - This package does not model Go type sets or Rust compile-time trait rules.
 
 ## References

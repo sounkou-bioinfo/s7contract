@@ -22,8 +22,9 @@ library(S7)
 library(s7contract)
 ```
 
-This example extends [Behavioral Contracts on S7](s7-interfaces-and-traits.html)
-with one law suite shared by two implementations and a faulty subclass.
+The same four laws test ordinary double vectors and an S7 `ReadDepth` class.
+For an introduction to interfaces and traits, see
+[Behavioral Contracts on S7](s7-interfaces-and-traits.html).
 
 ## Vector-like behavior
 
@@ -51,8 +52,8 @@ The domain here is unnamed vectors of finite doubles between -10 and 10, with
 positive, in-range integer indices. `gen_double()` expands its bounds with size
 and shrinks toward zero. Empty vectors and selections are included; indices may
 repeat or appear out of order. The generator mixes ordered subsequences,
-permutations without replacement, and repeated selections. Missing values, names, and negative indices are
-outside this example.
+permutations without replacement, and repeated selections. Missing values,
+names, and negative indices are outside this example.
 
 `gen_bind()` constructs the object and an index generator from the reference
 values. When those values shrink, it rebuilds both, preserving object validity
@@ -82,7 +83,7 @@ reordered indices in at least 10% of cases.
 swapping selected positions to preserve uniqueness. `gen_subsequence()` grows
 length with size and keeps source order during shrinking. Both sample positions;
 equal values at different positions may still appear together. Sampling with
-replacement remains a composition of `gen_vector()` and `gen_element()`.
+replacement uses `gen_vector()` and `gen_element()`.
 
 ```{r vector-law-coverage}
 ```
@@ -112,10 +113,8 @@ This run uses integer-valued doubles to keep the counterexample easy to read.
 ```{r vector-law-broken}
 ```
 
-Only the law about selected values and their order fails. `check_law()` reports
-that failure separately from structural conformance, and shrinks it to a smaller
-valid input. The checked call below still succeeds; its result differs from the
-reference slice.
+Only the law about selected values and their order fails. The reduced input
+still produces a valid slice, but its values differ from the reference slice.
 
 ```{r vector-law-counterexample}
 ```
@@ -133,12 +132,5 @@ let it pass; the same law with `gen_double()` detects the loss of precision.
 ```{r vector-law-rounding}
 ```
 
-These example definitions and checks are installed together in
-`system.file("examples", "vector-laws.R", package = "s7contract")`. The vignette
-and package tests execute that same script. For generator composition, budgets,
-and tinytest integration, see `vignette("property-laws")`.
-
-`implements()` continues to check method availability; `has_trait()` checks
-declared implementation. Neither runs laws or changes meaning after a law passes
-or fails. The protocol's laws and its implementation-specific generators are
-explicit test inputs.
+For generator composition, budgets, and tinytest integration, see
+[Generative Laws with tinytest](property-laws.html).

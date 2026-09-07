@@ -18,11 +18,11 @@ S7 dispatch:
 }
 
 \code{\link[=implements]{implements()}} checks method availability and \code{\link[=has_trait]{has_trait()}} checks declared
-implementation. \code{\link[=check_law]{check_law()}} supplies separate evidence about behavior over
-generated cases. Protocol authors can reuse laws across implementations by
-writing ordinary functions that construct lists of laws; see
-\code{vignette("protocol-laws")} for an executed example. \code{\link[=new_state_law]{new_state_law()}} tests
-sequences of commands against a reference model with fresh fixtures.
+implementation. \code{\link[=check_law]{check_law()}} tests behavior over generated cases. Protocol
+authors can reuse laws across implementations by writing functions that
+construct lists of laws; see \code{vignette("protocol-laws")}.
+\code{\link[=new_state_law]{new_state_law()}} tests sequences of commands against a reference model
+with fresh fixtures.
 }
 \seealso{
 Useful links:

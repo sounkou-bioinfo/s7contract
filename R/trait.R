@@ -109,7 +109,7 @@ trait_method <- function(
     .abort("`default` must be NULL or a function.")
   }
   if (is.null(name)) {
-    name <- .generic_label(generic)
+    name <- generic@name
   }
   if (!is.character(name) || length(name) != 1 || !nzchar(name)) {
     .abort("`name` must be a non-empty string.")

@@ -6,8 +6,7 @@
 
 * Store laws now generate multi-character UTF-8 keys and detect a put method
   that truncates them. A new calendar-interval example maps integer offsets to
-  whole dates and detects an excluded endpoint. Both examples check case coverage
-  and share executable definitions with their articles and regression tests.
+  whole dates and detects an excluded endpoint. Both examples check case coverage.
 
 * The Maybe dictionary example now checks all three monad laws with generated
   values and function descriptions, including short-circuit cases. A faulty
@@ -33,7 +32,7 @@
 
 * Added a reusable `VectorLike` law example shared by numeric vectors and
   `ReadDepth`, with a faulty implementation that passes structural checks but
-  fails a slicing law. The vignette and tests execute the same installed script.
+  fails a slicing law.
 
 * Clarified how interfaces, traits, checked calls, and generative laws describe
   and test behavioral protocols. Updated the package title to reflect that scope.

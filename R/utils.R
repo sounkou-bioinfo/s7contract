@@ -1,5 +1,3 @@
-# Small internal helpers. Kept dependency-free on purpose.
-
 .abort <- function(..., call. = FALSE) {
   stop(sprintf(...), call. = call.)
 }
@@ -72,22 +70,6 @@
   .base_class_of(x)
 }
 
-.generic_label <- function(generic, fallback = "method") {
-  if (inherits(generic, "S7_generic")) {
-    return(generic@name)
-  }
-
-  line <- paste(utils::capture.output(print(generic))[1], collapse = "")
-  name <- sub("^.*<S7_generic>\\s*", "", line)
-  name <- sub("\\(.*$", "", name)
-  name <- trimws(name)
-  if (nzchar(name) && !identical(name, line)) {
-    return(name)
-  }
-
-  fallback
-}
-
 .register_s7_method <- function(generic, class, fun, replace = FALSE) {
   if (!is.function(fun)) {
     .abort("S7 method implementation must be a function")
@@ -102,7 +84,7 @@
       warning(
         sprintf(
           "An S7 method for %s and %s is already visible; registering anyway. Pass replace = TRUE to silence this warning.",
-          .generic_label(generic),
+          generic@name,
           .class_label(class)
         ),
         call. = FALSE

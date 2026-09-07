@@ -100,11 +100,7 @@
 
 .requirement_signature <- function(req, target) {
   generic <- req@generic
-  dispatch_args <- if (inherits(generic, "S7_generic")) {
-    generic@dispatch_args
-  } else {
-    character()
-  }
+  dispatch_args <- generic@dispatch_args
   cls <- .target_class_or_null(target, arg = "x")
   if (is.null(cls)) {
     .abort("Could not determine the class of the first dispatch argument.")
@@ -223,11 +219,7 @@
     )
   }
 
-  dispatch_args <- if (inherits(generic, "S7_generic")) {
-    generic@dispatch_args
-  } else {
-    names(formals(generic))[1L]
-  }
+  dispatch_args <- generic@dispatch_args
   first_arg <- dispatch_args[[1L]]
   if (!first_arg %in% names(matched)) {
     .abort("Call is missing first dispatch argument `%s`.", first_arg)
@@ -286,7 +278,7 @@
 
   for (req in reqs) {
     wrapper <- .make_checked_generic(contract, req, trait = trait)
-    bind_names <- unique(c(req@name, .generic_label(req@generic)))
+    bind_names <- unique(c(req@name, req@generic@name))
     for (name in bind_names) {
       assign(name, wrapper, envir = mask)
     }

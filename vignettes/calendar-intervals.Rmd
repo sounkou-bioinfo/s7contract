@@ -61,8 +61,7 @@ The reduced failure is a one-day interval queried on that same day.
 ```{r calendar-broken}
 ```
 
-The same installed script supplies this article and the regression tests.
-Replay retains the bounds and query along with the run parameters:
+Replay the failure with its recorded parameters:
 
 ```{r calendar-replay}
 ```

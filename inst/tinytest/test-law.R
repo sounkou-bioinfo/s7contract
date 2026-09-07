@@ -489,10 +489,23 @@ local({
 })
 
 # Integer bounds validate each scalar independently, before combining them.
-for (bad_bound in list(NULL, integer(), 1:2, NA_real_, Inf, 1.5, 2147483648, "1")) {
+for (bad_bound in list(NULL, integer(), 1:2, NA_integer_, NA_real_, NaN,
+                      -Inf, Inf, 1.5, -2147483648, 2147483648, "1", TRUE, 1+1i)) {
   expect_error(gen_integer(min = bad_bound), pattern = "`min` must be one integer", fixed = TRUE)
   expect_error(gen_vector(gen_integer(), max = bad_bound), pattern = "`max` must be one", fixed = TRUE)
 }
+local({
+  old_options <- options(warn = 2)
+  on.exit(options(old_options))
+  for (bound in c(-.Machine$integer.max, .Machine$integer.max)) {
+    expect_identical(gen_example(gen_integer(bound, bound)), as.integer(bound))
+  }
+  expect_identical(gen_example(gen_integer(0, 0)), 0L)
+  expect_error(gen_integer(-.Machine$integer.max - 1, 0),
+               pattern = "`min` must be one integer", fixed = TRUE)
+  expect_error(gen_integer(0, .Machine$integer.max + 1),
+               pattern = "`max` must be one integer", fixed = TRUE)
+})
 expect_error(gen_product(x = gen_integer(), x = gen_integer()), pattern = "unique", fixed = TRUE)
 expect_error(new_law("duplicate", list(x = integer_gen, x = integer_gen), function(x) TRUE),
              pattern = "unique", fixed = TRUE)
