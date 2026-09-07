@@ -1,5 +1,9 @@
 # s7contract 0.2.0.9000
 
+* The Maybe dictionary example now checks all three monad laws with generated
+  values and function descriptions, including short-circuit cases. A faulty
+  dictionary demonstrates a reproducible failure with reduced function inputs.
+
 * Added `gen_double()` for finite numeric intervals, with size-dependent bounds,
   an explicit shrink origin, and lazy shrinking that stops when floating-point
   rounding prevents progress. Vector protocol laws now exercise fractional
