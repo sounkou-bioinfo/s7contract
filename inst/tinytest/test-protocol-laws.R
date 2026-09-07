@@ -60,7 +60,8 @@ expect_identical(visited, audit_result@attempts + audit_result@shrink_attempts)
 # Coverage makes the generated domain visible without changing counterexamples.
 for (results in vector_results) {
   coverage <- results$slice_values@coverage
-  expect_identical(coverage$label, c("empty", "nonempty", "repeated", "reordered", "fractional"))
+  expect_identical(coverage$label, c("empty", "nonempty", "repeated", "reordered",
+                                    "subsequence", "permutation", "fractional"))
   expect_true(all(coverage$met))
   expect_identical(sum(coverage$count[1:2]), 100L)
   expect_identical(results$slice_values@coverage_cases, 100L)
@@ -68,8 +69,8 @@ for (results in vector_results) {
 expect_identical(empty_only@status, "insufficient_coverage")
 expect_identical(empty_only@tests, 10L)
 expect_identical(empty_only@counterexample, NULL)
-expect_identical(empty_only@coverage$count, c(10L, 0L, 0L, 0L, 0L))
-expect_identical(empty_only@coverage$met, c(TRUE, FALSE, FALSE, FALSE, FALSE))
+expect_identical(empty_only@coverage$count, c(10L, 0L, 0L, 0L, 10L, 10L, 0L))
+expect_identical(empty_only@coverage$met, c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE))
 expect_identical(failure@coverage_cases, failure@attempts)
 expect_identical(replayed@coverage, failure@coverage)
 expect_identical(failure@status, "falsified")

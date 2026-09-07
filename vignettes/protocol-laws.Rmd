@@ -50,7 +50,8 @@ the reference values passed to that constructor.
 The domain here is unnamed vectors of finite doubles between -10 and 10, with
 positive, in-range integer indices. `gen_double()` expands its bounds with size
 and shrinks toward zero. Empty vectors and selections are included; indices may
-repeat or appear out of order. Missing values, names, and negative indices are
+repeat or appear out of order. The generator mixes ordered subsequences,
+permutations without replacement, and repeated selections. Missing values, names, and negative indices are
 outside this example.
 
 `gen_bind()` constructs the object and an index generator from the reference
@@ -70,10 +71,18 @@ calculation separate from the interface's `length` alias.
 ## Which cases were tested?
 
 The slicing law classifies inputs as empty or nonempty, records fractional
-values, and labels repeated or reordered indices. Each label counts once per
-accepted case.
+values, and labels repeated, reordered, subsequence, and permutation selections.
+Labels describe the indices themselves, so they can overlap: an empty selection
+is a subsequence, and a full ordered selection is also a permutation.
+Each label counts once per accepted case.
 Its `min_coverage` requirements use proportions: `reordered = 0.1` asks for
 reordered indices in at least 10% of cases.
+
+`gen_sample()` fixes cardinality and shrinks toward earlier source positions,
+swapping selected positions to preserve uniqueness. `gen_subsequence()` grows
+length with size and keeps source order during shrinking. Both sample positions;
+equal values at different positions may still appear together. Sampling with
+replacement remains a composition of `gen_vector()` and `gen_element()`.
 
 ```{r vector-law-coverage}
 ```

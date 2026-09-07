@@ -22,6 +22,7 @@ reference:
       - new_generator
       - gen_constant
       - gen_double
+      - gen_sample
       - gen_bind
       - gen_element
       - gen_example
@@ -40,6 +41,7 @@ articles:
     contents:
       - bioinformatics-interfaces
       - protocol-laws
+      - calendar-intervals
       - property-laws
       - monad-dictionaries
       - stateful-protocols

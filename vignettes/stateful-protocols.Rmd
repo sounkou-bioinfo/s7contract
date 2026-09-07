@@ -25,7 +25,7 @@ with a reference model.
 ## The protocol and its implementations
 
 This protocol stores one integer per string key and reports keys in sorted
-order. The example uses three keys and small integer values. Missing keys
+order. The example uses bounded strings and small integer values. Missing keys
 return `NULL`; generated get and delete commands use existing keys.
 
 ```{r store-interface}
@@ -38,6 +38,21 @@ in an environment. Both use ordinary S7 methods.
 ```
 
 ## Commands and a reference model
+
+Keys contain one to four code points from `a`, `b`, `c`, and `\u00e9` (é).
+This recipe converts the alphabet to UTF-8, rejects missing and byte strings,
+and counts code points rather than bytes or grapheme clusters. The alphabet
+must be nonempty; each entry must contain exactly one code point. With `min = 0`,
+the recipe also generates `""`, which environment bindings cannot use as a key.
+Shrinking removes chunks before moving characters toward earlier alphabet entries.
+
+```{r store-strings}
+```
+
+[`paste()`](https://stat.ethz.ch/R-manual/R-devel/library/base/html/paste.html)
+preserves UTF-8 here and collapses zero entries to one empty string. Missing
+values are rejected before concatenation because `paste()` would turn them into
+the literal text `"NA"`.
 
 The model is a named list of expected values. Each command defines its input
 generator, implementation call, and postcondition. A model update derives the
@@ -64,6 +79,20 @@ including after a false postcondition, warning, or error.
 Sequence length grows with the runner's size, up to `max_commands`. Generation
 may stop sooner when no command is available. Empty sequences are allowed.
 `expect_law()` can run the same law as one tinytest expectation.
+
+The classifier records sequences containing multi-character and non-ASCII put
+keys. It counts generated inputs, including any suffix after an execution failure.
+
+```{r store-key-coverage}
+```
+
+## A put that truncates keys
+
+This implementation keeps only the first character when writing a key. The law
+reduces its failure to `put("aa", 0L)`: a subsequent get of `"aa"` returns `NULL`.
+
+```{r store-truncated}
+```
 
 ## A reset that leaves data behind
 

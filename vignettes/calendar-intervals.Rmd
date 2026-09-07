@@ -1,0 +1,68 @@
+---
+title: "Laws for Calendar Intervals"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Laws for Calendar Intervals}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::read_chunk(
+  system.file("examples", "calendar-laws.R", package = "s7contract")
+)
+```
+
+```{r calendar-setup}
+```
+
+## Whole days from integer offsets
+
+Calendar intervals promise to include both endpoints. Testing that promise needs
+ordered bounds, queries at those bounds, and ordinary dates between or outside them.
+
+This recipe maps integer offsets onto a fixed `Date` origin. Size zero draws the
+origin; size `s` draws uniformly within `origin ± s` days, clipped to the bounds.
+Shrinking moves offsets toward zero. Its `Date` prototype preserves the class
+when composed into vectors, including empty and nested vectors.
+
+```{r calendar-generator}
+```
+
+Bounds and origins must be finite whole dates. This recipe restricts their day
+counts and the offsets from the origin to R's non-missing integer range.
+It generates calendar days without a time zone or a dependency on today's date.
+[R's Date documentation](https://stat.ethz.ch/R-manual/R-devel/library/base/html/Dates.html)
+warns that fractional day values can be hidden by printing, and that integer and
+double storage can represent the same date. The law compares dates with `==`,
+`<=`, and `>=` rather than requiring identical storage.
+
+## An inclusive interval protocol
+
+The class validator requires ordered whole-day bounds. The interface requires a
+membership operation accepting dates and returning logical values.
+
+```{r calendar-interface}
+```
+
+Dependent generators rebuild valid intervals as their start or end shrinks.
+Query generation explicitly includes both endpoints and leap day. Coverage
+records those cases and intervals crossing New Year.
+
+```{r calendar-law}
+```
+
+## An end date accidentally excluded
+
+Changing `<=` to `<` keeps the required method available but violates the law.
+The reduced failure is a one-day interval queried on that same day.
+
+```{r calendar-broken}
+```
+
+The same installed script supplies this article and the regression tests.
+Replay retains the bounds and query along with the run parameters:
+
+```{r calendar-replay}
+```

@@ -56,7 +56,11 @@ vector_laws <- function(make, element = gen_double(-10, 10)) {
     indices <- if (length(values) == 0L) {
       gen_constant(integer())
     } else {
-      gen_vector(gen_element(seq_along(values)), max = 6L)
+      gen_choice(
+        gen_subsequence(seq_along(values)),
+        gen_sample(seq_along(values)),
+        gen_vector(gen_element(seq_along(values)), max = 6L)
+      )
     }
     gen_product(
       x = gen_constant(make(values)),
@@ -82,10 +86,13 @@ vector_laws <- function(make, element = gen_double(-10, 10)) {
         if (length(input$values) == 0L) "empty" else "nonempty",
         if (anyDuplicated(input$i) > 0L) "repeated",
         if (is.unsorted(input$i)) "reordered",
+        if (!is.unsorted(input$i, strictly = TRUE)) "subsequence",
+        if (length(input$i) == length(input$values) && !anyDuplicated(input$i)) "permutation",
         if (any(input$values != trunc(input$values))) "fractional"
       ),
-      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.1,
-                       reordered = 0.1, fractional = 0.5)
+      min_coverage = c(empty = 0.05, nonempty = 0.5, repeated = 0.05,
+                       reordered = 0.1, subsequence = 0.2, permutation = 0.2,
+                       fractional = 0.5)
     ),
     slice_length = new_law("slice length matches the index count", list(input = cases),
       function(input) with(VectorLike, {
