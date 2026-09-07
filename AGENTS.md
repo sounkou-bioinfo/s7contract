@@ -1,13 +1,15 @@
 # Code and documentation
 
-- Do not use Python in this repository. Use R and shell tools.
+- Apply `native-tool-discipline`: use native file tools for edits and R
+  or shell for repository tasks. Do not use Python in this repository.
 - Validate numeric type, finiteness, integrality, and range before
   integer conversion. Do not use
   [`suppressWarnings()`](https://rdrr.io/r/base/warning.html) around
   coercion for validation.
-- Preserve scientific background, design explanations, and theoretical
-  context in documentation. Remove maintenance narration and empty
-  repetition.
+- Apply `no-ghosts` to documentation, code comments, tests, and review
+  text. Write for readers of the final artifact; omit edit history.
+  Preserve scientific background, design explanations, and cautions
+  about real traps.
 
 # Releases
 

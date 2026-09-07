@@ -78,17 +78,15 @@ interface_requirement(
 
 ## Details
 
-This deliberately mirrors Go's basic interfaces defined only by methods.
-The intended style is to define small interfaces at the point where
-consuming code needs a behavior, not beside a single concrete
-implementation. Define S7 classes, generics, and methods normally; then
-let consumers name the protocol they accept. Up-front interfaces can
-still be useful for deliberate package protocols, abstract data types,
-or recursive protocols.
+This mirrors Go's basic interfaces defined only by methods. Define small
+interfaces at the point where consuming code needs a behavior. Define S7
+classes, generics, and methods normally; then let consumers name the
+protocol they accept. Up-front interfaces are also useful for package
+protocols, abstract data types, or recursive protocols.
 
-It does not attempt to emulate Go's full post-1.18 type-set language
-such as tilde type terms, unions of concrete types, or pointer/value
-receiver rules.
+Go's full post-1.18 type-set language is outside this model, including
+tilde type terms, unions of concrete types, or pointer/value receiver
+rules.
 
 ## Examples
 
