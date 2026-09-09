@@ -1,5 +1,9 @@
 # Changelog
 
+## s7contract 0.2.3
+
+- Source builds exclude local `test.arrows` data files.
+
 ## s7contract 0.2.2
 
 - Union requirements cover every concrete dispatch signature. Checked
