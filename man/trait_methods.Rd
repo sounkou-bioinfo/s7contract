@@ -39,7 +39,8 @@ trait_assoc_const(trait, x, name)
 
 \item{inherited}{Include inherited methods from supertraits?}
 
-\item{class}{An S7 class or base class wrapper.}
+\item{class}{A concrete S7 class, S3 class wrapper, S4 class, or base class
+wrapper. Register union members separately.}
 
 \item{methods}{Named list of method implementations. Omitted trait methods
 use their default implementation when one is available.}

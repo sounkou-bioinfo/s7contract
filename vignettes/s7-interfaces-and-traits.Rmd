@@ -23,9 +23,9 @@ library(s7contract)
 implementations behave as expected. S7 provides class definitions, method
 registration, and dispatch.
 
-The package began with structural interfaces and explicit traits. The
-[S7 traits discussion](https://github.com/RConsortium/S7/issues/34) describes
-the underlying need: checking method contracts around existing generics.
+Structural interfaces and explicit traits address the need described in the
+[S7 traits discussion](https://github.com/RConsortium/S7/issues/34):
+checking method contracts around existing generics.
 [Go interfaces](https://go.dev/ref/spec#Interface_types) inform the structural
 approach; [Rust traits](https://doc.rust-lang.org/reference/items/traits.html)
 inform explicit registrations, defaults, and associated metadata. Here these

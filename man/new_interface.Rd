@@ -41,7 +41,8 @@ methods are registered separately on generics.}
 runtime argument checking with \code{with()} or \verb{\%::\%}. Arguments named in
 \code{args} are also checked against generic and method formals during
 conformance checks. Dispatch arguments other than the first can use S7
-classes or unions to refine multiple-dispatch requirements.}
+classes or unions to refine multiple-dispatch requirements. Every concrete
+combination in those unions must have a compatible method.}
 
 \item{returns}{Optional S7 class, interface, or trait for runtime return
 checking with \code{with()} or \verb{\%::\%}; defaults to \code{S7::class_any}.}

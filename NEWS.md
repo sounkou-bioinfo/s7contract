@@ -1,5 +1,13 @@
 # s7contract 0.2.1
 
+* Union requirements cover every concrete dispatch signature. Checked calls
+  preserve lexical generic defaults, shared argument promises, and return
+  visibility.
+
+* Trait registrations use descriptor identity. Deserialized descriptors require
+  registration in the current session; register union targets one member at a
+  time.
+
 * Added generative laws with `new_law()`, structured results from `check_law()`,
   and one-result tinytest integration through `expect_law()`.
 
@@ -15,7 +23,7 @@
   inspection, and `gen_no_shrink()` to hold values fixed during shrinking.
 
 * Shrinking constructs candidates lazily and preserves generator constraints.
-  Results report the smallest counterexample found, `shrink_status`, and
+  Results report the last accepted failing candidate, `shrink_status`, and
   `shrink_condition`. Errors during shrinking preserve the original and last
   failing examples. Vector shrinking removes chunks before shrinking elements;
   double shrinking moves toward an explicit origin until rounding stops progress.

@@ -210,19 +210,21 @@ class. A deliberately faulty slice method passes structural checks but
 fails the slicing law. A function returning a list of laws lets both
 implementations use the same suite.
 
-Shrinking reports the smallest counterexample found and whether the
-search completed, reached its evaluation budget, or encountered a
-shrinking error. Runs use a fixed RNG configuration and record their
-parameters for replay. Callers using Box-Muller normals must select
-another normal RNG kind first, because R does not expose the cached
-normal draw needed to restore their state.
+Shrinking reports the last accepted failing candidate along its ordered
+search path and whether the search completed, reached its evaluation
+budget, or encountered a shrinking error. It does not guarantee a
+smallest counterexample. Runs use a fixed RNG configuration and record
+their parameters for replay. Callers using Box-Muller normals must
+select another normal RNG kind first, because R does not expose the
+cached normal draw needed to restore their state.
 
 ## Limits
 
 - All checks happen at runtime.
 - Interfaces check S7 method availability by default; optional argument
   and return checks are progressive runtime checks.
-- Traits are a package-level registry on top of S7 dispatch.
+- Trait registrations are session-local and keyed by descriptor
+  identity, not by a trait’s display name.
 - Generative laws test the cases produced by their generators; passing a
   run does not prove a law for all inputs.
 - This package does not model Go type sets or Rust compile-time trait

@@ -129,62 +129,39 @@
   tryCatch(
     {
       signature <- .requirement_signature(req, target)
-      method <- S7::method(generic, class = signature)
-
+      if (length(generic@dispatch_args) == 1L) signature <- list(signature)
       .check_required_formals(
         generic,
         names(req@args),
         sprintf("Generic `%s()`", req@name)
       )
-      .check_required_formals(
-        method,
-        names(req@args),
-        sprintf("Method `%s()`", req@name)
-      )
 
-      list(ok = TRUE, method = method, error = NULL)
+      # Union registration expands signatures; lookup requires concrete classes.
+      check_signature <- function(signature, position = 1L) {
+        if (position > length(signature)) {
+          method <- S7::method(generic, class = if (length(signature) == 1L) {
+            signature[[1L]]
+          } else {
+            signature
+          })
+          .check_required_formals(
+            method, names(req@args), sprintf("Method `%s()`", req@name)
+          )
+          return(invisible(NULL))
+        }
+        cls <- signature[[position]]
+        classes <- if (inherits(cls, "S7_union")) cls$classes else list(cls)
+        for (cls in classes) {
+          signature[position] <- list(cls)
+          check_signature(signature, position + 1L)
+        }
+      }
+      check_signature(signature)
+      list(ok = TRUE, error = NULL)
     },
     error = function(e) {
-      list(ok = FALSE, method = NULL, error = e)
+      list(ok = FALSE, error = e)
     }
-  )
-}
-
-
-.bind_checked_arg <- function(call, arg, value, eval_env, prefix) {
-  nm <- sprintf(".%s_%s", prefix, arg)
-  assign(nm, value, envir = eval_env)
-  assign(arg, value, envir = eval_env)
-  call[[arg]] <- as.name(nm)
-  call
-}
-
-.bind_delayed_arg <- function(call, arg, expr, eval_env, source_env, prefix) {
-  nm <- sprintf(".%s_%s", prefix, arg)
-  force(expr)
-  force(eval_env)
-  force(source_env)
-  force(nm)
-
-  delayedAssign(nm, eval(expr, envir = source_env), assign.env = eval_env)
-  delayedAssign(arg, get(nm, envir = eval_env), assign.env = eval_env)
-  call[[arg]] <- as.name(nm)
-  call
-}
-
-.default_typed_arg <- function(generic, method, arg, eval_env) {
-  for (fun in list(method, generic)) {
-    fml <- formals(fun)
-    if (
-      arg %in% names(fml) &&
-        !identical(fml[[arg]], quote(expr = ))
-    ) {
-      return(eval(fml[[arg]], envir = eval_env))
-    }
-  }
-  .abort(
-    "Call is missing typed argument `%s` and no default could be evaluated.",
-    arg
   )
 }
 
@@ -201,56 +178,67 @@
     }
   )
 
-  eval_env <- new.env(parent = env)
-  assign(".s7contract_generic", generic, envir = eval_env)
-  matched[[1L]] <- as.name(".s7contract_generic")
-
-  formal_args <- names(formals(generic))
-  supplied_args <- intersect(names(matched)[-1L], formal_args)
-  supplied_args <- setdiff(supplied_args[nzchar(supplied_args)], "...")
-  for (arg in supplied_args) {
-    matched <- .bind_delayed_arg(
-      matched,
-      arg,
-      matched[[arg]],
-      eval_env,
-      env,
-      "arg"
-    )
-  }
-
-  dispatch_args <- generic@dispatch_args
-  first_arg <- dispatch_args[[1L]]
-  if (!first_arg %in% names(matched)) {
-    .abort("Call is missing first dispatch argument `%s`.", first_arg)
-  }
-  first_value <- eval(matched[[first_arg]], envir = eval_env)
-  matched <- .bind_checked_arg(matched, first_arg, first_value, eval_env, "arg")
-
-  if (trait) {
-    assert_trait(first_value, contract, arg = first_arg)
-  } else {
-    assert_implements(first_value, contract, arg = first_arg)
-  }
-
-  found <- .lookup_requirement_method(req, first_value)
-  if (!found$ok) {
-    .abort("%s", conditionMessage(found$error))
-  }
-
-  for (arg in names(req@args)) {
-    value <- if (arg %in% names(matched)) {
-      eval(matched[[arg]], envir = eval_env)
+  check_arguments <- function(frame) {
+    dispatch_args <- generic@dispatch_args
+    dispatch_values <- lapply(dispatch_args, function(arg) {
+      value <- get(arg, envir = frame, inherits = FALSE)
+      if (arg %in% names(req@args)) {
+        .check_value_conforms(value, req@args[[arg]], arg)
+      }
+      value
+    })
+    if (trait) {
+      assert_trait(dispatch_values[[1L]], contract, arg = dispatch_args[[1L]])
+      .check_required_formals(generic, names(req@args), sprintf("Generic `%s()`", req@name))
     } else {
-      .default_typed_arg(generic, found$method, arg, eval_env)
+      assert_implements(dispatch_values[[1L]], contract, arg = dispatch_args[[1L]])
     }
-    .check_value_conforms(value, req@args[[arg]], arg)
-    matched <- .bind_checked_arg(matched, arg, value, eval_env, "arg")
+    method <- S7::method(generic, object = if (length(dispatch_values) == 1L) {
+      dispatch_values[[1L]]
+    } else {
+      dispatch_values
+    })
+    .check_required_formals(method, names(req@args), sprintf("Method `%s()`", req@name))
+
+    generic_formals <- formals(generic)
+    method_frame <- NULL
+    for (arg in setdiff(names(req@args), dispatch_args)) {
+      absent <- eval(call("missing", as.name(arg)), envir = frame) &&
+        identical(generic_formals[[arg]], quote(expr = ))
+      if (absent) {
+        if (identical(formals(method)[[arg]], quote(expr = ))) {
+          .abort("Call is missing typed argument `%s` and has no default.", arg)
+        }
+        if (is.null(method_frame)) {
+          # Method-only defaults use method scope and share generic promises.
+          actuals <- lapply(names(generic_formals), as.name)
+          names(actuals) <- names(generic_formals)
+          for (name in setdiff(names(actuals), "...")) {
+            if (eval(call("missing", as.name(name)), envir = frame) &&
+                identical(generic_formals[[name]], quote(expr = ))) {
+              actuals[name] <- NULL
+            }
+          }
+          names(actuals)[names(actuals) == "..."] <- ""
+          body(method) <- quote(base::environment())
+          method_frame <- eval(as.call(c(list(method), actuals)), envir = frame)
+        }
+        assign(arg, get(arg, envir = method_frame, inherits = FALSE), envir = frame)
+      }
+      .check_value_conforms(get(arg, envir = frame, inherits = FALSE), req@args[[arg]], arg)
+    }
   }
 
-  out <- eval(matched, envir = eval_env)
-  .check_value_conforms(out, req@returns, ".return")
-  out
+  # A per-call copy keeps S7 dispatch and R's argument promises in the real frame.
+  checked <- S7::S7_data(generic)
+  body(checked) <- substitute({ CHECK(base::environment()); BODY },
+                             list(CHECK = check_arguments, BODY = body(generic)))
+  checked_generic <- generic
+  S7::S7_data(checked_generic) <- checked
+  matched[[1L]] <- checked_generic
+  out <- withVisible(eval(matched, envir = env))
+  .check_value_conforms(out$value, req@returns, ".return")
+  if (out$visible) out$value else invisible(out$value)
 }
 
 .make_checked_generic <- function(contract, req, trait = FALSE) {
@@ -287,20 +275,14 @@
   mask
 }
 
-.rebind_contract_function <- function(fun, contract, mask, trait = FALSE) {
-  if (!identical(typeof(fun), "closure") || identical(environment(fun), mask)) {
-    return(fun)
-  }
-
-  function_mask <- .contract_mask(contract, environment(fun), trait = trait)
-  environment(fun) <- function_mask
-  fun
-}
-
 .with_contract <- function(contract, expr, env, trait = FALSE) {
   mask <- .contract_mask(contract, env, trait = trait)
-  out <- eval(expr, envir = mask)
-  .rebind_contract_function(out, contract, mask, trait = trait)
+  out <- withVisible(eval(expr, envir = mask))
+  value <- out$value
+  if (identical(typeof(value), "closure") && !identical(environment(value), mask)) {
+    environment(value) <- .contract_mask(contract, environment(value), trait = trait)
+  }
+  if (out$visible) value else invisible(value)
 }
 
 .with_s7_interface <- function(data, expr, ...) {
@@ -317,6 +299,15 @@
 #' contract mask. Required generics are shadowed by checking wrappers, so calls
 #' to those generics use normal S7 dispatch while checking the optional argument
 #' and return specifications stored in an interface requirement or trait method.
+#' Only names resolved through the mask are checked; namespace-qualified calls
+#' and calls inside separately defined helpers are not instrumented.
+#'
+#' Checks force dispatch and typed arguments before the generic body runs.
+#' Generic defaults retain their lexical scope and share ordinary R promises.
+#' If a typed argument has only a method default, that default is evaluated
+#' before dispatch and supplied to the generic. Such defaults should be pure
+#' expressions of arguments and lexical bindings, without relying on method-body
+#' locals or `missing()` for that argument.
 #'
 #' @param expr An expression evaluated in a contract mask. Calls to generics
 #'   named in the contract are checked.

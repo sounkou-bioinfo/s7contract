@@ -1,6 +1,7 @@
 ^s7contract\.Rcheck$
 ^s7contract_[0-9].*\.tar\.gz$
 ^[.]codex$
+^[.]pi$
 ^[.][.]Rcheck$
 ^LICENSE$
 ^LICENSE\.md$

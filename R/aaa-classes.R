@@ -50,7 +50,7 @@ s7_trait <- S7::new_class(
   "s7_trait",
   package = "s7contract",
   properties = list(
-    id = S7::class_character,
+    id = S7::class_environment,
     name = S7::class_character,
     package = S7::new_union(NULL, S7::class_character),
     parents = S7::class_list,
@@ -65,8 +65,6 @@ s7_trait_impl <- S7::new_class(
   package = "s7contract",
   properties = list(
     trait = s7_trait,
-    trait_id = S7::class_character,
-    trait_label = S7::class_character,
     target_class = S7::class_any,
     methods = S7::class_list,
     assoc_types = S7::class_list,

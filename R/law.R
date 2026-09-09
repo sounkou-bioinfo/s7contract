@@ -216,7 +216,8 @@
 #' all run arguments except `law`, for use with `do.call(check_law, ...)`.
 #'
 #' Shrinking is an ordered search, not a guarantee of a global minimum. The
-#' counterexample's `minimal` field holds the smallest example found. A result's
+#' counterexample's `minimal` field holds the last accepted failing candidate on
+#' that search path; candidates have no general size ordering. A result's
 #' `shrink_status` is `"complete"` when no immediate child preserves the
 #' failure, `"budget"` when the evaluation limit stopped the search (including
 #' zero), `"error"` if constructing candidates failed, or `"not_needed"` when no

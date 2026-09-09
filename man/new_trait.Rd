@@ -59,7 +59,10 @@ checking with \code{with()} or \verb{\%::\%}; defaults to \code{S7::class_any}.}
 \description{
 \code{new_trait()} adds a nominal contract registry on top of S7 dispatch. A class
 only has the trait after \code{impl_trait()} records the implementation, even if
-compatible S7 methods already exist.
+compatible S7 methods already exist. Registrations belong to the current
+R session and the particular trait descriptor, not its display name. Reuse
+the same descriptor for registration and checks; deserializing a descriptor
+does not transfer its registrations.
 }
 \details{
 This makes default methods and associated metadata practical, but the result

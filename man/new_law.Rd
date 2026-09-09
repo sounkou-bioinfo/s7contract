@@ -94,7 +94,8 @@ state or change the RNG configuration. The result's \code{parameters} list recor
 all run arguments except \code{law}, for use with \code{do.call(check_law, ...)}.
 
 Shrinking is an ordered search, not a guarantee of a global minimum. The
-counterexample's \code{minimal} field holds the smallest example found. A result's
+counterexample's \code{minimal} field holds the last accepted failing candidate on
+that search path; candidates have no general size ordering. A result's
 \code{shrink_status} is \code{"complete"} when no immediate child preserves the
 failure, \code{"budget"} when the evaluation limit stopped the search (including
 zero), \code{"error"} if constructing candidates failed, or \code{"not_needed"} when no
