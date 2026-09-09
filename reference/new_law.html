@@ -169,7 +169,8 @@ R/package versions; generators and laws must not depend on external mutable
 state or change the RNG configuration. The result's <code>parameters</code> list records
 all run arguments except <code>law</code>, for use with <code>do.call(check_law, ...)</code>.</p>
 <p>Shrinking is an ordered search, not a guarantee of a global minimum. The
-counterexample's <code>minimal</code> field holds the smallest example found. A result's
+counterexample's <code>minimal</code> field holds the last accepted failing candidate on
+that search path; candidates have no general size ordering. A result's
 <code>shrink_status</code> is <code>"complete"</code> when no immediate child preserves the
 failure, <code>"budget"</code> when the evaluation limit stopped the search (including
 zero), <code>"error"</code> if constructing candidates failed, or <code>"not_needed"</code> when no

@@ -4,7 +4,9 @@
 contract mask. Required generics are shadowed by checking wrappers, so
 calls to those generics use normal S7 dispatch while checking the
 optional argument and return specifications stored in an interface
-requirement or trait method.
+requirement or trait method. Only names resolved through the mask are
+checked; namespace-qualified calls and calls inside separately defined
+helpers are not instrumented.
 
 ## Usage
 
@@ -29,6 +31,16 @@ expr %::% contract
 ## Value
 
 The value of `expr`, after any optional return check.
+
+## Details
+
+Checks force dispatch and typed arguments before the generic body runs.
+Generic defaults retain their lexical scope and share ordinary R
+promises. If a typed argument has only a method default, that default is
+evaluated before dispatch and supplied to the generic. Such defaults
+should be pure expressions of arguments and lexical bindings, without
+relying on method-body locals or
+[`missing()`](https://rdrr.io/r/base/missing.html) for that argument.
 
 ## Examples
 

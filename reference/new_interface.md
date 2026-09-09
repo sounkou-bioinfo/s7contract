@@ -61,7 +61,8 @@ interface_requirement(
   `%::%`. Arguments named in `args` are also checked against generic and
   method formals during conformance checks. Dispatch arguments other
   than the first can use S7 classes or unions to refine
-  multiple-dispatch requirements.
+  multiple-dispatch requirements. Every concrete combination in those
+  unions must have a compatible method.
 
 - returns:
 

@@ -4,6 +4,10 @@
 class only has the trait after
 [`impl_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
 records the implementation, even if compatible S7 methods already exist.
+Registrations belong to the current R session and the particular trait
+descriptor, not its display name. Reuse the same descriptor for
+registration and checks; deserializing a descriptor does not transfer
+its registrations.
 
 ## Usage
 

@@ -42,7 +42,8 @@ trait_assoc_const(trait, x, name)
 
 - class:
 
-  An S7 class or base class wrapper.
+  A concrete S7 class, S3 class wrapper, S4 class, or base class
+  wrapper. Register union members separately.
 
 - methods:
 

@@ -111,7 +111,8 @@ methods are registered separately on generics.</p></dd>
 runtime argument checking with <code><a href="https://rdrr.io/r/base/with.html" class="external-link">with()</a></code> or <code>%::%</code>. Arguments named in
 <code>args</code> are also checked against generic and method formals during
 conformance checks. Dispatch arguments other than the first can use S7
-classes or unions to refine multiple-dispatch requirements.</p></dd>
+classes or unions to refine multiple-dispatch requirements. Every concrete
+combination in those unions must have a compatible method.</p></dd>
 
 
 <dt id="arg-returns">returns<a class="anchor" aria-label="anchor" href="#arg-returns"></a></dt>

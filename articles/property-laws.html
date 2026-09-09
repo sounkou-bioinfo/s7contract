@@ -178,13 +178,14 @@ ten and shrinks to zero.</p>
 <span><span class="co">#&gt; List of 1</span></span>
 <span><span class="co">#&gt;  $ x: int 0</span></span></code></pre></div>
 <p>The result records the seed, RNG kind, run parameters, original
-input, smallest counterexample found, and shrink counts. The
-<code>minimal</code> field holds the smallest failure found within the
-shrink tree and evaluation budget. <code>shrink_status</code>
-distinguishes completion within the shrink tree, an evaluation budget, a
-shrinking error, and a run that needed no shrinking. If shrinking errors
-or warns, <code>shrink_condition</code> records that problem while the
-original and last failing examples remain available.</p>
+input, final counterexample, and shrink counts. The <code>minimal</code>
+field holds the last accepted failing candidate along the ordered shrink
+path, not a guaranteed smallest failure. <code>shrink_status</code>
+distinguishes exhaustion of the current candidate’s children, an
+evaluation budget, a shrinking error, and a run that needed no
+shrinking. If shrinking errors or warns, <code>shrink_condition</code>
+records that problem while the original and last failing examples remain
+available.</p>
 <p>Replay the same law and parameters with ordinary R function
 application:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">

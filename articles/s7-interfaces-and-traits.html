@@ -77,10 +77,9 @@
 <p><code>s7contract</code> describes what a consumer needs from an S7
 object and tests whether implementations behave as expected. S7 provides
 class definitions, method registration, and dispatch.</p>
-<p>The package began with structural interfaces and explicit traits. The
-<a href="https://github.com/RConsortium/S7/issues/34" class="external-link">S7 traits
-discussion</a> describes the underlying need: checking method contracts
-around existing generics. <a href="https://go.dev/ref/spec#Interface_types" class="external-link">Go interfaces</a> inform
+<p>Structural interfaces and explicit traits address the need described
+in the <a href="https://github.com/RConsortium/S7/issues/34" class="external-link">S7 traits
+discussion</a>: checking method contracts around existing generics. <a href="https://go.dev/ref/spec#Interface_types" class="external-link">Go interfaces</a> inform
 the structural approach; <a href="https://doc.rust-lang.org/reference/items/traits.html" class="external-link">Rust
 traits</a> inform explicit registrations, defaults, and associated
 metadata. Here these are runtime R facilities. Checked calls and

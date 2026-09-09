@@ -120,12 +120,13 @@ failure
 ```
 
 The result records the seed, RNG kind, run parameters, original input,
-smallest counterexample found, and shrink counts. The `minimal` field
-holds the smallest failure found within the shrink tree and evaluation
-budget. `shrink_status` distinguishes completion within the shrink tree,
-an evaluation budget, a shrinking error, and a run that needed no
-shrinking. If shrinking errors or warns, `shrink_condition` records that
-problem while the original and last failing examples remain available.
+final counterexample, and shrink counts. The `minimal` field holds the
+last accepted failing candidate along the ordered shrink path, not a
+guaranteed smallest failure. `shrink_status` distinguishes exhaustion of
+the current candidate’s children, an evaluation budget, a shrinking
+error, and a run that needed no shrinking. If shrinking errors or warns,
+`shrink_condition` records that problem while the original and last
+failing examples remain available.
 
 Replay the same law and parameters with ordinary R function application:
 
