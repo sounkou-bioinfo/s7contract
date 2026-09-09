@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/sounkou-bioinfo/s7contract/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/sounkou-bioinfo/s7contract/blob/v0.2.3/DESCRIPTION)
 
 Toure S (2026). *s7contract: Behavioral Contracts and Generative Laws
 for 'S7'*. R package version 0.2.3,
