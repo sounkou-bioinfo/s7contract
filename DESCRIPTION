@@ -1,6 +1,6 @@
 Package: s7contract
 Title: Behavioral Contracts and Generative Laws for 'S7'
-Version: 0.2.2
+Version: 0.2.3
 Authors@R: c(
     person(given = "Sounkou Mahamane", family = "Toure",
            email = "sounkoutoure@gmail.com", role = c("aut", "cre"))
@@ -10,7 +10,7 @@ Description: Contract helpers built with 'S7' for expressing runtime protocols
     required 'S7' generics, while explicit traits record registered
     implementations with optional default methods and associated metadata.
     Optional runtime checks can validate argument and return specifications in
-    contract-scoped evaluation. Generative laws combine composable generators,
+    contract-scoped evaluation. Generative laws combine generators,
     deterministic shrinking, and one-result 'tinytest' expectations.
 License: GPL (>= 3)
 Encoding: UTF-8

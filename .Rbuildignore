@@ -1,5 +1,6 @@
 ^s7contract\.Rcheck$
 ^s7contract_[0-9].*\.tar\.gz$
+^test\.arrows$
 ^[.]codex$
 ^[.]pi$
 ^[.][.]Rcheck$
