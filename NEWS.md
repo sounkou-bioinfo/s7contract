@@ -1,4 +1,4 @@
-# s7contract 0.2.1
+# s7contract 0.2.2
 
 * Union requirements cover every concrete dispatch signature. Checked calls
   preserve lexical generic defaults, shared argument promises, and return
