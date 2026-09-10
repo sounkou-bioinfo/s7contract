@@ -1,6 +1,10 @@
 # Changelog
 
+## s7contract (development version)
+
 ## s7contract 0.2.3
+
+CRAN release: 2026-09-09
 
 - Source builds exclude local `test.arrows` data files.
 
