@@ -31,9 +31,13 @@ s7_law <- S7::new_class(
       default = numeric(),
       validator = function(value) {
         if (anyNA(value) || any(value < 0 | value > 1)) {
-          return("Minimum coverage must contain finite proportions between zero and one.")
+          return(
+            "Minimum coverage must contain finite proportions between zero and one."
+          )
         }
-        if (length(value) == 0L) return(NULL)
+        if (length(value) == 0L) {
+          return(NULL)
+        }
         nms <- names(value)
         if (is.null(nms) || !is.null(dim(value))) {
           return("Minimum coverage must be a named numeric vector.")
@@ -55,8 +59,14 @@ s7_law <- S7::new_class(
     generator_names <- names(self@generators)
     for (callback in c("holds", "classify")) {
       callback_formals <- names(formals(S7::prop(self, callback)))
-      if (!"..." %in% callback_formals && !all(generator_names %in% callback_formals)) {
-        return(sprintf("`%s` must accept every named generator argument or `...`.", callback))
+      if (
+        !"..." %in% callback_formals &&
+          !all(generator_names %in% callback_formals)
+      ) {
+        return(sprintf(
+          "`%s` must accept every named generator argument or `...`.",
+          callback
+        ))
       }
     }
     NULL
@@ -124,7 +134,14 @@ s7_check_result <- S7::new_class(
   validator = function(self) {
     if (
       length(self@status) != 1L ||
-        !self@status %in% c("passed", "falsified", "error", "exhausted", "insufficient_coverage")
+        !self@status %in%
+          c(
+            "passed",
+            "falsified",
+            "error",
+            "exhausted",
+            "insufficient_coverage"
+          )
     ) {
       "`status` must be passed, falsified, error, exhausted, or insufficient_coverage."
     }

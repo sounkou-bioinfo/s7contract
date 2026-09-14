@@ -7,7 +7,9 @@
     function() {
       while (cursor > length(candidates)) {
         i <<- i + 1L
-        if (i > length(positions)) return(NULL)
+        if (i > length(positions)) {
+          return(NULL)
+        }
         prefix <- sort(positions[seq_len(i - 1L)])
         target <- which(c(prefix, 0L) != seq_len(i))[1L]
         candidates <<- .shrink_integer_values(positions[i], target)
@@ -18,7 +20,9 @@
       replacement <- candidates[cursor]
       cursor <<- cursor + 1L
       other <- match(replacement, positions, nomatch = 0L)
-      if (other > 0L) candidate[other] <- positions[i]
+      if (other > 0L) {
+        candidate[other] <- positions[i]
+      }
       candidate[i] <- replacement
       .sample_rose(candidate)
     }
@@ -35,7 +39,9 @@
   }
   n <- .count_arg(length(values), "length(values)")
   size <- .count_arg(size, "size")
-  if (size > n) .abort("Selection length must not exceed the number of source positions.")
+  if (size > n) {
+    .abort("Selection length must not exceed the number of source positions.")
+  }
   size
 }
 
@@ -101,10 +107,14 @@ gen_sample <- function(values, size = length(values)) {
 gen_subsequence <- function(values, min = 0L, max = length(values)) {
   max <- .sample_size(values, max)
   min <- .count_arg(min, "min")
-  if (min > max) .abort("`min` and `max` must be ordered length bounds.")
+  if (min > max) {
+    .abort("`min` and `max` must be ordered length bounds.")
+  }
   n <- length(values)
   gen_bind(gen_integer(min, max), function(k) {
-    if (k == n) return(gen_constant(values))
+    if (k == n) {
+      return(gen_constant(values))
+    }
     gen_map(gen_sample(seq_len(n), size = k), function(i) values[sort(i)])
   })
 }

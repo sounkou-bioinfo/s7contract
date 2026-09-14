@@ -64,7 +64,10 @@ expect_identical(falsified@status, "falsified")
 expect_identical(falsified@counterexample@original$x, 10L)
 expect_identical(falsified@counterexample@minimal$x, 0L)
 expect_identical(falsified@shrinks, 1L)
-expect_true(grepl("Smallest counterexample found", format_check_result(falsified)))
+expect_true(grepl(
+  "Smallest counterexample found",
+  format_check_result(falsified)
+))
 expect_identical(falsified@shrink_status, "complete")
 
 # An accepted final-budget shrink remains the reported counterexample.
@@ -100,7 +103,11 @@ expect_identical(unexpanded@status, "falsified")
 expect_identical(unexpanded@counterexample@minimal$x, 1L)
 expect_identical(unexpanded@shrink_attempts, 0L)
 expect_identical(unexpanded@shrink_status, "budget")
-expect_true(grepl("evaluation budget (0)", format_check_result(unexpanded), fixed = TRUE))
+expect_true(grepl(
+  "evaluation budget (0)",
+  format_check_result(unexpanded),
+  fixed = TRUE
+))
 
 # Mapping and products preserve the underlying shrink tree.
 mapped <- gen_map(
@@ -232,7 +239,10 @@ warning_law <- new_law(
 )
 warning_result <- check_law(warning_law, tests = 1L, seed = 1L)
 expect_identical(warning_result@status, "error")
-expect_identical(conditionMessage(warning_result@condition), "unexpected warning")
+expect_identical(
+  conditionMessage(warning_result@condition),
+  "unexpected warning"
+)
 
 invalid_result_law <- new_law(
   "invalid results fail",
@@ -241,7 +251,10 @@ invalid_result_law <- new_law(
 )
 invalid_result <- check_law(invalid_result_law, tests = 1L, seed = 1L)
 expect_identical(invalid_result@status, "error")
-expect_true(grepl("one non-missing logical", conditionMessage(invalid_result@condition)))
+expect_true(grepl(
+  "one non-missing logical",
+  conditionMessage(invalid_result@condition)
+))
 
 # Generator defects are structured runner errors, not uncaught failures.
 bad_shrinker <- new_generator(
@@ -264,7 +277,10 @@ expect_identical(bad_generator_result@counterexample@original, list(x = 1L))
 expect_identical(bad_generator_result@counterexample@minimal, list(x = 1L))
 expect_identical(bad_generator_result@shrink_status, "error")
 expect_identical(bad_generator_result@condition, NULL)
-expect_true(grepl("must return a list", conditionMessage(bad_generator_result@shrink_condition)))
+expect_true(grepl(
+  "must return a list",
+  conditionMessage(bad_generator_result@shrink_condition)
+))
 
 # The tinytest adapter aggregates the whole run into one tinytest result.
 tinytest_result <- expect_law(commutative, tests = 10L, seed = 4L)
@@ -319,12 +335,16 @@ expect_error(
 for (inner_length in 0:2) {
   nested_law <- new_law(
     "nested integer vectors",
-    list(x = gen_vector(
-      gen_vector(gen_integer(), min = inner_length, max = inner_length),
-      min = 1L, max = 3L
-    )),
+    list(
+      x = gen_vector(
+        gen_vector(gen_integer(), min = inner_length, max = inner_length),
+        min = 1L,
+        max = 3L
+      )
+    ),
     function(x) {
-      is.list(x) && all(vapply(x, is.integer, logical(1))) &&
+      is.list(x) &&
+        all(vapply(x, is.integer, logical(1))) &&
         all(lengths(x) == inner_length)
     }
   )
@@ -335,11 +355,15 @@ for (inner_length in 0:2) {
 late_error <- new_generator(
   function(size) 10L,
   function(x) {
-    if (x == 10L) return(list(5L))
+    if (x == 10L) {
+      return(list(5L))
+    }
     stop("cannot shrink five")
   }
 )
-late_law <- new_law("late shrink failure", list(x = late_error), function(x) FALSE)
+late_law <- new_law("late shrink failure", list(x = late_error), function(x) {
+  FALSE
+})
 late_result <- check_law(late_law, tests = 1L)
 expect_identical(late_result@status, "falsified")
 expect_identical(late_result@counterexample@original, list(x = 10L))
@@ -347,13 +371,22 @@ expect_identical(late_result@counterexample@minimal, list(x = 5L))
 expect_identical(late_result@shrinks, 1L)
 expect_identical(late_result@shrink_attempts, 1L)
 expect_identical(late_result@shrink_status, "error")
-expect_true(grepl("cannot shrink five", format_check_result(late_result), fixed = TRUE))
+expect_true(grepl(
+  "cannot shrink five",
+  format_check_result(late_result),
+  fixed = TRUE
+))
 
 # Law errors retain their own condition when shrinking also fails.
-late_error_law <- new_law("two errors", list(x = late_error), function(x) stop("law error"))
+late_error_law <- new_law("two errors", list(x = late_error), function(x) {
+  stop("law error")
+})
 two_errors <- check_law(late_error_law, tests = 1L)
 expect_identical(conditionMessage(two_errors@condition), "law error")
-expect_identical(conditionMessage(two_errors@shrink_condition), "cannot shrink five")
+expect_identical(
+  conditionMessage(two_errors@shrink_condition),
+  "cannot shrink five"
+)
 expect_identical(two_errors@counterexample@minimal, list(x = 5L))
 
 # One evaluation visits one mapped candidate, without touching later siblings.
@@ -361,7 +394,10 @@ local({
   transforms <- 0L
   wide <- gen_map(
     new_generator(function(size) 1000L, function(x) as.list(0:999)),
-    function(x) { transforms <<- transforms + 1L; x }
+    function(x) {
+      transforms <<- transforms + 1L
+      x
+    }
   )
   wide_law <- new_law("lazy mapping", list(x = wide), function(x) FALSE)
   result <- check_law(wide_law, tests = 1L, shrinks = 1L)
@@ -371,7 +407,12 @@ local({
 })
 unvisited <- gen_map(
   new_generator(function(size) 10L, function(x) list(0L, 5L)),
-  function(x) { if (x == 5L) stop("unvisited sibling"); x }
+  function(x) {
+    if (x == 5L) {
+      stop("unvisited sibling")
+    }
+    x
+  }
 )
 unvisited_law <- new_law(
   "unused siblings and product components stay lazy",
@@ -388,60 +429,101 @@ nullable <- new_generator(
   function(size) 1L,
   function(x) if (is.null(x)) list() else list(NULL)
 )
-null_result <- check_law(new_law("null shrink", list(x = nullable), function(x) FALSE))
+null_result <- check_law(new_law(
+  "null shrink",
+  list(x = nullable),
+  function(x) FALSE
+))
 expect_identical(null_result@counterexample@minimal, list(x = NULL))
 expect_identical(null_result@shrink_status, "complete")
 
 # Vector shrinking can remove a leading element and preserves length bounds.
 local({
   position <- 0L
-  element <- new_generator(function(size) {
-    position <<- position + 1L
-    if (position %% 3L == 0L) 10L else 0L
-  }, prototype = integer())
-  suffix_law <- new_law("no tens", list(x = gen_vector(element, max = 3L)),
-                        function(x) !any(x == 10L))
+  element <- new_generator(
+    function(size) {
+      position <<- position + 1L
+      if (position %% 3L == 0L) 10L else 0L
+    },
+    prototype = integer()
+  )
+  suffix_law <- new_law(
+    "no tens",
+    list(x = gen_vector(element, max = 3L)),
+    function(x) !any(x == 10L)
+  )
   result <- check_law(suffix_law, tests = 20L, seed = 1L)
   expect_identical(result@counterexample@original, list(x = c(0L, 10L)))
   expect_identical(result@counterexample@minimal, list(x = 10L))
 })
 bounded_nested <- new_law(
   "nested shrink bounds",
-  list(x = gen_vector(gen_vector(shrinking_gen, min = 2L, max = 4L),
-                      min = 1L, max = 3L)),
+  list(
+    x = gen_vector(
+      gen_vector(shrinking_gen, min = 2L, max = 4L),
+      min = 1L,
+      max = 3L
+    )
+  ),
   function(x) FALSE
 )
 bounded_result <- check_law(bounded_nested, tests = 1L)
-expect_identical(bounded_result@counterexample@minimal, list(x = list(c(0L, 0L))))
+expect_identical(
+  bounded_result@counterexample@minimal,
+  list(x = list(c(0L, 0L)))
+)
 expect_identical(bounded_result@shrink_status, "complete")
 
 # Discarded shrinks cannot replace a failing example.
-preconditioned <- new_law("valid shrinks", list(x = shrinking_gen), function(x) {
-  assume(x >= 5L)
-  FALSE
-})
-expect_identical(check_law(preconditioned, tests = 1L)@counterexample@minimal, list(x = 5L))
+preconditioned <- new_law(
+  "valid shrinks",
+  list(x = shrinking_gen),
+  function(x) {
+    assume(x >= 5L)
+    FALSE
+  }
+)
+expect_identical(
+  check_law(preconditioned, tests = 1L)@counterexample@minimal,
+  list(x = 5L)
+)
 
 # Generator and shrinker warnings are captured without escaping the runner.
-warning_generator <- new_generator(function(size) { warning("draw warning"); 1L })
-draw_warning <- check_law(new_law("draw warning", list(x = warning_generator), function(x) TRUE))
+warning_generator <- new_generator(function(size) {
+  warning("draw warning")
+  1L
+})
+draw_warning <- check_law(new_law(
+  "draw warning",
+  list(x = warning_generator),
+  function(x) TRUE
+))
 expect_identical(draw_warning@status, "error")
 expect_identical(conditionMessage(draw_warning@condition), "draw warning")
 warning_shrinker <- new_generator(function(size) 1L, function(x) {
   warning("shrink warning")
   list(0L)
 })
-shrink_warning <- check_law(new_law("shrink warning", list(x = warning_shrinker), function(x) FALSE))
+shrink_warning <- check_law(new_law(
+  "shrink warning",
+  list(x = warning_shrinker),
+  function(x) FALSE
+))
 expect_identical(shrink_warning@status, "falsified")
 expect_identical(shrink_warning@counterexample@minimal, list(x = 1L))
-expect_identical(conditionMessage(shrink_warning@shrink_condition), "shrink warning")
+expect_identical(
+  conditionMessage(shrink_warning@shrink_condition),
+  "shrink warning"
+)
 
 # Replay uses the recorded parameters and is independent of ambient RNG kind.
 local({
   old_kind <- RNGkind()
   old_options <- options(warn = 2)
   had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-  if (had_seed) old_seed <- .Random.seed
+  if (had_seed) {
+    old_seed <- .Random.seed
+  }
   on.exit({
     options(old_options)
     suppressWarnings(do.call(RNGkind, as.list(old_kind)))
@@ -451,18 +533,33 @@ local({
       rm(".Random.seed", envir = .GlobalEnv)
     }
   })
-  random_law <- new_law("replay", list(x = new_generator(function(size) runif(1))),
-                        function(x) FALSE)
+  random_law <- new_law(
+    "replay",
+    list(x = new_generator(function(size) runif(1))),
+    function(x) FALSE
+  )
   RNGkind("Mersenne-Twister", "Inversion", "Rejection")
-  first <- check_law(random_law, tests = 3L, seed = 17L, shrinks = 0L,
-                     discards = 2L, max_size = 7L)
+  first <- check_law(
+    random_law,
+    tests = 3L,
+    seed = 17L,
+    shrinks = 0L,
+    discards = 2L,
+    max_size = 7L
+  )
   RNGkind("L'Ecuyer-CMRG", "Kinderman-Ramage", "Rejection")
   caller_seed <- .Random.seed
   caller_kind <- RNGkind()
   replay <- do.call(check_law, c(list(law = first@law), first@parameters))
-  expect_identical(replay@counterexample@original, first@counterexample@original)
+  expect_identical(
+    replay@counterexample@original,
+    first@counterexample@original
+  )
   expect_identical(replay@parameters, first@parameters)
-  expect_identical(replay@rng_kind, c("Mersenne-Twister", "Inversion", "Rejection"))
+  expect_identical(
+    replay@rng_kind,
+    c("Mersenne-Twister", "Inversion", "Rejection")
+  )
   expect_identical(.Random.seed, caller_seed)
   expect_identical(RNGkind(), caller_kind)
 
@@ -471,7 +568,10 @@ local({
   caller_seed <- .Random.seed
   caller_kind <- RNGkind()
   legacy <- do.call(check_law, c(list(law = first@law), first@parameters))
-  expect_identical(legacy@counterexample@original, first@counterexample@original)
+  expect_identical(
+    legacy@counterexample@original,
+    first@counterexample@original
+  )
   expect_identical(.Random.seed, caller_seed)
   expect_identical(RNGkind(), caller_kind)
 
@@ -483,16 +583,42 @@ local({
   set.seed(123L)
   expect_identical(rnorm(1), first_normal)
   caller_seed <- .Random.seed
-  expect_error(check_law(random_law), pattern = "cached Box-Muller", fixed = TRUE)
+  expect_error(
+    check_law(random_law),
+    pattern = "cached Box-Muller",
+    fixed = TRUE
+  )
   expect_identical(.Random.seed, caller_seed)
   expect_identical(rnorm(1), expected_next)
 })
 
 # Integer bounds validate each scalar independently, before combining them.
-for (bad_bound in list(NULL, integer(), 1:2, NA_integer_, NA_real_, NaN,
-                      -Inf, Inf, 1.5, -2147483648, 2147483648, "1", TRUE, 1+1i)) {
-  expect_error(gen_integer(min = bad_bound), pattern = "`min` must be one integer", fixed = TRUE)
-  expect_error(gen_vector(gen_integer(), max = bad_bound), pattern = "`max` must be one", fixed = TRUE)
+for (bad_bound in list(
+  NULL,
+  integer(),
+  1:2,
+  NA_integer_,
+  NA_real_,
+  NaN,
+  -Inf,
+  Inf,
+  1.5,
+  -2147483648,
+  2147483648,
+  "1",
+  TRUE,
+  1 + 1i
+)) {
+  expect_error(
+    gen_integer(min = bad_bound),
+    pattern = "`min` must be one integer",
+    fixed = TRUE
+  )
+  expect_error(
+    gen_vector(gen_integer(), max = bad_bound),
+    pattern = "`max` must be one",
+    fixed = TRUE
+  )
 }
 local({
   old_options <- options(warn = 2)
@@ -501,24 +627,43 @@ local({
     expect_identical(gen_example(gen_integer(bound, bound)), as.integer(bound))
   }
   expect_identical(gen_example(gen_integer(0, 0)), 0L)
-  expect_error(gen_integer(-.Machine$integer.max - 1, 0),
-               pattern = "`min` must be one integer", fixed = TRUE)
-  expect_error(gen_integer(0, .Machine$integer.max + 1),
-               pattern = "`max` must be one integer", fixed = TRUE)
+  expect_error(
+    gen_integer(-.Machine$integer.max - 1, 0),
+    pattern = "`min` must be one integer",
+    fixed = TRUE
+  )
+  expect_error(
+    gen_integer(0, .Machine$integer.max + 1),
+    pattern = "`max` must be one integer",
+    fixed = TRUE
+  )
 })
-expect_error(gen_product(x = gen_integer(), x = gen_integer()), pattern = "unique", fixed = TRUE)
-expect_error(new_law("duplicate", list(x = integer_gen, x = integer_gen), function(x) TRUE),
-             pattern = "unique", fixed = TRUE)
+expect_error(
+  gen_product(x = gen_integer(), x = gen_integer()),
+  pattern = "unique",
+  fixed = TRUE
+)
+expect_error(
+  new_law("duplicate", list(x = integer_gen, x = integer_gen), function(x) {
+    TRUE
+  }),
+  pattern = "unique",
+  fixed = TRUE
+)
 
 # A warning terminates a law evaluation before it can discard the case.
 local({
   continued <- FALSE
-  law <- new_law("warning before discard", list(x = gen_constant(1L)), function(x) {
-    warning("unexpected warning")
-    continued <<- TRUE
-    assume(FALSE)
-    TRUE
-  })
+  law <- new_law(
+    "warning before discard",
+    list(x = gen_constant(1L)),
+    function(x) {
+      warning("unexpected warning")
+      continued <<- TRUE
+      assume(FALSE)
+      TRUE
+    }
+  )
   result <- check_law(law, tests = 1L, discards = 0L, shrinks = 0L)
   expect_identical(result@status, "error")
   expect_identical(result@discards, 0L)

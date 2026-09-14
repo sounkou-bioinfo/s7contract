@@ -15,7 +15,9 @@
     candidate <- origin
     finished <- value == origin
     function() {
-      if (finished) return(NULL)
+      if (finished) {
+        return(NULL)
+      }
       child <- candidate
       candidate <<- .interpolate_double(child, value, 0.5)
       finished <<- candidate == child || candidate == value
@@ -69,7 +71,9 @@
 #' @export
 gen_double <- function(min = -100, max = 100, origin = NULL) {
   bounds <- list(min = min, max = max)
-  if (!is.null(origin)) bounds$origin <- origin
+  if (!is.null(origin)) {
+    bounds$origin <- origin
+  }
   for (arg in names(bounds)) {
     value <- bounds[[arg]]
     if (!is.numeric(value) || length(value) != 1L) {
@@ -81,17 +85,25 @@ gen_double <- function(min = -100, max = 100, origin = NULL) {
   }
   min <- as.double(min)
   max <- as.double(max)
-  if (min > max) .abort("`min` and `max` must be ordered bounds.")
-  if (is.null(origin)) origin <- base::min(base::max(0, min), max)
+  if (min > max) {
+    .abort("`min` and `max` must be ordered bounds.")
+  }
+  if (is.null(origin)) {
+    origin <- base::min(base::max(0, min), max)
+  }
   origin <- as.double(origin)
-  if (origin < min || origin > max) .abort("`origin` must lie within the bounds.")
+  if (origin < min || origin > max) {
+    .abort("`origin` must lie within the bounds.")
+  }
 
   s7_generator(
     draw = function(size) {
       scale <- base::min(size, 100L) / 100
       lower <- .interpolate_double(origin, min, scale)
       upper <- .interpolate_double(origin, max, scale)
-      value <- if (lower == upper) lower else {
+      value <- if (lower == upper) {
+        lower
+      } else {
         .interpolate_double(lower, upper, stats::runif(1L))
       }
       .double_rose(value, origin)

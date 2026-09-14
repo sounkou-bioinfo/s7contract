@@ -34,20 +34,36 @@
 #'   [new_state_law()].
 #' @export
 new_command <- function(
-  name, generate, execute, ensure,
+  name,
+  generate,
+  execute,
+  ensure,
   update = function(state, input, output) state,
   require = function(state, input) TRUE
 ) {
-  s7_command(name = name, generate = generate, execute = execute,
-             update = update, ensure = ensure, require = require)
+  s7_command(
+    name = name,
+    generate = generate,
+    execute = execute,
+    update = update,
+    ensure = ensure,
+    require = require
+  )
 }
 
 .command_set <- function(commands) {
-  if (!is.list(commands) || length(commands) == 0L ||
-      !all(vapply(commands, S7::S7_inherits, logical(1), s7_command))) {
+  if (
+    !is.list(commands) ||
+      length(commands) == 0L ||
+      !all(vapply(commands, S7::S7_inherits, logical(1), s7_command))
+  ) {
     .abort("`commands` must be a non-empty list of command descriptors.")
   }
-  names(commands) <- vapply(commands, function(command) command@name, character(1))
+  names(commands) <- vapply(
+    commands,
+    function(command) command@name,
+    character(1)
+  )
   if (anyDuplicated(names(commands))) {
     .abort("Command names must be unique.")
   }
@@ -65,8 +81,10 @@ new_command <- function(
   if (S7::S7_inherits(input, s7_command_ref)) {
     id <- as.character(input@id)
     if (!id %in% names(outputs)) {
-      stop(errorCondition("A command refers to a removed output.",
-                          class = "s7contract_missing_output"))
+      stop(errorCondition(
+        "A command refers to a removed output.",
+        class = "s7contract_missing_output"
+      ))
     }
     return(outputs[[id]])
   }
@@ -84,11 +102,16 @@ new_command <- function(
   for (tree in trees) {
     step <- tree$value
     command <- commands[[step$command]]
-    valid <- tryCatch({
-      .resolve_command_input(step$input, outputs)
-      .command_predicate((command@require)(state, step$input), "require")
-    }, s7contract_missing_output = function(e) FALSE)
-    if (!valid) next
+    valid <- tryCatch(
+      {
+        .resolve_command_input(step$input, outputs)
+        .command_predicate((command@require)(state, step$input), "require")
+      },
+      s7contract_missing_output = function(e) FALSE
+    )
+    if (!valid) {
+      next
+    }
     output <- s7_command_ref(id = step$id)
     state <- (command@update)(state, step$input, output)
     outputs[as.character(step$id)] <- list(output)
@@ -96,9 +119,11 @@ new_command <- function(
   }
   .new_rose(
     lapply(kept, `[[`, "value"),
-    function() .sequence_children(kept, 0L, function(candidate) {
-      .commands_rose(initial, commands, candidate)
-    })
+    function() {
+      .sequence_children(kept, 0L, function(candidate) {
+        .commands_rose(initial, commands, candidate)
+      })
+    }
   )
 }
 
@@ -129,23 +154,35 @@ gen_commands <- function(initial, commands, max = 10L) {
       trees <- list()
       state <- initial
       for (id in seq_len(n)) {
-        generators <- lapply(commands, function(command) (command@generate)(state))
+        generators <- lapply(commands, function(command) {
+          (command@generate)(state)
+        })
         available <- which(!vapply(generators, is.null, logical(1)))
-        if (length(available) == 0L) break
+        if (length(available) == 0L) {
+          break
+        }
         if (!all(vapply(generators[available], .is_generator, logical(1)))) {
           .abort("Command `generate` must return a generator or NULL.")
         }
         selected <- available[[sample.int(length(available), 1L)]]
         command <- commands[[selected]]
         tree <- generators[[selected]]@draw(size)
-        if (!.command_predicate((command@require)(state, tree$value), "require")) {
-          .abort("Generated input violates the precondition of command '%s'.", command@name)
+        if (
+          !.command_predicate((command@require)(state, tree$value), "require")
+        ) {
+          .abort(
+            "Generated input violates the precondition of command '%s'.",
+            command@name
+          )
         }
-        trees[[length(trees) + 1L]] <- .map_rose(tree, local({
-          step_id <- id
-          name <- command@name
-          function(input) list(id = step_id, command = name, input = input)
-        }))
+        trees[[length(trees) + 1L]] <- .map_rose(
+          tree,
+          local({
+            step_id <- id
+            name <- command@name
+            function(input) list(id = step_id, command = name, input = input)
+          })
+        )
         state <- (command@update)(state, tree$value, s7_command_ref(id = id))
       }
       .commands_rose(initial, commands, trees)
@@ -206,16 +243,28 @@ gen_commands <- function(initial, commands, max = 10L) {
 #' check_law(counter_law, tests = 20L, seed = 1L)
 #' @export
 new_state_law <- function(
-  name, initial, commands, setup, teardown = function(fixture) NULL,
-  max_commands = 10L, classify = function(...) character(), min_coverage = numeric()
+  name,
+  initial,
+  commands,
+  setup,
+  teardown = function(fixture) NULL,
+  max_commands = 10L,
+  classify = function(...) character(),
+  min_coverage = numeric()
 ) {
   commands <- .command_set(commands)
   if (!is.function(setup) || !is.function(teardown)) {
     .abort("`setup` and `teardown` must be functions.")
   }
-  new_law(name, list(sequence = gen_commands(initial, commands, max_commands)),
-          function(sequence) .run_commands(initial, commands, sequence, setup, teardown),
-          classify = classify, min_coverage = min_coverage)
+  new_law(
+    name,
+    list(sequence = gen_commands(initial, commands, max_commands)),
+    function(sequence) {
+      .run_commands(initial, commands, sequence, setup, teardown)
+    },
+    classify = classify,
+    min_coverage = min_coverage
+  )
 }
 
 .run_commands <- function(initial, commands, sequence, setup, teardown) {
@@ -228,71 +277,128 @@ new_state_law <- function(
   phase <- "setup"
   ready <- FALSE
   on.exit(if (ready) teardown(fixture))
-  result <- tryCatch({
-    fixture <- setup()
-    ready <- TRUE
-    passed <- TRUE
-    for (step in seq_along(sequence)) {
-      action <- sequence[[step]]
-      command_name <- action$command
-      command <- commands[[command_name]]
-      input <- output <- NULL
-      phase <- "resolve"
-      input <- .resolve_command_input(action$input, outputs)
-      phase <- "execute"
-      output <- (command@execute)(fixture, input)
-      phase <- "update"
-      next_state <- (command@update)(state, input, output)
-      trace[[step]] <- list(id = action$id, command = command_name,
-                            input = input, output = output,
-                            before = state, after = next_state)
-      phase <- "ensure"
-      passed <- .command_predicate((command@ensure)(state, input, output), "ensure")
-      if (!passed) break
-      state <- next_state
-      outputs[as.character(action$id)] <- list(output)
-    }
-    passed
-  }, error = identity, warning = identity)
+  result <- tryCatch(
+    {
+      fixture <- setup()
+      ready <- TRUE
+      passed <- TRUE
+      for (step in seq_along(sequence)) {
+        action <- sequence[[step]]
+        command_name <- action$command
+        command <- commands[[command_name]]
+        input <- output <- NULL
+        phase <- "resolve"
+        input <- .resolve_command_input(action$input, outputs)
+        phase <- "execute"
+        output <- (command@execute)(fixture, input)
+        phase <- "update"
+        next_state <- (command@update)(state, input, output)
+        trace[[step]] <- list(
+          id = action$id,
+          command = command_name,
+          input = input,
+          output = output,
+          before = state,
+          after = next_state
+        )
+        phase <- "ensure"
+        passed <- .command_predicate(
+          (command@ensure)(state, input, output),
+          "ensure"
+        )
+        if (!passed) {
+          break
+        }
+        state <- next_state
+        outputs[as.character(action$id)] <- list(output)
+      }
+      passed
+    },
+    error = identity,
+    warning = identity
+  )
 
   problem <- NULL
   if (!isTRUE(result)) {
-    message <- if (inherits(result, "condition")) conditionMessage(result) else "postcondition returned FALSE"
+    message <- if (inherits(result, "condition")) {
+      conditionMessage(result)
+    } else {
+      "postcondition returned FALSE"
+    }
     problem <- errorCondition(
-      sprintf("Step %d%s (%s): %s", step,
-              if (is.null(command_name)) "" else paste0(" '", command_name, "'"), phase, message),
-      class = c(if (isFALSE(result)) "s7contract_state_failure" else "s7contract_state_error",
-                "s7contract_state_condition"),
-      step = step, command = command_name, phase = phase, model = state,
-      input = input, output = output, trace = trace,
+      sprintf(
+        "Step %d%s (%s): %s",
+        step,
+        if (is.null(command_name)) "" else paste0(" '", command_name, "'"),
+        phase,
+        message
+      ),
+      class = c(
+        if (isFALSE(result)) {
+          "s7contract_state_failure"
+        } else {
+          "s7contract_state_error"
+        },
+        "s7contract_state_condition"
+      ),
+      step = step,
+      command = command_name,
+      phase = phase,
+      model = state,
+      input = input,
+      output = output,
+      trace = trace,
       parent = if (inherits(result, "condition")) result else NULL
     )
   }
   if (ready) {
     ready <- FALSE
-    cleanup <- tryCatch({ teardown(fixture); NULL }, error = identity, warning = identity)
+    cleanup <- tryCatch(
+      {
+        teardown(fixture)
+        NULL
+      },
+      error = identity,
+      warning = identity
+    )
     if (!is.null(cleanup)) {
       if (is.null(problem)) {
         problem <- errorCondition(
           paste("Fixture teardown:", conditionMessage(cleanup)),
           class = c("s7contract_state_error", "s7contract_state_condition"),
-          step = step, command = command_name, phase = "teardown", model = state,
-          input = input, output = output, trace = trace, parent = cleanup
+          step = step,
+          command = command_name,
+          phase = "teardown",
+          model = state,
+          input = input,
+          output = output,
+          trace = trace,
+          parent = cleanup
         )
       } else {
         problem$cleanup_condition <- cleanup
-        problem$message <- paste(problem$message, "Cleanup also failed:", conditionMessage(cleanup))
+        problem$message <- paste(
+          problem$message,
+          "Cleanup also failed:",
+          conditionMessage(cleanup)
+        )
       }
     }
   }
-  if (!is.null(problem)) stop(problem)
+  if (!is.null(problem)) {
+    stop(problem)
+  }
   TRUE
 }
 
 # Callback defects must not turn an established false postcondition into a pass.
 .state_shrink_problem <- function(evaluation) {
   condition <- evaluation$condition
-  if (inherits(condition, "s7contract_state_error")) return(condition)
-  if (inherits(condition, "s7contract_state_failure")) return(condition$cleanup_condition)
+  if (inherits(condition, "s7contract_state_error")) {
+    return(condition)
+  }
+  if (inherits(condition, "s7contract_state_failure")) {
+    return(condition$cleanup_condition)
+  }
   NULL
 }

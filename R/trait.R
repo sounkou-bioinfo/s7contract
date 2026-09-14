@@ -74,14 +74,21 @@ new_trait <- function(
   package = NULL
 ) {
   .check_name(name)
-  if (!is.null(package)) .check_name(package, "package")
+  if (!is.null(package)) {
+    .check_name(package, "package")
+  }
 
   trait <- s7_trait(
     id = new.env(parent = emptyenv()),
     name = name,
     package = package,
     parents = .normalise_parents(parents, s7_trait, "new_trait"),
-    methods = .normalise_requirements(methods, s7_trait_method, trait_method, "methods"),
+    methods = .normalise_requirements(
+      methods,
+      s7_trait_method,
+      trait_method,
+      "methods"
+    ),
     assoc_types = .normalise_assoc(assoc_types, "assoc_types"),
     assoc_consts = .normalise_assoc(assoc_consts, "assoc_consts")
   )
@@ -140,7 +147,9 @@ trait_method <- function(
     return(out)
   }
   if (is.list(x)) {
-    if (length(x) > 0L) .check_names(names(x), what)
+    if (length(x) > 0L) {
+      .check_names(names(x), what)
+    }
     out <- lapply(x, function(value) {
       s7_assoc_item(required = FALSE, default = value)
     })
@@ -202,10 +211,20 @@ trait_methods <- function(trait, inherited = TRUE) {
   owners <- c(owners, local)
   for (name in names(owners)[duplicated(names(owners))]) {
     declarations <- owners[names(owners) == name]
-    if (!all(vapply(declarations, function(owner) {
-      identical(owner@id, declarations[[1L]]@id)
-    }, logical(1)))) {
-      .abort("Conflicting declarations for associated item `%s` in `%s`.", name, field)
+    if (
+      !all(vapply(
+        declarations,
+        function(owner) {
+          identical(owner@id, declarations[[1L]]@id)
+        },
+        logical(1)
+      ))
+    ) {
+      .abort(
+        "Conflicting declarations for associated item `%s` in `%s`.",
+        name,
+        field
+      )
     }
   }
   owners[!duplicated(names(owners))]
@@ -228,21 +247,34 @@ trait_methods <- function(trait, inherited = TRUE) {
 .check_trait_impl_admissible <- function(trait, class, replace) {
   for (parent in trait@parents) {
     if (is.null(.find_trait_impl(parent, class))) {
-      .abort("Cannot implement %s for %s until its supertrait %s is implemented.",
-             .trait_label(trait), .class_label(class), .trait_label(parent))
+      .abort(
+        "Cannot implement %s for %s until its supertrait %s is implemented.",
+        .trait_label(trait),
+        .class_label(class),
+        .trait_label(parent)
+      )
     }
   }
   if (!replace && !is.null(.find_trait_impl(trait, class))) {
-    .abort("%s is already implemented for %s. Pass replace = TRUE to replace it.",
-           .trait_label(trait), .class_label(class))
+    .abort(
+      "%s is already implemented for %s. Pass replace = TRUE to replace it.",
+      .trait_label(trait),
+      .class_label(class)
+    )
   }
   invisible(NULL)
 }
 
 .resolve_method_impl <- function(required, provided) {
-  if (is.null(provided)) provided <- list()
-  if (!is.list(provided)) .abort("`methods` must be a named list of functions.")
-  if (length(provided) > 0L) .check_names(names(provided), "methods")
+  if (is.null(provided)) {
+    provided <- list()
+  }
+  if (!is.list(provided)) {
+    .abort("`methods` must be a named list of functions.")
+  }
+  if (length(provided) > 0L) {
+    .check_names(names(provided), "methods")
+  }
   extra <- setdiff(names(provided), names(required))
   if (length(extra) > 0L) {
     .abort("Unknown trait method(s): %s", paste(extra, collapse = ", "))
@@ -251,7 +283,9 @@ trait_methods <- function(trait, inherited = TRUE) {
   for (name in names(required)) {
     if (name %in% names(provided)) {
       fun <- provided[[name]]
-      if (!is.function(fun)) .abort("Implementation for `%s` must be a function.", name)
+      if (!is.function(fun)) {
+        .abort("Implementation for `%s` must be a function.", name)
+      }
     } else {
       fun <- required[[name]]@default
       if (is.null(fun)) .abort("Missing required trait method `%s`.", name)
@@ -268,7 +302,9 @@ trait_methods <- function(trait, inherited = TRUE) {
   if (!is.list(provided)) {
     .abort("`%s` must be a named list.", what)
   }
-  if (length(provided) > 0L) .check_names(names(provided), what)
+  if (length(provided) > 0L) {
+    .check_names(names(provided), what)
+  }
 
   out <- list()
   for (name in names(required)) {
@@ -299,9 +335,13 @@ trait_methods <- function(trait, inherited = TRUE) {
     req <- requirements[[name]]
     generic <- req@generic
     fun <- impl@methods[[name]]
-    aliases <- which(vapply(staged, function(entry) {
-      identical(entry$generic@methods, generic@methods)
-    }, logical(1)))
+    aliases <- which(vapply(
+      staged,
+      function(entry) {
+        identical(entry$generic@methods, generic@methods)
+      },
+      logical(1)
+    ))
     if (length(aliases) > 0L) {
       if (!identical(fun, staged[[aliases[[1L]]]]$fun)) {
         .abort("Conflicting implementations for generic `%s`.", generic@name)
@@ -309,36 +349,55 @@ trait_methods <- function(trait, inherited = TRUE) {
       next
     }
     signature <- .requirement_signature(req, impl@target_class)
-    if (!replace && !is.null(tryCatch(
-      S7::method(generic, class = signature), error = function(e) NULL
-    ))) {
-      warning(sprintf(
-        "An S7 method for `%s` is already visible; registering anyway. Pass replace = TRUE to silence this warning.",
-        generic@name
-      ), call. = FALSE)
+    if (
+      !replace &&
+        !is.null(tryCatch(
+          S7::method(generic, class = signature),
+          error = function(e) NULL
+        ))
+    ) {
+      warning(
+        sprintf(
+          "An S7 method for `%s` is already visible; registering anyway. Pass replace = TRUE to silence this warning.",
+          generic@name
+        ),
+        call. = FALSE
+      )
     }
     copy <- generic
     copy@methods <- new.env(parent = emptyenv())
     # Session-local registration must not append package reload hooks.
-    do.call(S7::`method<-`, list(copy, signature, value = fun), envir = baseenv())
-    staged[[length(staged) + 1L]] <- list(generic = generic, table = copy@methods, fun = fun)
+    do.call(
+      S7::`method<-`,
+      list(copy, signature, value = fun),
+      envir = baseenv()
+    )
+    staged[[length(staged) + 1L]] <- list(
+      generic = generic,
+      table = copy@methods,
+      fun = fun
+    )
   }
 
   # Validation condition handlers may register implementations themselves.
   .check_trait_impl_admissible(impl@trait, impl@target_class, replace)
   changes <- list()
   complete <- FALSE
-  on.exit(if (!complete) {
-    for (change in rev(changes)) {
-      if (identical(change$table[[change$name]], change$value)) next
-      # S7 tables contain methods and sub-tables; NULL denotes an absent binding.
-      if (is.null(change$value)) {
-        rm(list = change$name, envir = change$table)
-      } else {
-        change$table[[change$name]] <- change$value
+  on.exit(
+    if (!complete) {
+      for (change in rev(changes)) {
+        if (identical(change$table[[change$name]], change$value)) {
+          next
+        }
+        # S7 tables contain methods and sub-tables; NULL denotes an absent binding.
+        if (is.null(change$value)) {
+          rm(list = change$name, envir = change$table)
+        } else {
+          change$table[[change$name]] <- change$value
+        }
       }
     }
-  })
+  )
   publish <- function(source, table, generic) {
     for (name in ls(source, all.names = TRUE)) {
       value <- source[[name]]
@@ -347,7 +406,11 @@ trait_methods <- function(trait, inherited = TRUE) {
         publish(value, old, generic)
         next
       }
-      changes[[length(changes) + 1L]] <<- list(table = table, name = name, value = old)
+      changes[[length(changes) + 1L]] <<- list(
+        table = table,
+        name = name,
+        value = old
+      )
       if (is.environment(value)) {
         table[[name]] <- new.env(parent = emptyenv())
         publish(value, table[[name]], generic)
@@ -359,13 +422,19 @@ trait_methods <- function(trait, inherited = TRUE) {
   }
   impls <- .s7contract_registry$impls
   key <- .class_key(impl@target_class)
-  keep <- !vapply(impls, function(existing) {
-    identical(existing@trait@id, impl@trait@id) &&
-      identical(.class_key(existing@target_class), key)
-  }, logical(1))
+  keep <- !vapply(
+    impls,
+    function(existing) {
+      identical(existing@trait@id, impl@trait@id) &&
+        identical(.class_key(existing@target_class), key)
+    },
+    logical(1)
+  )
   updated <- c(impls[keep], list(impl))
   suspendInterrupts({
-    for (entry in staged) publish(entry$table, entry$generic@methods, entry$generic)
+    for (entry in staged) {
+      publish(entry$table, entry$generic@methods, entry$generic)
+    }
     .s7contract_registry$impls <- updated
     complete <- TRUE
   })
@@ -402,7 +471,9 @@ impl_trait <- function(
     )
   }
   if (inherits(cls, c("S7_union", "S7_any", "S7_missing"))) {
-    .abort("Trait implementations require a concrete class; register union members separately and use concrete classes instead of dispatch wildcards.")
+    .abort(
+      "Trait implementations require a concrete class; register union members separately and use concrete classes instead of dispatch wildcards."
+    )
   }
 
   if (!is.logical(replace) || length(replace) != 1L || is.na(replace)) {
@@ -506,7 +577,9 @@ trait_call <- function(trait, method, x, ...) {
 }
 
 .assoc_from_impl <- function(trait, x, field, name) {
-  if (!.is_trait(trait)) .abort("`trait` must be created with new_trait().")
+  if (!.is_trait(trait)) {
+    .abort("`trait` must be created with new_trait().")
+  }
   .check_name(name)
   cls <- .target_class_or_null(x, arg = "x")
   if (is.null(cls)) {

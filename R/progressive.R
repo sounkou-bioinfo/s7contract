@@ -7,7 +7,9 @@
   if (!is.list(args)) {
     .abort("`%s` must be a named list of type specifications.", what)
   }
-  if (length(args) > 0L) .check_names(names(args), what)
+  if (length(args) > 0L) {
+    .check_names(names(args), what)
+  }
   for (name in names(args)) {
     .check_type_spec(args[[name]], sprintf("%s$%s", what, name))
   }
@@ -103,7 +105,10 @@
     }
     spec <- req@args[[arg]]
     if (.is_interface(spec) || .is_trait(spec)) {
-      .abort("`%s` is a dispatch argument and must be an S7 class or S7 union, not an interface or trait.", arg)
+      .abort(
+        "`%s` is a dispatch argument and must be an S7 class or S7 union, not an interface or trait.",
+        arg
+      )
     }
     signature[[arg]] <- S7::as_class(spec, arg = arg)
   }
@@ -117,7 +122,9 @@
   tryCatch(
     {
       signature <- .requirement_signature(req, target)
-      if (length(generic@dispatch_args) == 1L) signature <- list(signature)
+      if (length(generic@dispatch_args) == 1L) {
+        signature <- list(signature)
+      }
       .check_required_formals(
         generic,
         names(req@args),
@@ -127,13 +134,18 @@
       # Union registration expands signatures; lookup requires concrete classes.
       check_signature <- function(signature, position = 1L) {
         if (position > length(signature)) {
-          method <- S7::method(generic, class = if (length(signature) == 1L) {
-            signature[[1L]]
-          } else {
-            signature
-          })
+          method <- S7::method(
+            generic,
+            class = if (length(signature) == 1L) {
+              signature[[1L]]
+            } else {
+              signature
+            }
+          )
           .check_required_formals(
-            method, names(req@args), sprintf("Method `%s()`", req@name)
+            method,
+            names(req@args),
+            sprintf("Method `%s()`", req@name)
           )
           return(invisible(NULL))
         }
@@ -177,16 +189,31 @@
     })
     if (trait) {
       assert_trait(dispatch_values[[1L]], contract, arg = dispatch_args[[1L]])
-      .check_required_formals(generic, names(req@args), sprintf("Generic `%s()`", req@name))
+      .check_required_formals(
+        generic,
+        names(req@args),
+        sprintf("Generic `%s()`", req@name)
+      )
     } else {
-      assert_implements(dispatch_values[[1L]], contract, arg = dispatch_args[[1L]])
+      assert_implements(
+        dispatch_values[[1L]],
+        contract,
+        arg = dispatch_args[[1L]]
+      )
     }
-    method <- S7::method(generic, object = if (length(dispatch_values) == 1L) {
-      dispatch_values[[1L]]
-    } else {
-      dispatch_values
-    })
-    .check_required_formals(method, names(req@args), sprintf("Method `%s()`", req@name))
+    method <- S7::method(
+      generic,
+      object = if (length(dispatch_values) == 1L) {
+        dispatch_values[[1L]]
+      } else {
+        dispatch_values
+      }
+    )
+    .check_required_formals(
+      method,
+      names(req@args),
+      sprintf("Method `%s()`", req@name)
+    )
 
     generic_formals <- formals(generic)
     method_frame <- NULL
@@ -202,8 +229,10 @@
           actuals <- lapply(names(generic_formals), as.name)
           names(actuals) <- names(generic_formals)
           for (name in setdiff(names(actuals), "...")) {
-            if (eval(call("missing", as.name(name)), envir = frame) &&
-                identical(generic_formals[[name]], quote(expr = ))) {
+            if (
+              eval(call("missing", as.name(name)), envir = frame) &&
+                identical(generic_formals[[name]], quote(expr = ))
+            ) {
               actuals[name] <- NULL
             }
           }
@@ -211,16 +240,29 @@
           body(method) <- quote(base::environment())
           method_frame <- eval(as.call(c(list(method), actuals)), envir = frame)
         }
-        assign(arg, get(arg, envir = method_frame, inherits = FALSE), envir = frame)
+        assign(
+          arg,
+          get(arg, envir = method_frame, inherits = FALSE),
+          envir = frame
+        )
       }
-      .check_value_conforms(get(arg, envir = frame, inherits = FALSE), req@args[[arg]], arg)
+      .check_value_conforms(
+        get(arg, envir = frame, inherits = FALSE),
+        req@args[[arg]],
+        arg
+      )
     }
   }
 
   # A per-call copy keeps S7 dispatch and R's argument promises in the real frame.
   checked <- S7::S7_data(generic)
-  body(checked) <- substitute({ CHECK(base::environment()); BODY },
-                             list(CHECK = check_arguments, BODY = body(generic)))
+  body(checked) <- substitute(
+    {
+      CHECK(base::environment())
+      BODY
+    },
+    list(CHECK = check_arguments, BODY = body(generic))
+  )
   checked_generic <- generic
   S7::S7_data(checked_generic) <- checked
   matched[[1L]] <- checked_generic
@@ -267,8 +309,14 @@
   mask <- .contract_mask(contract, env, trait = trait)
   out <- withVisible(eval(expr, envir = mask))
   value <- out$value
-  if (identical(typeof(value), "closure") && !identical(environment(value), mask)) {
-    environment(value) <- .contract_mask(contract, environment(value), trait = trait)
+  if (
+    identical(typeof(value), "closure") && !identical(environment(value), mask)
+  ) {
+    environment(value) <- .contract_mask(
+      contract,
+      environment(value),
+      trait = trait
+    )
   }
   if (out$visible) value else invisible(value)
 }

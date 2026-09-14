@@ -136,7 +136,8 @@
     valid_elements <- vapply(
       values,
       function(value) {
-        is.atomic(value) && length(value) == 1L &&
+        is.atomic(value) &&
+          length(value) == 1L &&
           identical(typeof(value), typeof(prototype))
       },
       logical(1)
@@ -153,9 +154,11 @@
   }
   .new_rose(
     value,
-    function() .sequence_children(trees, min_length, function(candidate) {
-      .vector_rose(candidate, prototype, min_length)
-    })
+    function() {
+      .sequence_children(trees, min_length, function(candidate) {
+        .vector_rose(candidate, prototype, min_length)
+      })
+    }
   )
 }
 
@@ -258,7 +261,13 @@ gen_integer <- function(min = -100L, max = 100L) {
   if (min > max) {
     .abort("`min` and `max` must be ordered integer bounds.")
   }
-  target <- if (min > 0L) min else if (max < 0L) max else 0L
+  target <- if (min > 0L) {
+    min
+  } else if (max < 0L) {
+    max
+  } else {
+    0L
+  }
 
   new_generator(
     draw = function(size) {
@@ -432,13 +441,16 @@ gen_recursive <- function(base, expand, prototype = list()) {
   if (!is.function(expand)) {
     .abort("`expand` must be a function.")
   }
-  generator <- gen_sized(function(size) {
-    if (size == 0L) {
-      return(base)
-    }
-    child <- gen_resize(generator, size %/% 2L)
-    gen_choice(base, gen_sized(function(size) expand(child), prototype))
-  }, prototype)
+  generator <- gen_sized(
+    function(size) {
+      if (size == 0L) {
+        return(base)
+      }
+      child <- gen_resize(generator, size %/% 2L)
+      gen_choice(base, gen_sized(function(size) expand(child), prototype))
+    },
+    prototype
+  )
   generator
 }
 
@@ -489,25 +501,37 @@ gen_element <- function(values, prob = NULL) {
     label = "element index",
     prototype = integer()
   )
-  gen_map(indices, function(index) values[[index]],
-          prototype = if (is.atomic(values)) values[0] else list())
+  gen_map(
+    indices,
+    function(index) values[[index]],
+    prototype = if (is.atomic(values)) values[0] else list()
+  )
 }
 
 #' @rdname gen_element
 #' @export
 gen_choice <- function(..., prob = NULL) {
   generators <- list(...)
-  if (length(generators) == 0L ||
-      !all(vapply(generators, .is_generator, logical(1)))) {
+  if (
+    length(generators) == 0L ||
+      !all(vapply(generators, .is_generator, logical(1)))
+  ) {
     .abort("`...` must contain one or more generators.")
   }
   prototype <- generators[[1L]]@prototype
-  shared <- vapply(generators, function(g) identical(g@prototype, prototype), logical(1))
+  shared <- vapply(
+    generators,
+    function(g) identical(g@prototype, prototype),
+    logical(1)
+  )
   if (!all(shared)) {
     prototype <- list()
   }
-  gen_bind(gen_element(seq_along(generators), prob),
-           function(index) generators[[index]], prototype)
+  gen_bind(
+    gen_element(seq_along(generators), prob),
+    function(index) generators[[index]],
+    prototype
+  )
 }
 
 #' Inspect a generator or disable its shrinking
@@ -531,8 +555,11 @@ gen_example <- function(generator, size = 10L, seed = 1L) {
   }
   size <- .count_arg(size, "size")
   seed <- .count_arg(seed, "seed", signed = TRUE)
-  .with_seed(seed, c("Mersenne-Twister", "Inversion", "Rejection"),
-             generator@draw(size)$value)
+  .with_seed(
+    seed,
+    c("Mersenne-Twister", "Inversion", "Rejection"),
+    generator@draw(size)$value
+  )
 }
 
 #' @rdname gen_example

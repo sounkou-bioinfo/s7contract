@@ -38,7 +38,8 @@ non_negative_area_law <- new_law(
     with(
       HasAreaPropertyIntegrationTest,
       area_property_integration_test(x)
-    ) >= 0
+    ) >=
+      0
   }
 )
 

@@ -72,14 +72,19 @@ new_interface <- function(
   }
 
   .check_name(name)
-  if (!is.null(package)) .check_name(package, "package")
+  if (!is.null(package)) {
+    .check_name(package, "package")
+  }
 
   interface <- s7_interface(
     name = name,
     package = package,
     parents = .normalise_parents(parents, s7_interface, "new_interface"),
     requirements = .normalise_requirements(
-      generics, s7_interface_requirement, interface_requirement, "generics"
+      generics,
+      s7_interface_requirement,
+      interface_requirement,
+      "generics"
     )
   )
   interface_requirements(interface)

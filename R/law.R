@@ -15,7 +15,13 @@
     .abort("`%s` must be one integer.", arg)
   }
   if (x != trunc(x) || x < lower || x > .Machine$integer.max) {
-    qualifier <- if (signed) "" else if (positive) "positive " else "non-negative "
+    qualifier <- if (signed) {
+      ""
+    } else if (positive) {
+      "positive "
+    } else {
+      "non-negative "
+    }
     .abort("`%s` must be one %sinteger.", arg, qualifier)
   }
   as.integer(x)
@@ -43,8 +49,12 @@
       rm(".Random.seed", envir = .GlobalEnv)
     }
   })
-  set.seed(seed, kind = rng_kind[[1L]], normal.kind = rng_kind[[2L]],
-           sample.kind = rng_kind[[3L]])
+  set.seed(
+    seed,
+    kind = rng_kind[[1L]],
+    normal.kind = rng_kind[[2L]],
+    sample.kind = rng_kind[[3L]]
+  )
   force(code)
 }
 
@@ -54,7 +64,11 @@
     caught <<- condition
     NULL
   }
-  value <- tryCatch(do.call(law@holds, arguments), error = capture, warning = capture)
+  value <- tryCatch(
+    do.call(law@holds, arguments),
+    error = capture,
+    warning = capture
+  )
 
   if (inherits(caught, "s7contract_discard")) {
     return(list(outcome = "discard", condition = caught))
@@ -68,7 +82,9 @@
   if (!is.logical(value) || length(value) != 1L || is.na(value)) {
     return(list(
       outcome = "error",
-      condition = simpleError("A law must return one non-missing logical value.")
+      condition = simpleError(
+        "A law must return one non-missing logical value."
+      )
     ))
   }
   list(
@@ -87,45 +103,71 @@
   complete <- FALSE
   next_child <- NULL
 
-  problem <- tryCatch({
-    state_problem <- .state_shrink_problem(evaluation)
-    if (!is.null(state_problem)) stop(state_problem)
-    while (attempts < limit) {
-      if (is.null(next_child)) {
-        next_child <- .rose_children(current)
+  problem <- tryCatch(
+    {
+      state_problem <- .state_shrink_problem(evaluation)
+      if (!is.null(state_problem)) {
+        stop(state_problem)
       }
-      child <- next_child()
-      if (is.null(child)) {
-        complete <- TRUE
-        break
+      while (attempts < limit) {
+        if (is.null(next_child)) {
+          next_child <- .rose_children(current)
+        }
+        child <- next_child()
+        if (is.null(child)) {
+          complete <- TRUE
+          break
+        }
+        attempts <- attempts + 1L
+        candidate <- .evaluate_law(law, child$value)
+        state_problem <- .state_shrink_problem(candidate)
+        if (!is.null(state_problem)) {
+          stop(state_problem)
+        }
+        if (!identical(current_evaluation$outcome, candidate$outcome)) {
+          next
+        }
+        if (
+          inherits(current_evaluation$condition, "s7contract_state_failure") &&
+            !identical(
+              current_evaluation$condition$command,
+              candidate$condition$command
+            )
+        ) {
+          next
+        }
+        if (
+          identical(candidate$outcome, "error") &&
+            !identical(
+              class(current_evaluation$condition)[[1L]],
+              class(candidate$condition)[[1L]]
+            )
+        ) {
+          next
+        }
+        current <- child
+        current_evaluation <- candidate
+        accepted <- accepted + 1L
+        next_child <- NULL
       }
-      attempts <- attempts + 1L
-      candidate <- .evaluate_law(law, child$value)
-      state_problem <- .state_shrink_problem(candidate)
-      if (!is.null(state_problem)) stop(state_problem)
-      if (!identical(current_evaluation$outcome, candidate$outcome)) next
-      if (inherits(current_evaluation$condition, "s7contract_state_failure") &&
-          !identical(current_evaluation$condition$command, candidate$condition$command)) {
-        next
-      }
-      if (identical(candidate$outcome, "error") &&
-          !identical(class(current_evaluation$condition)[[1L]], class(candidate$condition)[[1L]])) {
-        next
-      }
-      current <- child
-      current_evaluation <- candidate
-      accepted <- accepted + 1L
-      next_child <- NULL
-    }
-    NULL
-  }, error = identity, warning = identity)
+      NULL
+    },
+    error = identity,
+    warning = identity
+  )
 
   list(
     tree = current,
     evaluation = current_evaluation,
     shrinks = accepted,
     attempts = attempts,
-    status = if (!is.null(problem)) "error" else if (complete) "complete" else "budget",
+    status = if (!is.null(problem)) {
+      "error"
+    } else if (complete) {
+      "complete"
+    } else {
+      "budget"
+    },
     condition = problem
   )
 }
@@ -267,10 +309,20 @@
 #' )
 #' check_law(reverse_law, tests = 20L, seed = 1L)
 #' @export
-new_law <- function(name, generators, holds, classify = function(...) character(),
-                    min_coverage = numeric()) {
-  s7_law(name = name, generators = generators, holds = holds,
-          classify = classify, min_coverage = min_coverage)
+new_law <- function(
+  name,
+  generators,
+  holds,
+  classify = function(...) character(),
+  min_coverage = numeric()
+) {
+  s7_law(
+    name = name,
+    generators = generators,
+    holds = holds,
+    classify = classify,
+    min_coverage = min_coverage
+  )
 }
 
 #' @rdname new_law
@@ -311,8 +363,11 @@ check_law <- function(
   max_size <- .count_arg(max_size, "max_size")
   rng_kind <- c("Mersenne-Twister", "Inversion", "Rejection")
   parameters <- list(
-    tests = tests, seed = seed, shrinks = shrinks,
-    discards = discards, max_size = max_size
+    tests = tests,
+    seed = seed,
+    shrinks = shrinks,
+    discards = discards,
+    max_size = max_size
   )
 
   .with_seed(seed, rng_kind, {
@@ -457,7 +512,9 @@ format_check_result <- function(x) {
     ),
     insufficient_coverage = sprintf(
       "Law '%s' passed %d tests but missed coverage requirements (seed %d).",
-      x@law@name, x@tests, x@seed
+      x@law@name,
+      x@tests,
+      x@seed
     ),
     exhausted = sprintf(
       "Law '%s' exhausted after %d discards and %d passes (seed %d).",
@@ -482,7 +539,11 @@ format_check_result <- function(x) {
     )
   )
   if (is.null(x@counterexample)) {
-    detail <- if (is.null(x@condition)) character() else conditionMessage(x@condition)
+    detail <- if (is.null(x@condition)) {
+      character()
+    } else {
+      conditionMessage(x@condition)
+    }
     return(paste(c(header, detail, .format_law_coverage(x)), collapse = "\n"))
   }
   detail <- if (is.null(x@counterexample@condition)) {
@@ -492,10 +553,24 @@ format_check_result <- function(x) {
   }
   if (inherits(x@counterexample@condition, "s7contract_state_condition")) {
     condition <- x@counterexample@condition
-    detail <- paste(detail, paste(utils::capture.output(utils::str(
-      list(model = condition$model, input = condition$input, output = condition$output),
-      max.level = 3L, list.len = 20L, vec.len = 20L, give.attr = FALSE
-    )), collapse = "\n"), sep = "\n")
+    detail <- paste(
+      detail,
+      paste(
+        utils::capture.output(utils::str(
+          list(
+            model = condition$model,
+            input = condition$input,
+            output = condition$output
+          ),
+          max.level = 3L,
+          list.len = 20L,
+          vec.len = 20L,
+          give.attr = FALSE
+        )),
+        collapse = "\n"
+      ),
+      sep = "\n"
+    )
   }
   arguments <- paste(
     utils::capture.output(utils::str(
@@ -510,17 +585,23 @@ format_check_result <- function(x) {
   shrinking <- switch(
     x@shrink_status,
     complete = "Shrinking stopped: no child of this counterexample preserves the failure.",
-    budget = sprintf("Shrinking stopped at the evaluation budget (%d).", x@shrink_attempts),
+    budget = sprintf(
+      "Shrinking stopped at the evaluation budget (%d).",
+      x@shrink_attempts
+    ),
     error = paste("Shrinking stopped:", conditionMessage(x@shrink_condition))
   )
-  paste(c(
-    header,
-    detail,
-    shrinking,
-    "Smallest counterexample found:",
-    arguments,
-    .format_law_coverage(x)
-  ), collapse = "\n")
+  paste(
+    c(
+      header,
+      detail,
+      shrinking,
+      "Smallest counterexample found:",
+      arguments,
+      .format_law_coverage(x)
+    ),
+    collapse = "\n"
+  )
 }
 
 .print_s7_check_result <- function(x, ...) {
