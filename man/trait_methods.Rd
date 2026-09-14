@@ -40,7 +40,8 @@ trait_assoc_const(trait, x, name)
 \item{inherited}{Include inherited methods from supertraits?}
 
 \item{class}{A concrete S7 class, S3 class wrapper, S4 class, or base class
-wrapper. Register union members separately.}
+wrapper. Register union members separately. Dispatch wildcards
+(\code{class_any} and \code{class_missing}) are not concrete targets.}
 
 \item{methods}{Named list of method implementations. Omitted trait methods
 use their default implementation when one is available.}
@@ -52,7 +53,7 @@ use their default implementation when one is available.}
 \item{replace}{Replace an existing implementation record and silence warnings
 about visible S7 methods?}
 
-\item{x}{An object or class.}
+\item{x}{An S7, S3, S4 or supported base-class object, or its class descriptor.}
 
 \item{arg}{Name to use in error messages.}
 
@@ -72,5 +73,8 @@ single logical value. \code{assert_trait()} returns \code{x}, unchanged.
 item value.
 }
 \description{
-Inspect or use a Rust-like explicit trait
+Methods are validated by S7 on isolated tables before registration is
+published. Method bindings and the implementation record are published
+together; a publication error restores the touched bindings. Aliases for the
+same generic must supply identical implementation functions.
 }

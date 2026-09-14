@@ -509,3 +509,22 @@ local({
 expect_error(gen_product(x = gen_integer(), x = gen_integer()), pattern = "unique", fixed = TRUE)
 expect_error(new_law("duplicate", list(x = integer_gen, x = integer_gen), function(x) TRUE),
              pattern = "unique", fixed = TRUE)
+
+# A warning terminates a law evaluation before it can discard the case.
+local({
+  continued <- FALSE
+  law <- new_law("warning before discard", list(x = gen_constant(1L)), function(x) {
+    warning("unexpected warning")
+    continued <<- TRUE
+    assume(FALSE)
+    TRUE
+  })
+  result <- check_law(law, tests = 1L, discards = 0L, shrinks = 0L)
+  expect_identical(result@status, "error")
+  expect_identical(result@discards, 0L)
+  expect_true(inherits(result@condition, "warning"))
+  expect_identical(conditionMessage(result@condition), "unexpected warning")
+  expect_false(continued)
+  expect_length(result@counterexample@original, 1L)
+  expect_identical(result@coverage_cases, 0L)
+})

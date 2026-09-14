@@ -1,5 +1,16 @@
 # s7contract (development version)
 
+* Trait registration validates isolated method copies and publishes methods and
+  implementation records atomically.
+* Conformance checks recognize instances of registered environment, function,
+  S3 and S4 classes without treating S3 objects as their underlying storage type.
+  Class identity is independent of printed labels.
+* Contract composition rejects incompatible alias, generic-name and associated
+  item collisions. Identical requirements and shared diamond inheritance remain
+  valid. Descriptor and map names must be non-missing and unambiguous.
+* Warnings from laws stop the evaluation and produce an error counterexample,
+  including when the callback would otherwise discard the case.
+
 # s7contract 0.2.3
 
 * Source builds exclude local `test.arrows` data files.

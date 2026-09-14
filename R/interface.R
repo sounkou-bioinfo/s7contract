@@ -5,6 +5,12 @@
 #' and a class or object satisfies it when S7 can find a method for every
 #' required generic.
 #'
+#' Embedding retains every parent requirement. Requirements sharing an alias
+#' or a generic name must have identical generics and type specifications;
+#' incompatible collisions are errors. Both aliases and generic names refer to
+#' the checked operation inside [with()]. Reusing a requirement across parents
+#' is valid, including diamond-shaped inheritance.
+#'
 #' This mirrors Go's basic interfaces defined only by methods. Define small
 #' interfaces at the point where consuming code needs a behavior. Define S7
 #' classes, generics, and methods normally; then let consumers name the protocol
@@ -65,19 +71,19 @@ new_interface <- function(
     generics <- methods
   }
 
-  if (!is.character(name) || length(name) != 1 || !nzchar(name)) {
-    .abort("`name` must be a non-empty string.")
-  }
-  if (!is.null(package) && (!is.character(package) || length(package) != 1)) {
-    .abort("`package` must be NULL or a single string.")
-  }
+  .check_name(name)
+  if (!is.null(package)) .check_name(package, "package")
 
-  s7_interface(
+  interface <- s7_interface(
     name = name,
     package = package,
-    parents = .normalise_interface_parents(parents),
-    requirements = .normalise_interface_generics(generics)
+    parents = .normalise_parents(parents, s7_interface, "new_interface"),
+    requirements = .normalise_requirements(
+      generics, s7_interface_requirement, interface_requirement, "generics"
+    )
   )
+  interface_requirements(interface)
+  interface
 }
 
 #' @param generic An S7 generic function.
@@ -101,9 +107,7 @@ interface_requirement <- function(
   if (is.null(name)) {
     name <- generic@name
   }
-  if (!is.character(name) || length(name) != 1 || !nzchar(name)) {
-    .abort("`name` must be a non-empty string.")
-  }
+  .check_name(name)
 
   s7_interface_requirement(
     name = name,
@@ -111,58 +115,6 @@ interface_requirement <- function(
     args = .normalise_type_specs(args, "args"),
     returns = .normalise_return_spec(returns)
   )
-}
-
-.normalise_interface_generics <- function(generics) {
-  if (is.null(generics)) {
-    generics <- list()
-  }
-  if (is.function(generics) || .is_interface_requirement(generics)) {
-    generics <- list(generics)
-  }
-  if (!is.list(generics)) {
-    .abort(
-      "`generics` must be a list of S7 generics or interface_requirement() objects."
-    )
-  }
-
-  nms <- names(generics)
-  if (is.null(nms)) {
-    nms <- rep("", length(generics))
-  }
-
-  out <- vector("list", length(generics))
-  for (i in seq_along(generics)) {
-    nm <- if (nzchar(nms[[i]])) nms[[i]] else NULL
-    req <- generics[[i]]
-    if (.is_interface_requirement(req)) {
-      if (!is.null(nm)) req@name <- nm
-    } else {
-      req <- interface_requirement(req, name = nm)
-    }
-    out[[i]] <- req
-    nms[[i]] <- req@name
-  }
-  names(out) <- nms
-  out
-}
-
-.normalise_interface_parents <- function(parents) {
-  if (is.null(parents)) {
-    return(list())
-  }
-  if (.is_interface(parents)) {
-    parents <- list(parents)
-  }
-  if (!is.list(parents)) {
-    .abort("`parents` must be an interface or a list of interfaces.")
-  }
-  for (parent in parents) {
-    if (!.is_interface(parent)) {
-      .abort("Every parent must be created with new_interface().")
-    }
-  }
-  parents
 }
 
 .interface_label <- function(interface) {
@@ -197,13 +149,11 @@ interface_requirements <- function(interface, inherited = TRUE) {
   }
   out <- c(out, interface@requirements)
 
-  if (length(out) > 0) {
-    out <- out[!duplicated(names(out), fromLast = TRUE)]
-  }
-  out
+  .merge_requirements(out)
 }
 
-#' @param x An object, or an S7 class/base class wrapper.
+#' @param x An S7 object or class, S3 object or class wrapper, S4 object or class,
+#'   or a value or wrapper for a supported S7 base class.
 #' @rdname interface_requirements
 #' @export
 interface_report <- function(x, interface) {

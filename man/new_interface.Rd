@@ -59,6 +59,12 @@ and a class or object satisfies it when S7 can find a method for every
 required generic.
 }
 \details{
+Embedding retains every parent requirement. Requirements sharing an alias
+or a generic name must have identical generics and type specifications;
+incompatible collisions are errors. Both aliases and generic names refer to
+the checked operation inside \code{\link[=with]{with()}}. Reusing a requirement across parents
+is valid, including diamond-shaped inheritance.
+
 This mirrors Go's basic interfaces defined only by methods. Define small
 interfaces at the point where consuming code needs a behavior. Define S7
 classes, generics, and methods normally; then let consumers name the protocol

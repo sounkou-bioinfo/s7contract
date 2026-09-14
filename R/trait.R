@@ -8,7 +8,15 @@
 #' compatible S7 methods already exist. Registrations belong to the current
 #' R session and the particular trait descriptor, not its display name. Reuse
 #' the same descriptor for registration and checks; deserializing a descriptor
-#' does not transfer its registrations.
+#' does not transfer its registrations. S7 subclasses and S3 subclasses need
+#' their own registration; method inheritance alone does not confer a trait.
+#'
+#' Method aliases and generic names share the scoped call namespace. Overlapping
+#' requirements must have identical generics, defaults and type specifications.
+#' Associated items must have one declaring trait: a diamond can share the same
+#' declaration, but independent supertraits cannot declare the same item name
+#' within `assoc_types` or within `assoc_consts`. Inherited values are read from
+#' the declaring supertrait's implementation.
 #'
 #' This makes default methods and associated metadata practical, but the result
 #' remains a runtime R abstraction. It does not emulate Rust's compile-time
@@ -65,22 +73,22 @@ new_trait <- function(
   assoc_consts = list(),
   package = NULL
 ) {
-  if (!is.character(name) || length(name) != 1 || !nzchar(name)) {
-    .abort("`name` must be a non-empty string.")
-  }
-  if (!is.null(package) && (!is.character(package) || length(package) != 1)) {
-    .abort("`package` must be NULL or a single string.")
-  }
+  .check_name(name)
+  if (!is.null(package)) .check_name(package, "package")
 
-  s7_trait(
+  trait <- s7_trait(
     id = new.env(parent = emptyenv()),
     name = name,
     package = package,
-    parents = .normalise_trait_parents(parents),
-    methods = .normalise_trait_methods(methods),
+    parents = .normalise_parents(parents, s7_trait, "new_trait"),
+    methods = .normalise_requirements(methods, s7_trait_method, trait_method, "methods"),
     assoc_types = .normalise_assoc(assoc_types, "assoc_types"),
     assoc_consts = .normalise_assoc(assoc_consts, "assoc_consts")
   )
+  trait_methods(trait)
+  .trait_assoc_owners(trait, "assoc_types")
+  .trait_assoc_owners(trait, "assoc_consts")
+  trait
 }
 
 #' @param generic An S7 generic function.
@@ -108,9 +116,7 @@ trait_method <- function(
   if (is.null(name)) {
     name <- generic@name
   }
-  if (!is.character(name) || length(name) != 1 || !nzchar(name)) {
-    .abort("`name` must be a non-empty string.")
-  }
+  .check_name(name)
 
   s7_trait_method(
     name = name,
@@ -121,61 +127,12 @@ trait_method <- function(
   )
 }
 
-.normalise_trait_methods <- function(methods) {
-  if (is.null(methods)) {
-    methods <- list()
-  }
-  if (is.function(methods) || .is_trait_method(methods)) {
-    methods <- list(methods)
-  }
-  if (!is.list(methods)) {
-    .abort("`methods` must be a list of S7 generics or trait_method() objects.")
-  }
-
-  nms <- names(methods)
-  if (is.null(nms)) {
-    nms <- rep("", length(methods))
-  }
-
-  out <- vector("list", length(methods))
-  for (i in seq_along(methods)) {
-    nm <- if (nzchar(nms[[i]])) nms[[i]] else NULL
-    method <- methods[[i]]
-    if (.is_trait_method(method)) {
-      if (!is.null(nm)) method@name <- nm
-    } else {
-      method <- trait_method(method, name = nm)
-    }
-    out[[i]] <- method
-    nms[[i]] <- method@name
-  }
-  names(out) <- nms
-  out
-}
-
-.normalise_trait_parents <- function(parents) {
-  if (is.null(parents)) {
-    return(list())
-  }
-  if (.is_trait(parents)) {
-    parents <- list(parents)
-  }
-  if (!is.list(parents)) {
-    .abort("`parents` must be a trait or a list of traits.")
-  }
-  for (parent in parents) {
-    if (!.is_trait(parent)) {
-      .abort("Every parent must be created with new_trait().")
-    }
-  }
-  parents
-}
-
 .normalise_assoc <- function(x, what) {
   if (is.null(x)) {
     return(list())
   }
   if (is.character(x)) {
+    .check_names(x, what)
     out <- lapply(x, function(name) {
       s7_assoc_item(required = TRUE, default = NULL)
     })
@@ -183,9 +140,7 @@ trait_method <- function(
     return(out)
   }
   if (is.list(x)) {
-    if (length(x) > 0 && (is.null(names(x)) || any(names(x) == ""))) {
-      .abort("`%s` must be a named list or a character vector.", what)
-    }
+    if (length(x) > 0L) .check_names(names(x), what)
     out <- lapply(x, function(value) {
       s7_assoc_item(required = FALSE, default = value)
     })
@@ -203,6 +158,11 @@ trait_method <- function(
 }
 
 #' Inspect or use a Rust-like explicit trait
+#'
+#' Methods are validated by S7 on isolated tables before registration is
+#' published. Method bindings and the implementation record are published
+#' together; a publication error restores the touched bindings. Aliases for the
+#' same generic must supply identical implementation functions.
 #'
 #' @param trait A trait created by `new_trait()`.
 #' @param inherited Include inherited methods from supertraits?
@@ -228,40 +188,36 @@ trait_methods <- function(trait, inherited = TRUE) {
   }
   out <- c(out, trait@methods)
 
-  if (length(out) > 0) {
-    out <- out[!duplicated(names(out), fromLast = TRUE)]
-  }
-  out
+  .merge_requirements(out)
 }
 
-.trait_assoc_types <- function(trait, inherited = TRUE) {
-  out <- list()
-  if (isTRUE(inherited)) {
-    for (parent in trait@parents) {
-      out <- c(out, .trait_assoc_types(parent, inherited = TRUE))
+.trait_assoc_owners <- function(trait, field) {
+  owners <- list()
+  for (parent in trait@parents) {
+    owners <- c(owners, .trait_assoc_owners(parent, field))
+  }
+  local_names <- names(S7::prop(trait, field))
+  local <- rep(list(trait), length(local_names))
+  names(local) <- local_names
+  owners <- c(owners, local)
+  for (name in names(owners)[duplicated(names(owners))]) {
+    declarations <- owners[names(owners) == name]
+    if (!all(vapply(declarations, function(owner) {
+      identical(owner@id, declarations[[1L]]@id)
+    }, logical(1)))) {
+      .abort("Conflicting declarations for associated item `%s` in `%s`.", name, field)
     }
   }
-  out <- c(out, trait@assoc_types)
-  if (length(out) > 0) out[!duplicated(names(out), fromLast = TRUE)] else out
-}
-
-.trait_assoc_consts <- function(trait, inherited = TRUE) {
-  out <- list()
-  if (isTRUE(inherited)) {
-    for (parent in trait@parents) {
-      out <- c(out, .trait_assoc_consts(parent, inherited = TRUE))
-    }
-  }
-  out <- c(out, trait@assoc_consts)
-  if (length(out) > 0) out[!duplicated(names(out), fromLast = TRUE)] else out
+  owners[!duplicated(names(owners))]
 }
 
 .find_trait_impl <- function(trait, class) {
+  key <- .class_key(class)
   impls <- .s7contract_registry$impls
   for (impl in impls) {
     if (
       identical(impl@trait@id, trait@id) &&
-        .class_equal(impl@target_class, class)
+        identical(.class_key(impl@target_class), key)
     ) {
       return(impl)
     }
@@ -272,66 +228,37 @@ trait_methods <- function(trait, inherited = TRUE) {
 .check_trait_impl_admissible <- function(trait, class, replace) {
   for (parent in trait@parents) {
     if (is.null(.find_trait_impl(parent, class))) {
-      .abort(
-        "Cannot implement %s for %s until its supertrait %s is implemented.",
-        .trait_label(trait),
-        .class_label(class),
-        .trait_label(parent)
-      )
+      .abort("Cannot implement %s for %s until its supertrait %s is implemented.",
+             .trait_label(trait), .class_label(class), .trait_label(parent))
     }
   }
-
   if (!replace && !is.null(.find_trait_impl(trait, class))) {
-    .abort(
-      "%s is already implemented for %s. Pass replace = TRUE to replace it.",
-      .trait_label(trait),
-      .class_label(class)
-    )
+    .abort("%s is already implemented for %s. Pass replace = TRUE to replace it.",
+           .trait_label(trait), .class_label(class))
   }
   invisible(NULL)
 }
 
-.store_trait_impl <- function(impl, replace = FALSE) {
-  .check_trait_impl_admissible(
-    impl@trait,
-    impl@target_class,
-    replace = replace
-  )
-  impls <- .s7contract_registry$impls
-  keep <- rep(TRUE, length(impls))
-
-  for (i in seq_along(impls)) {
-    if (
-      identical(impls[[i]]@trait@id, impl@trait@id) &&
-        .class_equal(impls[[i]]@target_class, impl@target_class)
-    ) {
-      keep[[i]] <- FALSE
+.resolve_method_impl <- function(required, provided) {
+  if (is.null(provided)) provided <- list()
+  if (!is.list(provided)) .abort("`methods` must be a named list of functions.")
+  if (length(provided) > 0L) .check_names(names(provided), "methods")
+  extra <- setdiff(names(provided), names(required))
+  if (length(extra) > 0L) {
+    .abort("Unknown trait method(s): %s", paste(extra, collapse = ", "))
+  }
+  out <- list()
+  for (name in names(required)) {
+    if (name %in% names(provided)) {
+      fun <- provided[[name]]
+      if (!is.function(fun)) .abort("Implementation for `%s` must be a function.", name)
+    } else {
+      fun <- required[[name]]@default
+      if (is.null(fun)) .abort("Missing required trait method `%s`.", name)
     }
+    out[[name]] <- fun
   }
-
-  .s7contract_registry$impls <- c(impls[keep], list(impl))
-  invisible(impl)
-}
-
-.normalise_impl_methods <- function(methods) {
-  if (is.null(methods)) {
-    return(list())
-  }
-  if (!is.list(methods)) {
-    .abort("`methods` must be a named list of functions.")
-  }
-  if (
-    length(methods) > 0 &&
-      (is.null(names(methods)) || any(names(methods) == ""))
-  ) {
-    .abort("`methods` must be a named list of functions.")
-  }
-  for (name in names(methods)) {
-    if (!is.function(methods[[name]])) {
-      .abort("Implementation for `%s` must be a function.", name)
-    }
-  }
-  methods
+  out
 }
 
 .resolve_assoc_impl <- function(required, provided, what) {
@@ -341,12 +268,7 @@ trait_methods <- function(trait, inherited = TRUE) {
   if (!is.list(provided)) {
     .abort("`%s` must be a named list.", what)
   }
-  if (
-    length(provided) > 0 &&
-      (is.null(names(provided)) || any(names(provided) == ""))
-  ) {
-    .abort("`%s` must be a named list.", what)
-  }
+  if (length(provided) > 0L) .check_names(names(provided), what)
 
   out <- list()
   for (name in names(required)) {
@@ -371,8 +293,88 @@ trait_methods <- function(trait, inherited = TRUE) {
   out
 }
 
+.register_trait_impl <- function(impl, requirements, replace) {
+  staged <- list()
+  for (name in names(requirements)) {
+    req <- requirements[[name]]
+    generic <- req@generic
+    fun <- impl@methods[[name]]
+    aliases <- which(vapply(staged, function(entry) {
+      identical(entry$generic@methods, generic@methods)
+    }, logical(1)))
+    if (length(aliases) > 0L) {
+      if (!identical(fun, staged[[aliases[[1L]]]]$fun)) {
+        .abort("Conflicting implementations for generic `%s`.", generic@name)
+      }
+      next
+    }
+    signature <- .requirement_signature(req, impl@target_class)
+    if (!replace && !is.null(tryCatch(
+      S7::method(generic, class = signature), error = function(e) NULL
+    ))) {
+      warning(sprintf(
+        "An S7 method for `%s` is already visible; registering anyway. Pass replace = TRUE to silence this warning.",
+        generic@name
+      ), call. = FALSE)
+    }
+    copy <- generic
+    copy@methods <- new.env(parent = emptyenv())
+    # Session-local registration must not append package reload hooks.
+    do.call(S7::`method<-`, list(copy, signature, value = fun), envir = baseenv())
+    staged[[length(staged) + 1L]] <- list(generic = generic, table = copy@methods, fun = fun)
+  }
+
+  # Validation condition handlers may register implementations themselves.
+  .check_trait_impl_admissible(impl@trait, impl@target_class, replace)
+  changes <- list()
+  complete <- FALSE
+  on.exit(if (!complete) {
+    for (change in rev(changes)) {
+      if (identical(change$table[[change$name]], change$value)) next
+      # S7 tables contain methods and sub-tables; NULL denotes an absent binding.
+      if (is.null(change$value)) {
+        rm(list = change$name, envir = change$table)
+      } else {
+        change$table[[change$name]] <- change$value
+      }
+    }
+  })
+  publish <- function(source, table, generic) {
+    for (name in ls(source, all.names = TRUE)) {
+      value <- source[[name]]
+      old <- table[[name]]
+      if (is.environment(value) && !is.null(old)) {
+        publish(value, old, generic)
+        next
+      }
+      changes[[length(changes) + 1L]] <<- list(table = table, name = name, value = old)
+      if (is.environment(value)) {
+        table[[name]] <- new.env(parent = emptyenv())
+        publish(value, table[[name]], generic)
+      } else {
+        value@generic <- generic
+        table[[name]] <- value
+      }
+    }
+  }
+  impls <- .s7contract_registry$impls
+  key <- .class_key(impl@target_class)
+  keep <- !vapply(impls, function(existing) {
+    identical(existing@trait@id, impl@trait@id) &&
+      identical(.class_key(existing@target_class), key)
+  }, logical(1))
+  updated <- c(impls[keep], list(impl))
+  suspendInterrupts({
+    for (entry in staged) publish(entry$table, entry$generic@methods, entry$generic)
+    .s7contract_registry$impls <- updated
+    complete <- TRUE
+  })
+  invisible(impl)
+}
+
 #' @param class A concrete S7 class, S3 class wrapper, S4 class, or base class
-#'   wrapper. Register union members separately.
+#'   wrapper. Register union members separately. Dispatch wildcards
+#'   (`class_any` and `class_missing`) are not concrete targets.
 #' @param methods Named list of method implementations. Omitted trait methods
 #'   use their default implementation when one is available.
 #' @param assoc_types Named list of associated type values.
@@ -399,36 +401,17 @@ impl_trait <- function(
       "`class` must be an S7 class, S3 class wrapper, S4 class, or base class wrapper."
     )
   }
-  if (inherits(cls, "S7_union")) {
-    .abort("Trait implementations require a concrete class; register union members separately.")
+  if (inherits(cls, c("S7_union", "S7_any", "S7_missing"))) {
+    .abort("Trait implementations require a concrete class; register union members separately and use concrete classes instead of dispatch wildcards.")
   }
 
-  .check_trait_impl_admissible(trait, cls, replace = replace)
+  if (!is.logical(replace) || length(replace) != 1L || is.na(replace)) {
+    .abort("`replace` must be TRUE or FALSE.")
+  }
+  .check_trait_impl_admissible(trait, cls, replace)
 
   trait_reqs <- trait_methods(trait, inherited = FALSE)
-  provided_methods <- .normalise_impl_methods(methods)
-  resolved_methods <- list()
-
-  for (name in names(trait_reqs)) {
-    req <- trait_reqs[[name]]
-    fun <- provided_methods[[name]]
-    if (is.null(fun)) {
-      fun <- req@default
-    }
-    if (is.null(fun)) {
-      .abort(
-        "Missing required trait method `%s` for %s.",
-        name,
-        .trait_label(trait)
-      )
-    }
-    resolved_methods[[name]] <- fun
-  }
-
-  extra_methods <- setdiff(names(provided_methods), names(trait_reqs))
-  if (length(extra_methods) > 0) {
-    .abort("Unknown trait method(s): %s", paste(extra_methods, collapse = ", "))
-  }
+  resolved_methods <- .resolve_method_impl(trait_reqs, methods)
 
   resolved_assoc_types <- .resolve_assoc_impl(
     trait@assoc_types,
@@ -449,21 +432,10 @@ impl_trait <- function(
     assoc_consts = resolved_assoc_consts
   )
 
-  for (name in names(trait_reqs)) {
-    .register_s7_method(
-      generic = trait_reqs[[name]]@generic,
-      class = .requirement_signature(trait_reqs[[name]], cls),
-      fun = resolved_methods[[name]],
-      replace = replace
-    )
-  }
-
-  .store_trait_impl(impl, replace = replace)
-
-  invisible(impl)
+  .register_trait_impl(impl, trait_reqs, replace)
 }
 
-#' @param x An object or class.
+#' @param x An S7, S3, S4 or supported base-class object, or its class descriptor.
 #' @rdname trait_methods
 #' @export
 trait_report <- function(x, trait) {
@@ -523,9 +495,7 @@ trait_call <- function(trait, method, x, ...) {
   if (!.is_trait(trait)) {
     .abort("`trait` must be created with new_trait().")
   }
-  if (!is.character(method) || length(method) != 1 || !nzchar(method)) {
-    .abort("`method` must be a non-empty string.")
-  }
+  .check_name(method, "method")
 
   assert_trait(x, trait)
   reqs <- trait_methods(trait, inherited = TRUE)
@@ -535,29 +505,9 @@ trait_call <- function(trait, method, x, ...) {
   reqs[[method]]@generic(x, ...)
 }
 
-.assoc_value_from_impl <- function(trait, cls, field, name, impl = NULL) {
-  if (is.null(impl)) {
-    impl <- .find_trait_impl(trait, cls)
-  }
-
-  if (!is.null(impl)) {
-    values <- S7::prop(impl, field)
-    if (name %in% names(values)) {
-      return(list(ok = TRUE, value = values[[name]]))
-    }
-  }
-
-  for (parent in trait@parents) {
-    found <- .assoc_value_from_impl(parent, cls, field, name)
-    if (isTRUE(found$ok)) {
-      return(found)
-    }
-  }
-
-  list(ok = FALSE, value = NULL)
-}
-
 .assoc_from_impl <- function(trait, x, field, name) {
+  if (!.is_trait(trait)) .abort("`trait` must be created with new_trait().")
+  .check_name(name)
   cls <- .target_class_or_null(x, arg = "x")
   if (is.null(cls)) {
     .abort("Could not determine an S7 class for this value.")
@@ -571,11 +521,12 @@ trait_call <- function(trait, method, x, ...) {
     )
   }
 
-  found <- .assoc_value_from_impl(trait, cls, field, name, impl = impl)
-  if (!isTRUE(found$ok)) {
+  owner <- .trait_assoc_owners(trait, field)[[name]]
+  if (is.null(owner)) {
     .abort("Trait %s has no associated item `%s`.", .trait_label(trait), name)
   }
-  found$value
+  owner_impl <- .find_trait_impl(owner, cls)
+  S7::prop(owner_impl, field)[[name]]
 }
 
 #' @param name Associated item name.
@@ -593,8 +544,8 @@ trait_assoc_const <- function(trait, x, name) {
 
 .print_s7_trait <- function(x, ...) {
   reqs <- trait_methods(x, inherited = TRUE)
-  assoc_types <- .trait_assoc_types(x, inherited = TRUE)
-  assoc_consts <- .trait_assoc_consts(x, inherited = TRUE)
+  assoc_types <- .trait_assoc_owners(x, "assoc_types")
+  assoc_consts <- .trait_assoc_owners(x, "assoc_consts")
 
   cat(sprintf("<S7 Rust-like trait> %s\n", .trait_label(x)))
   if (length(x@parents) > 0) {

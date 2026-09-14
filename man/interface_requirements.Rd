@@ -26,7 +26,8 @@ as_interface(x, interface)
 
 \item{inherited}{Include inherited requirements from parent interfaces?}
 
-\item{x}{An object, or an S7 class/base class wrapper.}
+\item{x}{An S7 object or class, S3 object or class wrapper, S4 object or class,
+or a value or wrapper for a supported S7 base class.}
 
 \item{arg}{Name to use in error messages.}
 }

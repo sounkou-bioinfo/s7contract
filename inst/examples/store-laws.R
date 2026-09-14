@@ -60,7 +60,7 @@ string_generator <- function(alphabet, min = 0L, max = 4L) {
   }
   if (any(Encoding(alphabet) == "bytes")) stop("byte strings are not supported")
   alphabet <- enc2utf8(alphabet)
-  if (any(!validUTF8(alphabet))) stop("alphabet must be valid UTF-8")
+  if (!all(validUTF8(alphabet))) stop("alphabet must be valid UTF-8")
   if (any(nchar(alphabet, type = "chars") != 1L)) {
     stop("each alphabet entry must be one Unicode code point")
   }

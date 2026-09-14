@@ -50,24 +50,11 @@
 
 .evaluate_law <- function(law, arguments) {
   caught <- NULL
-  warnings <- list()
-  value <- tryCatch(
-    withCallingHandlers(
-      do.call(law@holds, arguments),
-      warning = function(w) {
-        warnings[[length(warnings) + 1L]] <<- w
-        tryInvokeRestart("muffleWarning")
-      }
-    ),
-    s7contract_discard = function(e) {
-      caught <<- e
-      NULL
-    },
-    error = function(e) {
-      caught <<- e
-      NULL
-    }
-  )
+  capture <- function(condition) {
+    caught <<- condition
+    NULL
+  }
+  value <- tryCatch(do.call(law@holds, arguments), error = capture, warning = capture)
 
   if (inherits(caught, "s7contract_discard")) {
     return(list(outcome = "discard", condition = caught))
@@ -77,9 +64,6 @@
   }
   if (!is.null(caught)) {
     return(list(outcome = "error", condition = caught))
-  }
-  if (length(warnings) > 0L) {
-    return(list(outcome = "error", condition = warnings[[1L]]))
   }
   if (!is.logical(value) || length(value) != 1L || is.na(value)) {
     return(list(
@@ -224,7 +208,8 @@
 #' counterexample was found. A shrinking error or warning is stored separately
 #' in `shrink_condition`; the original and last failing examples are retained.
 #' Generator warnings and errors terminate the run with status `"error"`.
-#' Warnings or errors from `holds` are counterexamples.
+#' Warnings or errors from `holds` stop that evaluation and are counterexamples.
+#' A subsequent discard cannot hide a warning.
 #' Stateful laws created by [new_state_law()] additionally retain failure traces
 #' in the counterexample's `original_condition` and `condition` fields. Callback
 #' defects stop their shrink search, preserving any earlier false postcondition.
@@ -353,7 +338,7 @@ check_law <- function(
           if (!is.null(labels) && !is.character(labels)) {
             .abort("`classify` must return character labels or NULL.")
           }
-          if (anyNA(labels) || any(!nzchar(labels))) {
+          if (anyNA(labels) || !all(nzchar(labels))) {
             .abort("`classify` labels must be non-missing and non-empty.")
           }
           labels <- unique(as.character(labels))

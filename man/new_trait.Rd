@@ -62,9 +62,17 @@ only has the trait after \code{impl_trait()} records the implementation, even if
 compatible S7 methods already exist. Registrations belong to the current
 R session and the particular trait descriptor, not its display name. Reuse
 the same descriptor for registration and checks; deserializing a descriptor
-does not transfer its registrations.
+does not transfer its registrations. S7 subclasses and S3 subclasses need
+their own registration; method inheritance alone does not confer a trait.
 }
 \details{
+Method aliases and generic names share the scoped call namespace. Overlapping
+requirements must have identical generics, defaults and type specifications.
+Associated items must have one declaring trait: a diamond can share the same
+declaration, but independent supertraits cannot declare the same item name
+within \code{assoc_types} or within \code{assoc_consts}. Inherited values are read from
+the declaring supertrait's implementation.
+
 This makes default methods and associated metadata practical, but the result
 remains a runtime R abstraction. It does not emulate Rust's compile-time
 trait bounds, coherence, orphan rules, or type-checked associated types.

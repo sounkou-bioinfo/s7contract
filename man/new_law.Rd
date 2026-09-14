@@ -102,7 +102,8 @@ zero), \code{"error"} if constructing candidates failed, or \code{"not_needed"} 
 counterexample was found. A shrinking error or warning is stored separately
 in \code{shrink_condition}; the original and last failing examples are retained.
 Generator warnings and errors terminate the run with status \code{"error"}.
-Warnings or errors from \code{holds} are counterexamples.
+Warnings or errors from \code{holds} stop that evaluation and are counterexamples.
+A subsequent discard cannot hide a warning.
 Stateful laws created by \code{\link[=new_state_law]{new_state_law()}} additionally retain failure traces
 in the counterexample's \code{original_condition} and \code{condition} fields. Callback
 defects stop their shrink search, preserving any earlier false postcondition.

@@ -38,7 +38,7 @@ s7_law <- S7::new_class(
         if (is.null(nms) || !is.null(dim(value))) {
           return("Minimum coverage must be a named numeric vector.")
         }
-        if (anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms)) {
+        if (anyNA(nms) || !all(nzchar(nms)) || anyDuplicated(nms)) {
           return("Coverage labels must be non-missing, non-empty and unique.")
         }
       }
@@ -141,7 +141,7 @@ s7_check_result <- S7::new_class(
   if (length(generators) == 0L || is.null(nms)) {
     return("A non-empty list of named generators is required.")
   }
-  if (anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms)) {
+  if (anyNA(nms) || !all(nzchar(nms)) || anyDuplicated(nms)) {
     return("Generator names must be non-missing, non-empty and unique.")
   }
   if (!all(vapply(generators, .is_generator, logical(1)))) {

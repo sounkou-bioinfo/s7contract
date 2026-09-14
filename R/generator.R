@@ -473,7 +473,7 @@ gen_element <- function(values, prob = NULL) {
     if (!is.numeric(prob) || length(prob) != length(values)) {
       .abort("`prob` must have one numeric weight per entry.")
     }
-    if (anyNA(prob) || any(!is.finite(prob)) || any(prob < 0)) {
+    if (!all(is.finite(prob)) || any(prob < 0)) {
       .abort("`prob` must contain finite non-negative weights.")
     }
     if (!any(prob > 0)) {

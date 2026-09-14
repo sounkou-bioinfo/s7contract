@@ -72,16 +72,8 @@ s7_trait_impl <- S7::new_class(
   )
 )
 
-.is_interface_requirement <- function(x) {
-  S7::S7_inherits(x, s7_interface_requirement)
-}
-
 .is_interface <- function(x) {
   S7::S7_inherits(x, s7_interface)
-}
-
-.is_trait_method <- function(x) {
-  S7::S7_inherits(x, s7_trait_method)
 }
 
 .is_trait <- function(x) {

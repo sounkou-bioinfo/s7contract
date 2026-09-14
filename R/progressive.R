@@ -7,9 +7,7 @@
   if (!is.list(args)) {
     .abort("`%s` must be a named list of type specifications.", what)
   }
-  if (length(args) > 0 && (is.null(names(args)) || any(names(args) == ""))) {
-    .abort("`%s` must be a named list of type specifications.", what)
-  }
+  if (length(args) > 0L) .check_names(names(args), what)
   for (name in names(args)) {
     .check_type_spec(args[[name]], sprintf("%s$%s", what, name))
   }
@@ -32,20 +30,6 @@
     .abort("`%s` must be an S7 class, S7 union, interface, or trait.", arg)
   }
   invisible(spec)
-}
-
-.spec_as_dispatch_class <- function(spec, arg) {
-  if (.is_interface(spec) || .is_trait(spec)) {
-    .abort(
-      "`%s` is a dispatch argument and must be an S7 class or S7 union, not an interface or trait.",
-      arg
-    )
-  }
-  cls <- .as_class_or_null(spec, arg = arg)
-  if (is.null(cls)) {
-    .abort("`%s` must be an S7 class or S7 union for S7 dispatch.", arg)
-  }
-  cls
 }
 
 .value_error_label <- function(arg) {
@@ -117,7 +101,11 @@
     if (!arg %in% names(req@args)) {
       .abort("Missing type specification for dispatch argument `%s`.", arg)
     }
-    signature[[arg]] <- .spec_as_dispatch_class(req@args[[arg]], arg)
+    spec <- req@args[[arg]]
+    if (.is_interface(spec) || .is_trait(spec)) {
+      .abort("`%s` is a dispatch argument and must be an S7 class or S7 union, not an interface or trait.", arg)
+    }
+    signature[[arg]] <- S7::as_class(spec, arg = arg)
   }
 
   signature
