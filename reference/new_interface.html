@@ -128,7 +128,12 @@ checking with <code><a href="https://rdrr.io/r/base/with.html" class="external-l
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This mirrors Go's basic interfaces defined only by methods. Define small
+    <p>Embedding retains every parent requirement. Requirements sharing an alias
+or a generic name must have identical generics and type specifications;
+incompatible collisions are errors. Both aliases and generic names refer to
+the checked operation inside <code><a href="https://rdrr.io/r/base/with.html" class="external-link">with()</a></code>. Reusing a requirement across parents
+is valid, including diamond-shaped inheritance.</p>
+<p>This mirrors Go's basic interfaces defined only by methods. Define small
 interfaces at the point where consuming code needs a behavior. Define S7
 classes, generics, and methods normally; then let consumers name the protocol
 they accept. Up-front interfaces are also useful for package

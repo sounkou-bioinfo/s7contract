@@ -177,7 +177,8 @@ zero), <code>"error"</code> if constructing candidates failed, or <code>"not_nee
 counterexample was found. A shrinking error or warning is stored separately
 in <code>shrink_condition</code>; the original and last failing examples are retained.
 Generator warnings and errors terminate the run with status <code>"error"</code>.
-Warnings or errors from <code>holds</code> are counterexamples.
+Warnings or errors from <code>holds</code> stop that evaluation and are counterexamples.
+A subsequent discard cannot hide a warning.
 Stateful laws created by <code><a href="new_state_law.html">new_state_law()</a></code> additionally retain failure traces
 in the counterexample's <code>original_condition</code> and <code>condition</code> fields. Callback
 defects stop their shrink search, preserving any earlier false postcondition.</p>

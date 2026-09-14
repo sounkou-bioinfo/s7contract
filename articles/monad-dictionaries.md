@@ -22,14 +22,23 @@ Maybe <- new_class("Maybe", abstract = TRUE)
 Nothing <- new_class("Nothing", parent = Maybe)
 Just <- new_class("Just", parent = Maybe, properties = list(value = class_any))
 
-MonadDict <- new_class("MonadDict", properties = list(
-  name = class_character, pure = class_function, bind = class_function
-))
+MonadDict <- new_class(
+  "MonadDict",
+  properties = list(
+    name = class_character,
+    pure = class_function,
+    bind = class_function
+  )
+)
 dict_pure <- new_generic("dict_pure", "x", function(x, value) S7_dispatch())
 dict_bind <- new_generic("dict_bind", "x", function(x, mx, f) S7_dispatch())
-MonadDictionary <- new_interface("MonadDictionary", generics = list(
-  pure = dict_pure, bind = dict_bind
-))
+MonadDictionary <- new_interface(
+  "MonadDictionary",
+  generics = list(
+    pure = dict_pure,
+    bind = dict_bind
+  )
+)
 method(dict_pure, MonadDict) <- function(x, value) (x@pure)(value)
 method(dict_bind, MonadDict) <- function(x, mx, f) (x@bind)(mx, f)
 
@@ -72,21 +81,32 @@ maybe_values <- gen_choice(
 )
 maybe_functions <- gen_choice(
   gen_constant(list(op = "nothing")),
-  gen_map(gen_integer(-5L, 5L), function(amount) list(op = "add", amount = amount)),
-  gen_map(gen_integer(-5L, 5L), function(minimum) list(op = "at_least", minimum = minimum))
+  gen_map(gen_integer(-5L, 5L), function(amount) {
+    list(op = "add", amount = amount)
+  }),
+  gen_map(gen_integer(-5L, 5L), function(minimum) {
+    list(op = "at_least", minimum = minimum)
+  })
 )
 maybe_function <- function(spec) {
   force(spec)
-  function(x) switch(spec$op,
-    nothing = Nothing(),
-    add = Just(value = x + spec$amount),
-    at_least = if (x >= spec$minimum) Just(value = x) else Nothing(),
-    stop("Unknown Maybe function")
-  )
+  function(x) {
+    switch(
+      spec$op,
+      nothing = Nothing(),
+      add = Just(value = x + spec$amount),
+      at_least = if (x >= spec$minimum) Just(value = x) else Nothing(),
+      stop("Unknown Maybe function")
+    )
+  }
 }
 maybe_equal <- function(x, y) {
-  if (S7_inherits(x, Nothing) && S7_inherits(y, Nothing)) return(TRUE)
-  if (S7_inherits(x, Just) && S7_inherits(y, Just)) return(identical(x@value, y@value))
+  if (S7_inherits(x, Nothing) && S7_inherits(y, Nothing)) {
+    return(TRUE)
+  }
+  if (S7_inherits(x, Just) && S7_inherits(y, Just)) {
+    return(identical(x@value, y@value))
+  }
   FALSE
 }
 ```
@@ -122,27 +142,49 @@ after either function in a composition.
 maybe_laws <- function(dictionary) {
   assert_implements(dictionary, MonadDictionary)
   list(
-    left_identity = new_law("Maybe left identity",
+    left_identity = new_law(
+      "Maybe left identity",
       list(value = gen_integer(-10L, 10L), fn = maybe_functions),
       function(value, fn) {
         f <- maybe_function(fn)
-        maybe_equal(dict_bind(dictionary, dict_pure(dictionary, value), f), f(value))
+        maybe_equal(
+          dict_bind(dictionary, dict_pure(dictionary, value), f),
+          f(value)
+        )
       },
       classify = function(value, fn) {
         result <- maybe_function(fn)(value)
         c(fn$op, if (S7_inherits(result, Nothing)) "Nothing" else "Just")
       },
-      min_coverage = c(nothing = 0.1, add = 0.1, at_least = 0.1, Nothing = 0.2, Just = 0.2)
+      min_coverage = c(
+        nothing = 0.1,
+        add = 0.1,
+        at_least = 0.1,
+        Nothing = 0.2,
+        Just = 0.2
+      )
     ),
-    right_identity = new_law("Maybe right identity", list(mx = maybe_values),
+    right_identity = new_law(
+      "Maybe right identity",
+      list(mx = maybe_values),
       function(mx) {
-        maybe_equal(dict_bind(dictionary, mx, function(x) dict_pure(dictionary, x)), mx)
+        maybe_equal(
+          dict_bind(dictionary, mx, function(x) dict_pure(dictionary, x)),
+          mx
+        )
       },
-      classify = function(mx) if (S7_inherits(mx, Nothing)) "Nothing" else "Just",
+      classify = function(mx) {
+        if (S7_inherits(mx, Nothing)) "Nothing" else "Just"
+      },
       min_coverage = c(Nothing = 0.2, Just = 0.2)
     ),
-    associativity = new_law("Maybe associativity",
-      list(mx = maybe_values, first = maybe_functions, second = maybe_functions),
+    associativity = new_law(
+      "Maybe associativity",
+      list(
+        mx = maybe_values,
+        first = maybe_functions,
+        second = maybe_functions
+      ),
       function(mx, first, second) {
         f <- maybe_function(first)
         g <- maybe_function(second)
@@ -152,14 +194,26 @@ maybe_laws <- function(dictionary) {
         )
       },
       classify = function(mx, first, second) {
-        if (S7_inherits(mx, Nothing)) return("Nothing")
+        if (S7_inherits(mx, Nothing)) {
+          return("Nothing")
+        }
         fx <- maybe_function(first)(mx@value)
-        if (S7_inherits(fx, Nothing)) return(c("Just", "first_Nothing"))
+        if (S7_inherits(fx, Nothing)) {
+          return(c("Just", "first_Nothing"))
+        }
         gx <- maybe_function(second)(fx@value)
-        c("Just", if (S7_inherits(gx, Nothing)) "second_Nothing" else "both_Just")
+        c(
+          "Just",
+          if (S7_inherits(gx, Nothing)) "second_Nothing" else "both_Just"
+        )
       },
-      min_coverage = c(Nothing = 0.2, Just = 0.2, first_Nothing = 0.1,
-                       second_Nothing = 0.05, both_Just = 0.05)
+      min_coverage = c(
+        Nothing = 0.2,
+        Just = 0.2,
+        first_Nothing = 0.1,
+        second_Nothing = 0.05,
+        both_Just = 0.05
+      )
     )
   )
 }
@@ -167,7 +221,12 @@ maybe_laws <- function(dictionary) {
 
 ``` r
 
-maybe_results <- lapply(maybe_laws(MaybeMonad), check_law, tests = 200L, seed = 1L)
+maybe_results <- lapply(
+  maybe_laws(MaybeMonad),
+  check_law,
+  tests = 200L,
+  seed = 1L
+)
 vapply(maybe_results, function(result) result@status, character(1))
 #>  left_identity right_identity  associativity 
 #>       "passed"       "passed"       "passed"
@@ -202,7 +261,12 @@ DefaultingMaybe <- MonadDict(
 )
 implements(DefaultingMaybe, MonadDictionary)
 #> [1] TRUE
-defaulting_results <- lapply(maybe_laws(DefaultingMaybe), check_law, tests = 200L, seed = 1L)
+defaulting_results <- lapply(
+  maybe_laws(DefaultingMaybe),
+  check_law,
+  tests = 200L,
+  seed = 1L
+)
 vapply(defaulting_results, function(result) result@status, character(1))
 #>  left_identity right_identity  associativity 
 #>    "falsified"    "falsified"    "falsified"
@@ -239,7 +303,9 @@ g <- maybe_function(example$second)
 dict_bind(DefaultingMaybe, dict_bind(DefaultingMaybe, example$mx, f), g)
 #> <Just>
 #>  @ value: int -1
-dict_bind(DefaultingMaybe, example$mx, function(x) dict_bind(DefaultingMaybe, f(x), g))
+dict_bind(DefaultingMaybe, example$mx, function(x) {
+  dict_bind(DefaultingMaybe, f(x), g)
+})
 #> <Just>
 #>  @ value: int 0
 ```
@@ -248,8 +314,14 @@ The same law and recorded parameters reproduce the failure:
 
 ``` r
 
-maybe_replayed <- do.call(check_law, c(list(law = maybe_failure@law), maybe_failure@parameters))
-identical(maybe_replayed@counterexample@minimal, maybe_failure@counterexample@minimal)
+maybe_replayed <- do.call(
+  check_law,
+  c(list(law = maybe_failure@law), maybe_failure@parameters)
+)
+identical(
+  maybe_replayed@counterexample@minimal,
+  maybe_failure@counterexample@minimal
+)
 #> [1] TRUE
 ```
 

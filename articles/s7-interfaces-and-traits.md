@@ -107,6 +107,42 @@ tryCatch(
 #> [1] "`i` must be <integer>, not <character>"
 ```
 
+## Composing contracts
+
+Embedding retains every parent requirement. Reusing the same requirement
+through several parents is valid:
+
+``` r
+
+Readable <- new_interface("Readable", interface_requirements(VectorLike)["values"])
+ReadableView <- new_interface("ReadableView", parents = Readable)
+Combined <- new_interface("Combined", parents = list(Readable, ReadableView))
+names(interface_requirements(Combined))
+#> [1] "values"
+implements(coverage, Combined)
+#> [1] TRUE
+```
+
+Aliases and generic names share the checked-call namespace. Overlapping
+names must describe the same generic and type specifications;
+incompatible declarations are rejected rather than choosing a parent by
+its position:
+
+``` r
+
+tryCatch(
+  new_interface("Conflicting", list(values = vec_length), parents = Readable),
+  error = function(e) conditionMessage(e)
+)
+#> [1] "Conflicting requirements for name `values`."
+```
+
+Trait composition also requires identical defaults for overlapping
+methods. An associated type or constant has one declaring trait. A
+diamond may share that trait, but two independent supertraits cannot
+declare the same associated name in the same category. Inherited values
+come from the declaring trait’s current implementation.
+
 ## Declaring an implementation
 
 Use a trait when a declaration or associated metadata matters to the
@@ -127,12 +163,38 @@ impl_trait(Measured, ReadDepth,
   assoc_consts = list(UNITS = "reads"),
   replace = TRUE
 )
-#> Overwriting method vec_values(<ReadDepth>)
 has_trait(ReadDepth, Measured)
 #> [1] TRUE
 trait_assoc_const(Measured, ReadDepth, "UNITS")
 #> [1] "reads"
 ```
+
+Trait registration validates methods with S7 before publishing them.
+Methods and associated values form one registration: rejected
+registrations leave its method bindings and implementation record
+unchanged. Aliases for the same generic must provide identical
+implementation functions.
+
+Conformance also works for supported base classes, S3 wrappers and S4
+classes:
+
+``` r
+
+day_number <- new_generic("day_number", "x")
+CalendarDay <- new_trait("CalendarDay", list(
+  day = trait_method(day_number, returns = class_double)
+))
+impl_trait(CalendarDay, class_Date, list(day = function(x) as.double(x)))
+date <- as.Date("2026-01-01")
+has_trait(date, CalendarDay)
+#> [1] TRUE
+with(CalendarDay, day(date))
+#> [1] 20454
+```
+
+Structural checks follow method inheritance. Nominal checks require
+registration for the object’s own class, so a subclass does not acquire
+its parent’s trait merely by inheriting its methods.
 
 ## Testing behavior
 

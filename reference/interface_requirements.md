@@ -31,7 +31,8 @@ as_interface(x, interface)
 
 - x:
 
-  An object, or an S7 class/base class wrapper.
+  An S7 object or class, S3 object or class wrapper, S4 object or class,
+  or a value or wrapper for a supported S7 base class.
 
 - arg:
 

@@ -130,7 +130,8 @@ search (including zero), `"error"` if constructing candidates failed, or
 warning is stored separately in `shrink_condition`; the original and
 last failing examples are retained. Generator warnings and errors
 terminate the run with status `"error"`. Warnings or errors from `holds`
-are counterexamples. Stateful laws created by
+stop that evaluation and are counterexamples. A subsequent discard
+cannot hide a warning. Stateful laws created by
 [`new_state_law()`](https://sounkou-bioinfo.github.io/s7contract/reference/new_state_law.md)
 additionally retain failure traces in the counterexample's
 `original_condition` and `condition` fields. Callback defects stop their

@@ -1,6 +1,9 @@
 # Inspect or use a Rust-like explicit trait
 
-Inspect or use a Rust-like explicit trait
+Methods are validated by S7 on isolated tables before registration is
+published. Method bindings and the implementation record are published
+together; a publication error restores the touched bindings. Aliases for
+the same generic must supply identical implementation functions.
 
 ## Usage
 
@@ -43,7 +46,8 @@ trait_assoc_const(trait, x, name)
 - class:
 
   A concrete S7 class, S3 class wrapper, S4 class, or base class
-  wrapper. Register union members separately.
+  wrapper. Register union members separately. Dispatch wildcards
+  (`class_any` and `class_missing`) are not concrete targets.
 
 - methods:
 
@@ -65,7 +69,7 @@ trait_assoc_const(trait, x, name)
 
 - x:
 
-  An object or class.
+  An S7, S3, S4 or supported base-class object, or its class descriptor.
 
 - arg:
 

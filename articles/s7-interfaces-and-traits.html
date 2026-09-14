@@ -191,12 +191,41 @@ operation requires integer indices:</p>
 <span><span class="co">#&gt; [1] "`i` must be &lt;integer&gt;, not &lt;character&gt;"</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="composing-contracts">Composing contracts<a class="anchor" aria-label="anchor" href="#composing-contracts"></a>
+</h2>
+<p>Embedding retains every parent requirement. Reusing the same
+requirement through several parents is valid:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">Readable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"Readable"</span>, <span class="fu"><a href="../reference/interface_requirements.html">interface_requirements</a></span><span class="op">(</span><span class="va">VectorLike</span><span class="op">)</span><span class="op">[</span><span class="st">"values"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">ReadableView</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"ReadableView"</span>, parents <span class="op">=</span> <span class="va">Readable</span><span class="op">)</span></span>
+<span><span class="va">Combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"Combined"</span>, parents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">Readable</span>, <span class="va">ReadableView</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/interface_requirements.html">interface_requirements</a></span><span class="op">(</span><span class="va">Combined</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "values"</span></span>
+<span><span class="fu"><a href="../reference/interface_requirements.html">implements</a></span><span class="op">(</span><span class="va">coverage</span>, <span class="va">Combined</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Aliases and generic names share the checked-call namespace.
+Overlapping names must describe the same generic and type
+specifications; incompatible declarations are rejected rather than
+choosing a parent by its position:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/new_interface.html">new_interface</a></span><span class="op">(</span><span class="st">"Conflicting"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">vec_length</span><span class="op">)</span>, parents <span class="op">=</span> <span class="va">Readable</span><span class="op">)</span>,</span>
+<span>  error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Conflicting requirements for name `values`."</span></span></code></pre></div>
+<p>Trait composition also requires identical defaults for overlapping
+methods. An associated type or constant has one declaring trait. A
+diamond may share that trait, but two independent supertraits cannot
+declare the same associated name in the same category. Inherited values
+come from the declaring trait’s current implementation.</p>
+</div>
+<div class="section level2">
 <h2 id="declaring-an-implementation">Declaring an implementation<a class="anchor" aria-label="anchor" href="#declaring-an-implementation"></a>
 </h2>
 <p>Use a trait when a declaration or associated metadata matters to the
 consumer. Here the declaration attaches measurement units to
 <code>ReadDepth</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Measured</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_trait.html">new_trait</a></span><span class="op">(</span><span class="st">"Measured"</span>,</span>
 <span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="../reference/new_trait.html">trait_method</a></span><span class="op">(</span><span class="va">vec_values</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  assoc_consts <span class="op">=</span> <span class="st">"UNITS"</span></span>
@@ -209,11 +238,31 @@ consumer. Here the declaration attaches measurement units to
 <span>  assoc_consts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>UNITS <span class="op">=</span> <span class="st">"reads"</span><span class="op">)</span>,</span>
 <span>  replace <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Overwriting method vec_values(&lt;ReadDepth&gt;)</span></span>
 <span><span class="fu"><a href="../reference/trait_methods.html">has_trait</a></span><span class="op">(</span><span class="va">ReadDepth</span>, <span class="va">Measured</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="../reference/trait_methods.html">trait_assoc_const</a></span><span class="op">(</span><span class="va">Measured</span>, <span class="va">ReadDepth</span>, <span class="st">"UNITS"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "reads"</span></span></code></pre></div>
+<p>Trait registration validates methods with S7 before publishing them.
+Methods and associated values form one registration: rejected
+registrations leave its method bindings and implementation record
+unchanged. Aliases for the same generic must provide identical
+implementation functions.</p>
+<p>Conformance also works for supported base classes, S3 wrappers and S4
+classes:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">day_number</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_generic.html" class="external-link">new_generic</a></span><span class="op">(</span><span class="st">"day_number"</span>, <span class="st">"x"</span><span class="op">)</span></span>
+<span><span class="va">CalendarDay</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_trait.html">new_trait</a></span><span class="op">(</span><span class="st">"CalendarDay"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  day <span class="op">=</span> <span class="fu"><a href="../reference/new_trait.html">trait_method</a></span><span class="op">(</span><span class="va">day_number</span>, returns <span class="op">=</span> <span class="va">class_double</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/trait_methods.html">impl_trait</a></span><span class="op">(</span><span class="va">CalendarDay</span>, <span class="va">class_Date</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>day <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/double.html" class="external-link">as.double</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">date</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2026-01-01"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/trait_methods.html">has_trait</a></span><span class="op">(</span><span class="va">date</span>, <span class="va">CalendarDay</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">CalendarDay</span>, <span class="fu">day</span><span class="op">(</span><span class="va">date</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 20454</span></span></code></pre></div>
+<p>Structural checks follow method inheritance. Nominal checks require
+registration for the object’s own class, so a subclass does not acquire
+its parent’s trait merely by inheriting its methods.</p>
 </div>
 <div class="section level2">
 <h2 id="testing-behavior">Testing behavior<a class="anchor" aria-label="anchor" href="#testing-behavior"></a>
@@ -221,7 +270,7 @@ consumer. Here the declaration attaches measurement units to
 <p>Method availability and valid return types leave semantic claims
 untested. This law checks length against the values used to construct
 the object:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">length_law</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/new_law.html">new_law</a></span><span class="op">(</span><span class="st">"length matches constructor input"</span>,</span>
 <span>  generators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="../reference/gen_constant.html">gen_vector</a></span><span class="op">(</span><span class="fu"><a href="../reference/gen_double.html">gen_double</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span>, max <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  holds <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">values</span><span class="op">)</span> <span class="op">{</span></span>
