@@ -18,7 +18,15 @@
 - Checked generics in [`with()`](https://rdrr.io/r/base/with.html) and
   `%::%` scopes accept arguments forwarded through `...`, as in
   `lapply(xs, generic, arg = value)`.
-- Checked calls are about five times faster. A contract scope prepares
+- Checked calls treat the receiver, and arguments and return values
+  typed with an interface or trait, as values. A class object passed as
+  a value is checked as the object it is, so a generic with a method for
+  class objects can be called on a class inside a contract scope.
+  [`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md),
+  [`has_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
+  and the other conformance functions still read a class argument as the
+  class to check.
+- Checked calls are about six times faster. A contract scope prepares
   each requirement’s signature and value checks once; each call still
   looks up the receiver’s methods, so later method registrations are
   observed.
