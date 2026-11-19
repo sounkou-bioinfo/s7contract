@@ -15,6 +15,9 @@
 - Warnings from laws stop the evaluation and produce an error
   counterexample, including when the callback would otherwise discard
   the case.
+- Checked generics in [`with()`](https://rdrr.io/r/base/with.html) and
+  `%::%` scopes accept arguments forwarded through `...`, as in
+  `lapply(xs, generic, arg = value)`.
 
 ## s7contract 0.2.3
 
