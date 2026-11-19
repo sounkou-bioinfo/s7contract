@@ -302,3 +302,79 @@ local({
     "position"
   )
 })
+
+local({
+  Pen <- new_class("PenForwardingTest", properties = list(width = class_double))
+  stroke <- new_generic(
+    "stroke_forwarding_test",
+    "x",
+    function(x, color) S7_dispatch()
+  )
+  method(stroke, Pen) <- function(x, color) sprintf("%s:%s", color, x@width)
+  Stroking <- new_interface(
+    "StrokingForwardingTest",
+    generics = list(
+      stroke = interface_requirement(
+        stroke,
+        args = list(color = class_character),
+        returns = class_character
+      )
+    )
+  )
+
+  pens <- list(Pen(width = 1), Pen(width = 2))
+  X <- "red"
+  evaluations <- 0L
+  next_color <- function() {
+    evaluations <<- evaluations + 1L
+    "blue"
+  }
+
+  expect_equal(
+    with(Stroking, lapply(pens, stroke, color = X)),
+    list("red:1", "red:2")
+  )
+  expect_equal(
+    with(Stroking, vapply(pens, stroke, character(1), "green")),
+    c("green:1", "green:2")
+  )
+  expect_equal(
+    with(Stroking, lapply(pens, stroke, color = next_color())),
+    list("blue:1", "blue:2")
+  )
+  expect_identical(evaluations, 1L)
+  expect_error(
+    with(Stroking, lapply(pens, stroke, color = 1)),
+    "`color` must be <character>"
+  )
+
+  trait_stroke <- new_generic(
+    "trait_stroke_forwarding_test",
+    "x",
+    function(x, color) S7_dispatch()
+  )
+  Strokes <- new_trait(
+    "StrokesForwardingTest",
+    methods = list(
+      trait_stroke = trait_method(
+        trait_stroke,
+        args = list(color = class_character)
+      )
+    )
+  )
+  impl_trait(
+    Strokes,
+    Pen,
+    methods = list(
+      trait_stroke = function(x, color) sprintf("%s:%s", color, x@width)
+    )
+  )
+  expect_equal(
+    with(Strokes, lapply(pens, trait_stroke, color = X)),
+    list("red:1", "red:2")
+  )
+  expect_error(
+    with(Strokes, lapply(pens, trait_stroke, color = 1)),
+    "`color` must be <character>"
+  )
+})

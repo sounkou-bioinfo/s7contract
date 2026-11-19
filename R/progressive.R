@@ -168,7 +168,13 @@
 .checked_generic_call <- function(contract, req, call, env, trait = FALSE) {
   generic <- req@generic
   matched <- tryCatch(
-    match.call(definition = generic, call = call, expand.dots = TRUE),
+    # `envir` expands `...` from callers such as lapply(xs, generic, arg = value).
+    match.call(
+      definition = generic,
+      call = call,
+      expand.dots = TRUE,
+      envir = env
+    ),
     error = function(e) {
       .abort(
         "Could not match call to `%s()`: %s",

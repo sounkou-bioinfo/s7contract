@@ -10,6 +10,8 @@
   valid. Descriptor and map names must be non-missing and unambiguous.
 * Warnings from laws stop the evaluation and produce an error counterexample,
   including when the callback would otherwise discard the case.
+* Checked generics in `with()` and `%::%` scopes accept arguments forwarded
+  through `...`, as in `lapply(xs, generic, arg = value)`.
 
 # s7contract 0.2.3
 
