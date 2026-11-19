@@ -18,6 +18,16 @@
 - Checked generics in [`with()`](https://rdrr.io/r/base/with.html) and
   `%::%` scopes accept arguments forwarded through `...`, as in
   `lapply(xs, generic, arg = value)`.
+- Checked calls are about five times faster. A contract scope prepares
+  each requirement’s signature and value checks once; each call still
+  looks up the receiver’s methods, so later method registrations are
+  observed.
+  [`implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md),
+  [`assert_implements()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md),
+  [`interface_report()`](https://sounkou-bioinfo.github.io/s7contract/reference/interface_requirements.md)
+  and
+  [`assert_trait()`](https://sounkou-bioinfo.github.io/s7contract/reference/trait_methods.md)
+  are also faster.
 
 ## s7contract 0.2.3
 
