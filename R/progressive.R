@@ -44,10 +44,14 @@
   label <- .value_error_label(arg)
   if (.is_interface(spec)) {
     plans <- .requirement_plans(spec)
-    return(function(value) .assert_conforms(value, spec, plans, label))
+    return(function(value) {
+      .assert_conforms(.value_class_or_null(value), spec, plans, label)
+    })
   }
   if (.is_trait(spec)) {
-    return(function(value) .assert_trait_status(value, spec, label))
+    return(function(value) {
+      .assert_trait_status(.value_class_or_null(value), spec, label)
+    })
   }
   if (identical(spec, S7::class_any)) {
     return(function(value) invisible(value))
@@ -79,8 +83,7 @@
   if (length(arg_names) == 0) {
     return(invisible(TRUE))
   }
-  formals_names <- names(formals(fun))
-  missing <- setdiff(arg_names, formals_names)
+  missing <- arg_names[!arg_names %in% names(formals(fun))]
   if (length(missing) > 0) {
     .abort(
       "%s is missing required argument(s): %s",
@@ -194,13 +197,13 @@
   )
 }
 
-.requirement_problems <- function(x, plans) {
-  cls <- .target_class_or_null(x, arg = "x")
+.requirement_problems <- function(cls, plans) {
   lapply(plans, .requirement_problem, cls = cls)
 }
 
-.assert_conforms <- function(x, interface, plans, arg) {
-  problems <- .requirement_problems(x, plans)
+# `cls` is the receiver class, or NULL when it could not be determined.
+.assert_conforms <- function(cls, interface, plans, arg) {
+  problems <- .requirement_problems(cls, plans)
   missing <- !vapply(problems, is.null, logical(1))
   if (any(missing)) {
     missing_names <- vapply(
@@ -215,7 +218,7 @@
       paste0(missing_names, "()", collapse = ", ")
     )
   }
-  invisible(x)
+  invisible(NULL)
 }
 
 # Builds the instrumented copy of a requirement's generic. Its body runs the
@@ -247,18 +250,15 @@
       }
       value
     })
+    # The receiver is a value, so a class object is classed as an object.
+    receiver_class <- .value_class_or_null(dispatch_values[[1L]])
     if (trait) {
-      .assert_trait_status(dispatch_values[[1L]], contract, dispatch_args[[1L]])
+      .assert_trait_status(receiver_class, contract, dispatch_args[[1L]])
       if (inherits(generic_problem, "condition")) {
         stop(generic_problem)
       }
     } else {
-      .assert_conforms(
-        dispatch_values[[1L]],
-        contract,
-        plans,
-        dispatch_args[[1L]]
-      )
+      .assert_conforms(receiver_class, contract, plans, dispatch_args[[1L]])
     }
     method <- S7::method(
       generic,

@@ -510,7 +510,7 @@ impl_trait <- function(
 #' @rdname trait_methods
 #' @export
 trait_report <- function(x, trait) {
-  status <- .trait_status(x, trait)
+  status <- .trait_status(.target_class_or_null(x, arg = "x"), trait)
   data.frame(
     trait = .trait_label(trait),
     class = status$class,
@@ -520,11 +520,11 @@ trait_report <- function(x, trait) {
   )
 }
 
-.trait_status <- function(x, trait) {
+# `cls` is the class to look up, or NULL when it could not be determined.
+.trait_status <- function(cls, trait) {
   if (!.is_trait(trait)) {
     .abort("`trait` must be created with new_trait().")
   }
-  cls <- .target_class_or_null(x, arg = "x")
   if (is.null(cls)) {
     return(list(
       class = "<unknown>",
@@ -540,8 +540,8 @@ trait_report <- function(x, trait) {
   )
 }
 
-.assert_trait_status <- function(x, trait, arg) {
-  status <- .trait_status(x, trait)
+.assert_trait_status <- function(cls, trait, arg) {
+  status <- .trait_status(cls, trait)
   if (!status$ok) {
     .abort(
       "%s does not explicitly implement %s for %s: %s",
@@ -551,20 +551,20 @@ trait_report <- function(x, trait) {
       status$message
     )
   }
-  invisible(x)
+  invisible(NULL)
 }
 
 #' @rdname trait_methods
 #' @export
 has_trait <- function(x, trait) {
-  .trait_status(x, trait)$ok
+  .trait_status(.target_class_or_null(x, arg = "x"), trait)$ok
 }
 
 #' @param arg Name to use in error messages.
 #' @rdname trait_methods
 #' @export
 assert_trait <- function(x, trait, arg = deparse(substitute(x))) {
-  .assert_trait_status(x, trait, arg)
+  .assert_trait_status(.target_class_or_null(x, arg = "x"), trait, arg)
   x
 }
 

@@ -410,3 +410,69 @@ local({
     c(TRUE, FALSE)
   )
 })
+
+# A checked call treats its receiver and typed values as values: a class object
+# is classed as the object it is. The conformance functions keep reading a
+# class argument as the class to check.
+local({
+  Sheet <- new_class("SheetValueTest")
+  label <- new_generic("label_value_test", "x")
+  method(label, new_S3_class("S7_class")) <- function(x, ...) x@name
+  Labelled <- new_interface("LabelledValueTest", generics = list(label = label))
+
+  expect_identical(label(Sheet), "SheetValueTest")
+  expect_identical(with(Labelled, label(Sheet)), "SheetValueTest")
+  expect_error(
+    with(Labelled, label(Sheet())),
+    "x does not implement LabelledValueTest; missing: label()",
+    fixed = TRUE
+  )
+  expect_false(implements(Sheet, Labelled))
+
+  size <- new_generic("size_value_test", "x")
+  method(size, Sheet) <- function(x, ...) 1
+  Sized <- new_interface("SizedValueTest", generics = list(size = size))
+  expect_true(implements(Sheet, Sized))
+  expect_identical(with(Sized, size(Sheet())), 1)
+  expect_error(
+    with(Sized, size(Sheet)),
+    "x does not implement SizedValueTest; missing: size()",
+    fixed = TRUE
+  )
+
+  stamp <- new_generic(
+    "stamp_value_test",
+    "x",
+    function(x, mark) S7_dispatch()
+  )
+  method(stamp, Sheet) <- function(x, mark) "stamped"
+  Stamping <- new_interface(
+    "StampingValueTest",
+    generics = list(
+      stamp = interface_requirement(stamp, args = list(mark = Labelled))
+    )
+  )
+  expect_identical(with(Stamping, stamp(Sheet(), mark = Sheet)), "stamped")
+  expect_error(
+    with(Stamping, stamp(Sheet(), mark = Sheet())),
+    "`mark` does not implement LabelledValueTest; missing: label()",
+    fixed = TRUE
+  )
+
+  weigh <- new_generic("weigh_value_test", "x")
+  Weighable <- new_trait(
+    "WeighableValueTest",
+    methods = list(weigh = trait_method(weigh))
+  )
+  impl_trait(
+    Weighable,
+    Sheet,
+    methods = list(weigh = function(x, ...) 2)
+  )
+  expect_true(has_trait(Sheet, Weighable))
+  expect_identical(with(Weighable, weigh(Sheet())), 2)
+  expect_error(
+    with(Weighable, weigh(Sheet)),
+    "x does not explicitly implement WeighableValueTest"
+  )
+})

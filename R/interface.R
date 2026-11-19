@@ -163,7 +163,7 @@ interface_requirements <- function(interface, inherited = TRUE) {
 #' @export
 interface_report <- function(x, interface) {
   plans <- .requirement_plans(interface)
-  problems <- .requirement_problems(x, plans)
+  problems <- .requirement_problems(.target_class_or_null(x, arg = "x"), plans)
   data.frame(
     interface = rep(.interface_label(interface), length(plans)),
     requirement = vapply(plans, function(plan) plan$req@name, character(1)),
@@ -187,7 +187,10 @@ missing_requirements <- function(x, interface) {
 #' @rdname interface_requirements
 #' @export
 implements <- function(x, interface) {
-  problems <- .requirement_problems(x, .requirement_plans(interface))
+  problems <- .requirement_problems(
+    .target_class_or_null(x, arg = "x"),
+    .requirement_plans(interface)
+  )
   all(vapply(problems, is.null, logical(1)))
 }
 
@@ -195,7 +198,12 @@ implements <- function(x, interface) {
 #' @rdname interface_requirements
 #' @export
 assert_implements <- function(x, interface, arg = deparse(substitute(x))) {
-  .assert_conforms(x, interface, .requirement_plans(interface), arg)
+  .assert_conforms(
+    .target_class_or_null(x, arg = "x"),
+    interface,
+    .requirement_plans(interface),
+    arg
+  )
   x
 }
 

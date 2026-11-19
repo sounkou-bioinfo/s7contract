@@ -73,11 +73,19 @@
   sprintf("<%s>", name)
 }
 
+# The class a contract is checked against when `x` may be a class specification
+# or an instance: a specification stands for itself.
 .target_class_or_null <- function(x, arg = "x") {
   cls <- .as_class_or_null(x, arg = arg)
   if (!is.null(cls)) {
     return(cls)
   }
+  .value_class_or_null(x)
+}
+
+# The class of `x` as a value. A class object passed as a value is classed as
+# the object it is, not as the class it describes.
+.value_class_or_null <- function(x) {
   cls <- S7::S7_class(x)
   if (!is.null(cls)) {
     return(cls)
