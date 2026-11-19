@@ -510,51 +510,61 @@ impl_trait <- function(
 #' @rdname trait_methods
 #' @export
 trait_report <- function(x, trait) {
+  status <- .trait_status(x, trait)
+  data.frame(
+    trait = .trait_label(trait),
+    class = status$class,
+    ok = status$ok,
+    message = status$message,
+    stringsAsFactors = FALSE
+  )
+}
+
+.trait_status <- function(x, trait) {
   if (!.is_trait(trait)) {
     .abort("`trait` must be created with new_trait().")
   }
-
   cls <- .target_class_or_null(x, arg = "x")
   if (is.null(cls)) {
-    return(data.frame(
-      trait = .trait_label(trait),
+    return(list(
       class = "<unknown>",
       ok = FALSE,
-      message = "Could not determine an S7 class for this value.",
-      stringsAsFactors = FALSE
+      message = "Could not determine an S7 class for this value."
     ))
   }
-
-  impl <- .find_trait_impl(trait, cls)
-  data.frame(
-    trait = .trait_label(trait),
+  ok <- !is.null(.find_trait_impl(trait, cls))
+  list(
     class = .class_label(cls),
-    ok = !is.null(impl),
-    message = if (is.null(impl)) "No explicit impl_trait() record." else "",
-    stringsAsFactors = FALSE
+    ok = ok,
+    message = if (ok) "" else "No explicit impl_trait() record."
   )
+}
+
+.assert_trait_status <- function(x, trait, arg) {
+  status <- .trait_status(x, trait)
+  if (!status$ok) {
+    .abort(
+      "%s does not explicitly implement %s for %s: %s",
+      arg,
+      .trait_label(trait),
+      status$class,
+      status$message
+    )
+  }
+  invisible(x)
 }
 
 #' @rdname trait_methods
 #' @export
 has_trait <- function(x, trait) {
-  trait_report(x, trait)$ok[[1]]
+  .trait_status(x, trait)$ok
 }
 
 #' @param arg Name to use in error messages.
 #' @rdname trait_methods
 #' @export
 assert_trait <- function(x, trait, arg = deparse(substitute(x))) {
-  report <- trait_report(x, trait)
-  if (!report$ok[[1]]) {
-    .abort(
-      "%s does not explicitly implement %s for %s: %s",
-      arg,
-      report$trait[[1]],
-      report$class[[1]],
-      report$message[[1]]
-    )
-  }
+  .assert_trait_status(x, trait, arg)
   x
 }
 

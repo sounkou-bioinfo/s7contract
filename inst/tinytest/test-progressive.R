@@ -378,3 +378,35 @@ local({
     "`color` must be <character>"
   )
 })
+
+# A contract scope checks method tables when each call runs, so a scoped closure
+# observes registrations made after the scope was created.
+local({
+  Tile <- new_class("TileScopeTest")
+  paint <- new_generic("paint_scope_test", "x")
+  measure <- new_generic("measure_scope_test", "x")
+  method(paint, Tile) <- function(x, ...) "painted"
+  Surface <- new_interface(
+    "SurfaceScopeTest",
+    generics = list(paint = paint, measure = measure)
+  )
+  tile <- Tile()
+  scoped_paint <- with(Surface, function() paint(tile))
+
+  expect_error(
+    scoped_paint(),
+    "x does not implement SurfaceScopeTest; missing: measure()",
+    fixed = TRUE
+  )
+  method(measure, Tile) <- function(x, ...) 1
+  expect_identical(scoped_paint(), "painted")
+  expect_true(implements(tile, Surface))
+
+  rm(list = Tile@name, envir = measure@methods)
+  expect_error(scoped_paint(), "missing: measure()", fixed = TRUE)
+  expect_false(implements(tile, Surface))
+  expect_identical(
+    interface_report(tile, Surface)$ok,
+    c(TRUE, FALSE)
+  )
+})

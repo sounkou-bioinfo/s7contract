@@ -12,6 +12,11 @@
   including when the callback would otherwise discard the case.
 * Checked generics in `with()` and `%::%` scopes accept arguments forwarded
   through `...`, as in `lapply(xs, generic, arg = value)`.
+* Checked calls are about five times faster. A contract scope prepares each
+  requirement's signature and value checks once; each call still looks up the
+  receiver's methods, so later method registrations are observed.
+  `implements()`, `assert_implements()`, `interface_report()` and
+  `assert_trait()` are also faster.
 
 # s7contract 0.2.3
 

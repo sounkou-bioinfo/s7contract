@@ -162,30 +162,19 @@ interface_requirements <- function(interface, inherited = TRUE) {
 #' @rdname interface_requirements
 #' @export
 interface_report <- function(x, interface) {
-  reqs <- interface_requirements(interface, inherited = TRUE)
-
-  rows <- lapply(reqs, function(req) {
-    found <- .lookup_requirement_method(req, x)
-    data.frame(
-      interface = .interface_label(interface),
-      requirement = req@name,
-      ok = found$ok,
-      message = if (found$ok) "" else conditionMessage(found$error),
-      stringsAsFactors = FALSE
-    )
-  })
-
-  if (length(rows) == 0) {
-    return(data.frame(
-      interface = character(),
-      requirement = character(),
-      ok = logical(),
-      message = character(),
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  do.call(rbind, rows)
+  plans <- .requirement_plans(interface)
+  problems <- .requirement_problems(x, plans)
+  data.frame(
+    interface = rep(.interface_label(interface), length(plans)),
+    requirement = vapply(plans, function(plan) plan$req@name, character(1)),
+    ok = vapply(problems, is.null, logical(1)),
+    message = vapply(
+      problems,
+      function(problem) if (is.null(problem)) "" else conditionMessage(problem),
+      character(1)
+    ),
+    stringsAsFactors = FALSE
+  )
 }
 
 #' @rdname interface_requirements
@@ -198,22 +187,15 @@ missing_requirements <- function(x, interface) {
 #' @rdname interface_requirements
 #' @export
 implements <- function(x, interface) {
-  nrow(missing_requirements(x, interface)) == 0L
+  problems <- .requirement_problems(x, .requirement_plans(interface))
+  all(vapply(problems, is.null, logical(1)))
 }
 
 #' @param arg Name to use in error messages.
 #' @rdname interface_requirements
 #' @export
 assert_implements <- function(x, interface, arg = deparse(substitute(x))) {
-  miss <- missing_requirements(x, interface)
-  if (nrow(miss) > 0) {
-    .abort(
-      "%s does not implement %s; missing: %s",
-      arg,
-      .interface_label(interface),
-      paste0(miss$requirement, "()", collapse = ", ")
-    )
-  }
+  .assert_conforms(x, interface, .requirement_plans(interface), arg)
   x
 }
 

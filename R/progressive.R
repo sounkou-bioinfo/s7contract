@@ -38,14 +38,19 @@
   if (identical(arg, ".return")) "Return value" else sprintf("`%s`", arg)
 }
 
-.check_value_conforms <- function(value, spec, arg) {
+# Returns a function that checks one value against `spec`. The S7 property
+# class is built once per checker, so each check is one validated construction.
+.value_checker <- function(spec, arg) {
+  label <- .value_error_label(arg)
   if (.is_interface(spec)) {
-    assert_implements(value, spec, arg = .value_error_label(arg))
-    return(invisible(value))
+    plans <- .requirement_plans(spec)
+    return(function(value) .assert_conforms(value, spec, plans, label))
   }
   if (.is_trait(spec)) {
-    assert_trait(value, spec, arg = .value_error_label(arg))
-    return(invisible(value))
+    return(function(value) .assert_trait_status(value, spec, label))
+  }
+  if (identical(spec, S7::class_any)) {
+    return(function(value) invisible(value))
   }
 
   checker <- S7::new_class(
@@ -53,19 +58,21 @@
     package = "s7contract",
     properties = list(value = spec)
   )
-  tryCatch(
-    checker(value = value),
-    error = function(e) {
-      msg <- conditionMessage(e)
-      lines <- strsplit(msg, "\n", fixed = TRUE)[[1L]]
-      value_line <- grep("^- @value ", lines, value = TRUE)
-      if (length(value_line) > 0) {
-        msg <- sub("^- @value ", "", value_line[[1L]])
+  function(value) {
+    tryCatch(
+      checker(value = value),
+      error = function(e) {
+        msg <- conditionMessage(e)
+        lines <- strsplit(msg, "\n", fixed = TRUE)[[1L]]
+        value_line <- grep("^- @value ", lines, value = TRUE)
+        if (length(value_line) > 0) {
+          msg <- sub("^- @value ", "", value_line[[1L]])
+        }
+        .abort("%s %s", label, msg)
       }
-      .abort("%s %s", .value_error_label(arg), msg)
-    }
-  )
-  invisible(value)
+    )
+    invisible(value)
+  }
 }
 
 .check_required_formals <- function(fun, arg_names, what) {
@@ -84,22 +91,11 @@
   invisible(TRUE)
 }
 
-.requirement_signature <- function(req, target) {
-  generic <- req@generic
-  dispatch_args <- generic@dispatch_args
-  cls <- .target_class_or_null(target, arg = "x")
-  if (is.null(cls)) {
-    .abort("Could not determine the class of the first dispatch argument.")
-  }
-  if (length(dispatch_args) <= 1L) {
-    return(cls)
-  }
-
-  signature <- vector("list", length(dispatch_args))
-  names(signature) <- dispatch_args
-  signature[[1L]] <- cls
-
-  for (arg in dispatch_args[-1L]) {
+# Classes for the dispatch arguments after the receiver, from the requirement's
+# type specifications.
+.requirement_dispatch_tail <- function(req) {
+  dispatch_args <- req@generic@dispatch_args[-1L]
+  tail <- lapply(dispatch_args, function(arg) {
     if (!arg %in% names(req@args)) {
       .abort("Missing type specification for dispatch argument `%s`.", arg)
     }
@@ -110,101 +106,158 @@
         arg
       )
     }
-    signature[[arg]] <- S7::as_class(spec, arg = arg)
-  }
+    S7::as_class(spec, arg = arg)
+  })
+  names(tail) <- dispatch_args
+  tail
+}
 
+.requirement_signature <- function(req, target) {
+  cls <- .target_class_or_null(target, arg = "x")
+  if (is.null(cls)) {
+    .abort("Could not determine the class of the first dispatch argument.")
+  }
+  if (length(req@generic@dispatch_args) <= 1L) {
+    return(cls)
+  }
+  signature <- c(list(cls), .requirement_dispatch_tail(req))
+  names(signature)[[1L]] <- req@generic@dispatch_args[[1L]]
   signature
 }
 
-.lookup_requirement_method <- function(req, target) {
-  generic <- req@generic
-
-  tryCatch(
+# The parts of a conformance check that depend only on the requirement.
+# Validation failures are kept as conditions and reported per receiver, after
+# the receiver's class is known.
+.requirement_plan <- function(req) {
+  tail <- NULL
+  problem <- tryCatch(
     {
-      signature <- .requirement_signature(req, target)
-      if (length(generic@dispatch_args) == 1L) {
-        signature <- list(signature)
-      }
+      tail <- unname(.requirement_dispatch_tail(req))
       .check_required_formals(
-        generic,
+        req@generic,
         names(req@args),
         sprintf("Generic `%s()`", req@name)
       )
+      NULL
+    },
+    error = identity
+  )
+  list(req = req, tail = tail, problem = problem)
+}
 
+.requirement_plans <- function(interface) {
+  lapply(interface_requirements(interface, inherited = TRUE), .requirement_plan)
+}
+
+# NULL when the receiver class `cls` has a method for every concrete signature
+# of the requirement, otherwise the condition that explains the gap.
+.requirement_problem <- function(plan, cls) {
+  req <- plan$req
+  tryCatch(
+    {
+      if (is.null(cls)) {
+        .abort("Could not determine the class of the first dispatch argument.")
+      }
+      if (!is.null(plan$problem)) {
+        stop(plan$problem)
+      }
+      method_what <- sprintf("Method `%s()`", req@name)
       # Union registration expands signatures; lookup requires concrete classes.
       check_signature <- function(signature, position = 1L) {
         if (position > length(signature)) {
           method <- S7::method(
-            generic,
+            req@generic,
             class = if (length(signature) == 1L) {
               signature[[1L]]
             } else {
               signature
             }
           )
-          .check_required_formals(
-            method,
-            names(req@args),
-            sprintf("Method `%s()`", req@name)
-          )
+          .check_required_formals(method, names(req@args), method_what)
           return(invisible(NULL))
         }
-        cls <- signature[[position]]
-        classes <- if (inherits(cls, "S7_union")) cls$classes else list(cls)
+        classes <- signature[[position]]
+        classes <- if (inherits(classes, "S7_union")) {
+          classes$classes
+        } else {
+          list(classes)
+        }
         for (cls in classes) {
           signature[position] <- list(cls)
           check_signature(signature, position + 1L)
         }
       }
-      check_signature(signature)
-      list(ok = TRUE, error = NULL)
+      check_signature(c(list(cls), plan$tail))
+      NULL
     },
-    error = function(e) {
-      list(ok = FALSE, error = e)
-    }
+    error = identity
   )
 }
 
-.checked_generic_call <- function(contract, req, call, env, trait = FALSE) {
+.requirement_problems <- function(x, plans) {
+  cls <- .target_class_or_null(x, arg = "x")
+  lapply(plans, .requirement_problem, cls = cls)
+}
+
+.assert_conforms <- function(x, interface, plans, arg) {
+  problems <- .requirement_problems(x, plans)
+  missing <- !vapply(problems, is.null, logical(1))
+  if (any(missing)) {
+    missing_names <- vapply(
+      plans[missing],
+      function(plan) plan$req@name,
+      character(1)
+    )
+    .abort(
+      "%s does not implement %s; missing: %s",
+      arg,
+      .interface_label(interface),
+      paste0(missing_names, "()", collapse = ", ")
+    )
+  }
+  invisible(x)
+}
+
+# Builds the instrumented copy of a requirement's generic. Its body runs the
+# argument checks in the generic's own frame, so S7 dispatch and R's argument
+# promises behave as in an uninstrumented call.
+.instrument_generic <- function(contract, req, plans, trait) {
   generic <- req@generic
-  matched <- tryCatch(
-    # `envir` expands `...` from callers such as lapply(xs, generic, arg = value).
-    match.call(
-      definition = generic,
-      call = call,
-      expand.dots = TRUE,
-      envir = env
-    ),
-    error = function(e) {
-      .abort(
-        "Could not match call to `%s()`: %s",
-        req@name,
-        conditionMessage(e)
-      )
-    }
-  )
+  dispatch_args <- generic@dispatch_args
+  typed_args <- names(req@args)
+  checkers <- Map(.value_checker, req@args, typed_args)
+  generic_formals <- formals(generic)
+  method_what <- sprintf("Method `%s()`", req@name)
+  generic_problem <- if (trait) {
+    tryCatch(
+      .check_required_formals(
+        generic,
+        typed_args,
+        sprintf("Generic `%s()`", req@name)
+      ),
+      error = identity
+    )
+  }
 
   check_arguments <- function(frame) {
-    dispatch_args <- generic@dispatch_args
     dispatch_values <- lapply(dispatch_args, function(arg) {
       value <- get(arg, envir = frame, inherits = FALSE)
-      if (arg %in% names(req@args)) {
-        .check_value_conforms(value, req@args[[arg]], arg)
+      if (arg %in% typed_args) {
+        checkers[[arg]](value)
       }
       value
     })
     if (trait) {
-      assert_trait(dispatch_values[[1L]], contract, arg = dispatch_args[[1L]])
-      .check_required_formals(
-        generic,
-        names(req@args),
-        sprintf("Generic `%s()`", req@name)
-      )
+      .assert_trait_status(dispatch_values[[1L]], contract, dispatch_args[[1L]])
+      if (inherits(generic_problem, "condition")) {
+        stop(generic_problem)
+      }
     } else {
-      assert_implements(
+      .assert_conforms(
         dispatch_values[[1L]],
         contract,
-        arg = dispatch_args[[1L]]
+        plans,
+        dispatch_args[[1L]]
       )
     }
     method <- S7::method(
@@ -215,15 +268,10 @@
         dispatch_values
       }
     )
-    .check_required_formals(
-      method,
-      names(req@args),
-      sprintf("Method `%s()`", req@name)
-    )
+    .check_required_formals(method, typed_args, method_what)
 
-    generic_formals <- formals(generic)
     method_frame <- NULL
-    for (arg in setdiff(names(req@args), dispatch_args)) {
+    for (arg in setdiff(typed_args, dispatch_args)) {
       absent <- eval(call("missing", as.name(arg)), envir = frame) &&
         identical(generic_formals[[arg]], quote(expr = ))
       if (absent) {
@@ -252,15 +300,10 @@
           envir = frame
         )
       }
-      .check_value_conforms(
-        get(arg, envir = frame, inherits = FALSE),
-        req@args[[arg]],
-        arg
-      )
+      checkers[[arg]](get(arg, envir = frame, inherits = FALSE))
     }
   }
 
-  # A per-call copy keeps S7 dispatch and R's argument promises in the real frame.
   checked <- S7::S7_data(generic)
   body(checked) <- substitute(
     {
@@ -271,58 +314,79 @@
   )
   checked_generic <- generic
   S7::S7_data(checked_generic) <- checked
-  matched[[1L]] <- checked_generic
-  out <- withVisible(eval(matched, envir = env))
-  .check_value_conforms(out$value, req@returns, ".return")
-  if (out$visible) out$value else invisible(out$value)
+  checked_generic
 }
 
-.make_checked_generic <- function(contract, req, trait = FALSE) {
+# The wrapper bound in a contract mask. The instrumented generic and its value
+# checkers depend only on the contract, so they are built by a promise on the
+# first call through this wrapper and shared by later calls.
+.make_checked_generic <- function(contract, req, plans, trait = FALSE) {
   force(contract)
   force(req)
+  force(plans)
   force(trait)
+  delayedAssign(
+    "checked_generic",
+    .instrument_generic(contract, req, plans, trait)
+  )
+  delayedAssign("check_return", .value_checker(req@returns, ".return"))
   function(...) {
-    .checked_generic_call(
-      contract,
-      req,
-      sys.call(),
-      parent.frame(),
-      trait = trait
+    env <- parent.frame()
+    matched <- tryCatch(
+      # `envir` expands `...` from callers such as lapply(xs, generic, arg = value).
+      match.call(
+        definition = req@generic,
+        call = sys.call(),
+        expand.dots = TRUE,
+        envir = env
+      ),
+      error = function(e) {
+        .abort(
+          "Could not match call to `%s()`: %s",
+          req@name,
+          conditionMessage(e)
+        )
+      }
     )
+    matched[[1L]] <- checked_generic
+    out <- withVisible(eval(matched, envir = env))
+    check_return(out$value)
+    if (out$visible) out$value else invisible(out$value)
   }
 }
 
-.contract_mask <- function(contract, env, trait = FALSE) {
+# Wrappers for every requirement of a contract, keyed by the names they bind.
+.contract_wrappers <- function(contract, trait = FALSE) {
   reqs <- if (trait) {
     trait_methods(contract, inherited = TRUE)
   } else {
     interface_requirements(contract, inherited = TRUE)
   }
-  mask <- new.env(parent = env)
+  plans <- if (!trait) lapply(reqs, .requirement_plan)
 
+  wrappers <- list()
   for (req in reqs) {
-    wrapper <- .make_checked_generic(contract, req, trait = trait)
-    bind_names <- unique(c(req@name, req@generic@name))
-    for (name in bind_names) {
-      assign(name, wrapper, envir = mask)
+    wrapper <- .make_checked_generic(contract, req, plans, trait = trait)
+    for (name in unique(c(req@name, req@generic@name))) {
+      wrappers[[name]] <- wrapper
     }
   }
+  wrappers
+}
 
-  mask
+.contract_mask <- function(wrappers, env) {
+  list2env(wrappers, envir = new.env(parent = env))
 }
 
 .with_contract <- function(contract, expr, env, trait = FALSE) {
-  mask <- .contract_mask(contract, env, trait = trait)
+  wrappers <- .contract_wrappers(contract, trait = trait)
+  mask <- .contract_mask(wrappers, env)
   out <- withVisible(eval(expr, envir = mask))
   value <- out$value
   if (
     identical(typeof(value), "closure") && !identical(environment(value), mask)
   ) {
-    environment(value) <- .contract_mask(
-      contract,
-      environment(value),
-      trait = trait
-    )
+    environment(value) <- .contract_mask(wrappers, environment(value))
   }
   if (out$visible) value else invisible(value)
 }
